@@ -1,15 +1,22 @@
+from datetime import datetime
 import disnake
 import time
 import os
 from disnake.ext import commands
 from database import execute_operation, execute_query
 
-bot = commands.Bot(command_prefix='/', help_command=None, intents=disnake.Intents.all())
+bot = commands.Bot(command_prefix='/', help_command=None, intents=disnake.Intents.default())
 
 
-@bot.command(name='add_exception')
+@bot.command(name='stats')
 async def add_exception(ctx):
-    await ctx.send(f'Привет, {ctx.author.name}!')
+    query = execute_operation('discord-esbot', 'select', 'logs_users_time_on_voice',
+                              columns='*',
+                              where=f'`user_id`={ctx.author.id} AND `date` = \'{datetime.utcfromtimestamp(time.time()).strftime("%d-%m-%Y")}\'')
+    for time_difference in query:
+        real = time_difference['time_leave_voice'] - time_difference['time_start_open']
+        print(datetime.utcfromtimestamp(real).strftime("%H ч. %M мин. %S сек."))
+    await ctx.send(f'Ваша статистика за сегодня:\n')
 
 
 @bot.event
@@ -40,40 +47,90 @@ async def on_ready():
                 print('Произошла ошибка при отправке запроса MySql')
 
 
+user_time = []
+
+
 @bot.event
 async def on_voice_state_update(member, before, after):
-    global time_join
-    global time_difference
-    global time_exception
-    time_exception = []
-    last_joins = {}
     if before.channel is None and after.channel is not None:
-        time_join = time.time()
-        last_join_time = time_join
-        last_joins[after.channel.id] = time_join
-        print(f'Заход {member} "{after.channel.name}": {round(last_join_time, 2)}')
-    elif before.channel is not None and after.channel is not None:
-        if before.channel.id != after.channel.id:
-            try:
-                time_leave = time.time()
-                time_difference = time_leave - time_join
-                exceptions_table = execute_operation('discord-esbot', 'select', 'servers_exceptions',
-                                                     columns='id')
-                for id in exceptions_table:
-                    if id['id'] == after.channel.id:
-                        time_exception.append(time_difference)
-                        break
-                else:
-                    if before.channel.id != after.channel.id:
-                        print(f'Перезаход в другой канал {member} "{after.channel.name}": {round(time_difference, 2)}')
-            except:
-                print('Ошибка')
+        first_connect_voice = await user_join_voice(member, after)
+        print('Зашел в канал:', member.name)
+        user_time.append(first_connect_voice[0])
+        user_time.append(first_connect_voice[1])
+    elif before.channel and after.channel:
+        await user_move_voice(user_time[0], user_time[1], member, after, before)
+        connect = await user_join_voice(member, before)
+        user_time.append(connect[0])
+        user_time.append(connect[1])
     elif before.channel is not None and after.channel is None:
-        hours, remainder = divmod(int(time_difference), 3600)
-        minutes, seconds = divmod(remainder, 60)
-        print(time_exception)
+        await user_leaved_voice(user_time[0], user_time[1], member, after, before)
+    else:
+        print('Ошибка!')
+
+
+async def user_join_voice(member, before):
+    exceptions_table = execute_operation('discord-esbot', 'select', 'servers_exceptions',
+                                         columns='id')
+    if before.channel.id == exceptions_table[0]['id']:
+        time_join_open = 0
+        time_join_close = time.time()
+    else:
+        time_join_open = time.time()
+        time_join_close = 0
+    return [time_join_open, time_join_close, member.name, member.id, before.channel.id, before.channel.name]
+
+
+async def user_move_voice(time_start_open, time_start_close, member, after, before):
+    id_server = [guild.id for guild in bot.guilds]
+    values = {
+        'user_id': member.id,
+        'user_name': member.name,
+        'id_server': id_server[0],
+        'time_start_open': time_start_open,
+        'time_start_close': time_start_close,
+        'time_leave_voice': time.time(),
+        'id_channel': before.channel.id,
+        'name_channel': before.channel.name,
+        'date': datetime.utcfromtimestamp(time.time()).strftime("%d-%m-%Y")
+    }
+    execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
+    exceptions_table = execute_operation('discord-esbot', 'select', 'servers_exceptions',
+                                         columns='id')
+    if after.channel.id == exceptions_table[0]['id']:
+        print('Вы перешли в закрытый канал, учет времени закончен.')
+    elif before.channel.id != exceptions_table[0]['id']:
         print(
-            f'Пользователь {member} покинул голосовые каналы.\nВремя проведенное в открытых каналах: {hours} часов, {minutes} минут, {seconds} секунд.\nВремя проведенное в закрытых каналах: {time_exception}')
+            f'{member.name} провел в "{before.channel.name}" ({time.time() - time_start_open}), перешли в {after.channel.name} (открытый), учет времени продолжен.')
+    user_time.clear()
+
+
+async def user_leaved_voice(time_start_open, time_start_close, member, after, before):
+    id_server = [guild.id for guild in bot.guilds]
+    values = {
+        'user_id': member.id,
+        'user_name': member.name,
+        'id_server': id_server[0],
+        'time_start_open': time_start_open,
+        'time_start_close': time_start_close,
+        'time_leave_voice': time.time(),
+        'id_channel': before.channel.id,
+        'name_channel': before.channel.name,
+        'date': datetime.utcfromtimestamp(time.time()).strftime("%d-%m-%Y")
+    }
+    execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
+    if time_start_close != 0:
+        time_leave_open = 0
+        time_leave_close = time.time() - time_start_close
+    elif time_start_open != 0:
+        time_leave_open = time.time() - time_start_open
+        time_leave_close = 0
+    else:
+        time_leave_open = time.time() - time_start_open
+        time_leave_close = time.time() - time_start_close
+    print(
+        f'Пользователь вышел из голосовых чатов:\nВремя проведенное в каналах: {datetime.utcfromtimestamp(time_leave_open).strftime("%H ч. %M мин. %S сек.")} (Закрытые: {datetime.utcfromtimestamp(time_leave_close).strftime("%H ч. %M мин. %S сек.")})')
+    user_time.clear()
+    return [time_leave_open, time_leave_close, member.name, member.id, before.channel.id, before.channel.name]
 
 
 bot.run(os.getenv("TOKEN_BOT"))
