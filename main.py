@@ -59,7 +59,7 @@ user_time = []
 @bot.event
 async def on_voice_state_update(member, before, after):
     if after.self_mute and before.self_mute and after.self_deaf and before.self_deaf:
-        return
+        print('ПОЛЬЗОВАТЕЛЬ ОТКЛЮЧИЛ\ВКУЛЮЧИЛ МИКРО!!!')
     elif before.channel is None and after.channel is not None:
         first_connect_voice = await user_join_voice(member, after)
         print('Зашел в канал:', member.name)
