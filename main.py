@@ -59,7 +59,7 @@ async def add_exception(ctx, user_id=None, date=None):
     if is_access_command(ctx, cmd='stats'):
         if user_id is None and date is None:
             user_id = ctx.author.id
-            date = datetime.utcfromtimestamp(time.time()).strftime("%d-%m-%Y")
+            date = datetime.now().strftime("%d-%m-%Y")
 
         query = execute_operation('discord-esbot', 'select', 'logs_users_time_on_voice',
                                   columns='*',
@@ -218,7 +218,7 @@ async def user_move_voice(time_start_open, time_start_close, member, after, befo
         'time_leave_voice': time.time(),
         'id_channel': before.channel.id,
         'name_channel': before.channel.name,
-        'date': datetime.utcfromtimestamp(time.time()).strftime("%d-%m-%Y")
+        'date': datetime.now().strftime("%d-%m-%Y")
     }
     execute_operation('discord-esbot', 'select', 'servers_exceptions', columns='id')
     execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
@@ -235,7 +235,7 @@ async def user_leaved_voice(time_start_open, time_start_close, member, after, be
         'time_leave_voice': time.time(),
         'id_channel': before.channel.id,
         'name_channel': before.channel.name,
-        'date': datetime.utcfromtimestamp(time.time()).strftime("%d-%m-%Y")
+        'date': datetime.now().strftime("%d-%m-%Y")
     }
     execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
     if time_start_close != 0:
