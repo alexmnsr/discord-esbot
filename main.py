@@ -33,7 +33,7 @@ async def access(ctx, cmd, user_id, sys=None):
 
 
 @bot.command(name='access_roles')
-async def access_role(ctx, cmd, role, sys=None):
+async def access_role(ctx, cmd, *, role, sys=None):
     if ctx.author.id == 479244541858152449:
         if sys == '-d':
             execute_operation('discord-esbot', 'delete', 'access_roles',
