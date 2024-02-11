@@ -5,17 +5,23 @@ import os
 from disnake.ext import commands
 from database import execute_operation, execute_query
 
-bot = commands.Bot(command_prefix='/', help_command=None, intents=disnake.Intents.default())
+bot = commands.Bot(command_prefix='/', help_command=None, intents=disnake.Intents.all())
 
 
 @bot.command(name='stats')
-async def add_exception(ctx):
-    query = execute_operation('discord-esbot', 'select', 'logs_users_time_on_voice',
-                              columns='*',
-                              where=f'`user_id`={ctx.author.id} AND `date` = \'{datetime.utcfromtimestamp(time.time()).strftime("%d-%m-%Y")}\'')
-    for time_difference in query:
-        real = time_difference['time_leave_voice'] - time_difference['time_start_open']
-        print(datetime.utcfromtimestamp(real).strftime("%H ч. %M мин. %S сек."))
+async def add_exception(ctx, user_id: int, date: str):
+    if user_id and date:
+        query = execute_operation('discord-esbot', 'select', 'logs_users_time_on_voice',
+                                  columns='*',
+                                  where=f'`user_id`={user_id} AND `date` = \'{date}\'')
+    else:
+        query = execute_operation('discord-esbot', 'select', 'logs_users_time_on_voice',
+                                  columns='*',
+                                  where=f'`user_id`={ctx.author.id} AND `date` = \'{datetime.utcfromtimestamp(time.time()).strftime("%d-%m-%Y")}\'')
+    for info_user in query:
+        real = info_user['time_leave_voice'] - info_user['time_start_open']
+        print(
+            f'Пользователь {info_user["user_name"]} отсидел в канале ({info_user["name_channel"]}): {datetime.utcfromtimestamp(real).strftime("%H ч. %M мин. %S сек.")}')
     await ctx.send(f'Ваша статистика за сегодня:\n')
 
 
@@ -52,7 +58,9 @@ user_time = []
 
 @bot.event
 async def on_voice_state_update(member, before, after):
-    if before.channel is None and after.channel is not None:
+    if after.self_mute and before.self_mute and after.self_deaf and before.self_deaf:
+        return
+    elif before.channel is None and after.channel is not None:
         first_connect_voice = await user_join_voice(member, after)
         print('Зашел в канал:', member.name)
         user_time.append(first_connect_voice[0])
