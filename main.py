@@ -7,7 +7,7 @@ from database import execute_operation, execute_query
 
 bot = commands.Bot(command_prefix='/', help_command=None, intents=disnake.Intents.all())
 
-
+#123
 @bot.command(name='stats')
 async def add_exception(ctx, user_id: int, date: str):
     if user_id and date:
