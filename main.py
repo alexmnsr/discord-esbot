@@ -7,7 +7,8 @@ from database import execute_operation, execute_query
 
 bot = commands.Bot(command_prefix='/', help_command=None, intents=disnake.Intents.all())
 
-#123
+
+# 123
 @bot.command(name='stats')
 async def add_exception(ctx, user_id: int, date: str):
     if user_id and date:
@@ -64,7 +65,7 @@ async def on_voice_state_update(member, before, after):
         user_time.append(first_connect_voice[0])
         user_time.append(first_connect_voice[1])
     elif before.channel and after.channel:
-        if after.self_mute and before.self_mute and after.self_deaf and before.self_deaf:
+        if await change_voice_parametrs(member, before, after):
             return
         await user_move_voice(user_time[0], user_time[1], member, after, before)
         connect = await user_join_voice(member, before)
@@ -75,6 +76,19 @@ async def on_voice_state_update(member, before, after):
     else:
         print('Ошибка!')
 
+
+async def change_voice_parametrs(member, before, after):
+    # Событие изменения состояния микрофона
+    if before.self_mute != after.self_mute:
+        print(f"{member.name} изменил состояние микрофона: {after.self_mute}")
+        return True
+
+    # Событие изменения состояния наушников
+    if before.self_deaf != after.self_deaf:
+        print(f"{member.name} изменил состояние наушников: {after.self_deaf}")
+        return True
+
+    return False
 
 async def user_join_voice(member, before):
     exceptions_table = execute_operation('discord-esbot', 'select', 'servers_exceptions',
