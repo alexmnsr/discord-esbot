@@ -1,13 +1,11 @@
-from datetime import datetime
-import disnake
 import time
+import disnake
 import os
+from datetime import datetime as dt
 from disnake.ext import commands
-from disnake.ext.commands import MemberConverter
-from database import execute_operation, execute_query
+from database import execute_operation
 
 bot = commands.Bot(command_prefix='/', help_command=None, intents=disnake.Intents.all())
-
 
 @bot.command(name='access')
 async def access(ctx, cmd, user_id, sys=None):
@@ -59,7 +57,7 @@ async def add_exception(ctx, user_id=None, date=None):
     if is_access_command(ctx, cmd='stats'):
         if user_id is None and date is None:
             user_id = ctx.author.id
-            date = datetime.now().strftime("%d-%m-%Y")
+            date = dt.now().strftime("%d-%m-%Y")
 
         query = execute_operation('discord-esbot', 'select', 'logs_users_time_on_voice',
                                   columns='*',
@@ -87,11 +85,11 @@ async def add_exception(ctx, user_id=None, date=None):
 
         for channel, channel_time in channel_stats.items():
             embed.add_field(name=f'В канале "{channel}"',
-                            value=f'{datetime.utcfromtimestamp(channel_time).strftime("%H ч. %M м. %S с.")}',
+                            value=f'{dt.utcfromtimestamp(channel_time).strftime("%H ч. %M м. %S с.")}',
                             inline=False)
 
         embed.add_field(name='Итоговое время в каналах',
-                        value=f'{datetime.utcfromtimestamp(total_time).strftime("%H ч. %M м. %S с.")}', inline=False)
+                        value=f'{dt.utcfromtimestamp(total_time).strftime("%H ч. %M м. %S с.")}', inline=False)
 
         await ctx.send(embed=embed)
     else:
@@ -172,20 +170,18 @@ async def on_voice_state_update(member, before, after):
         first_connect_voice = await user_join_voice(member, after)
         print('Зашел в канал:', member.name)
         user_time.append(first_connect_voice[0])
-        user_time.append(first_connect_voice[1])
     elif before.channel and after.channel:
         if await change_voice_parametrs(before, after):
             return
         if len(user_time):
-            await user_move_voice(user_time[0], user_time[1], member, after, before)
+            await user_move_voice(user_time[0], member, after, before)
         else:
             print('Нет там столько')
         connect = await user_join_voice(member, before)
         user_time.append(connect[0])
-        user_time.append(connect[1])
     elif before.channel is not None and after.channel is None:
         if len(user_time):
-            await user_leaved_voice(user_time[0], user_time[1], member, after, before)
+            await user_leaved_voice(user_time[0], member, after, before)
         else:
             print('Нет там столько')
     else:
@@ -203,58 +199,46 @@ async def change_voice_parametrs(before, after):
 async def user_join_voice(member, before):
     exceptions_table = execute_operation('discord-esbot', 'select', 'servers_exceptions',
                                          columns='id')
-    if before.channel.id == exceptions_table[0]['id']:
-        time_join_open = 0
-        time_join_close = time.time()
-    else:
-        time_join_open = time.time()
-        time_join_close = 0
-    return [time_join_open, time_join_close, member.name, member.id, before.channel.id, before.channel.name]
+    unix_time = time.time() + 3 * 60 * 60
+    time_join_open = unix_time
+    return [time_join_open, member.name, member.id, before.channel.id, before.channel.name]
 
 
-async def user_move_voice(time_start_open, time_start_close, member, after, before):
+async def user_move_voice(time_start_open, member, after, before):
+    unix_time = time.time() + 3 * 60 * 60
     values = {
         'user_id': member.id,
         'user_name': member.name,
         'id_server': member.guild.id,
         'time_start_open': time_start_open,
-        'time_start_close': time_start_close,
-        'time_leave_voice': time.time(),
+        'time_leave_voice': unix_time,
         'id_channel': before.channel.id,
         'name_channel': before.channel.name,
-        'date': datetime.now().strftime("%d-%m-%Y")
+        'date': dt.now().strftime("%d-%m-%Y")
     }
     execute_operation('discord-esbot', 'select', 'servers_exceptions', columns='id')
     execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
     user_time.clear()
 
 
-async def user_leaved_voice(time_start_open, time_start_close, member, after, before):
+async def user_leaved_voice(time_start_open, member, after, before):
+    unix_time = time.time() + 3 * 60 * 60
     values = {
         'user_id': member.id,
         'user_name': member.name,
         'id_server': member.guild.id,
         'time_start_open': time_start_open,
-        'time_start_close': time_start_close,
-        'time_leave_voice': time.time(),
+        'time_leave_voice': unix_time,
         'id_channel': before.channel.id,
         'name_channel': before.channel.name,
-        'date': datetime.now().strftime("%d-%m-%Y")
+        'date': dt.now().strftime("%d-%m-%Y")
     }
     execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
-    if time_start_close != 0:
-        time_leave_open = 0
-        time_leave_close = time.time() - time_start_close
-    elif time_start_open != 0:
-        time_leave_open = time.time() - time_start_open
-        time_leave_close = 0
-    else:
-        time_leave_open = time.time() - time_start_open
-        time_leave_close = time.time() - time_start_close
+    time_leave_open = unix_time - time_start_open
     print(
-        f'Пользователь вышел из голосовых чатов:\nВремя проведенное в каналах: {datetime.utcfromtimestamp(time_leave_open).strftime("%H ч. %M мин. %S сек.")} (Закрытые: {datetime.utcfromtimestamp(time_leave_close).strftime("%H ч. %M мин. %S сек.")})')
+        f'Пользователь вышел из голосовых чатов:\nВремя проведенное в каналах: {dt.utcfromtimestamp(time_leave_open).strftime("%H ч. %M мин. %S сек.")}')
     user_time.clear()
-    return [time_leave_open, time_leave_close, member.name, member.id, before.channel.id, before.channel.name]
+    return [time_leave_open, member.name, member.id, before.channel.id, before.channel.name]
 
 
 bot.run(os.getenv("TOKEN_BOT"))
