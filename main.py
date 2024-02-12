@@ -104,11 +104,9 @@ def is_access_command(ctx, cmd):
     personal_access = execute_operation('discord-esbot', 'select', 'personal_access_cmd', columns='*',
                                         where=f'`cmd`="{cmd}" AND `id_user`={ctx.author.id}')
     if personal_access and personal_access[0]['id_user'] == ctx.author.id:
-        print("Прошли по личному доступу")
         return True
     elif role_access and isinstance(role_access, list):
         if personal_access and personal_access[0]['id_user'] == ctx.author.id:
-            print("Прошли по личному доступу")
             return True
         user_roles = set(role.name for role in ctx.author.roles)
         db_roles = set(entry.get('role') for entry in role_access)
@@ -178,12 +176,18 @@ async def on_voice_state_update(member, before, after):
     elif before.channel and after.channel:
         if await change_voice_parametrs(before, after):
             return
-        await user_move_voice(user_time[0], user_time[1], member, after, before)
+        if len(user_time):
+            await user_move_voice(user_time[0], user_time[1], member, after, before)
+        else:
+            print('Нет там столько')
         connect = await user_join_voice(member, before)
         user_time.append(connect[0])
         user_time.append(connect[1])
     elif before.channel is not None and after.channel is None:
-        await user_leaved_voice(user_time[0], user_time[1], member, after, before)
+        if len(user_time):
+            await user_leaved_voice(user_time[0], user_time[1], member, after, before)
+        else:
+            print('Нет там столько')
     else:
         print('Ошибка!')
 
