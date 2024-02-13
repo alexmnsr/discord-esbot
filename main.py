@@ -93,7 +93,7 @@ async def add_exception(ctx, user_id=None, date=None):
 
         await ctx.send(embed=embed)
     else:
-        print("Не имеете доступа к данной команде")
+        print("Не имеете доступа к данной команде.")
 
 
 def is_access_command(ctx, cmd):
