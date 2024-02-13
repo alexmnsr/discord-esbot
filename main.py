@@ -93,7 +93,7 @@ async def add_exception(ctx, user_id=None, date=None):
 
         await ctx.send(embed=embed)
     else:
-        print("Не имеете доступа к данной команде.")
+        print("Не имеете доступа к данной команде")
 
 
 def is_access_command(ctx, cmd):
@@ -236,7 +236,7 @@ async def user_leaved_voice(time_start_open, member, after, before):
     execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
     time_leave_open = unix_time - time_start_open
     print(
-        f'Пользователь вышел из голосовых чатов:\nВремя проведенное в каналах: {dt.utcfromtimestamp(time_leave_open).strftime("%H ч. %M мин. %S сек.")}')
+        f'Пользователь {member.name} вышел из голосовых чатов:\nВремя проведенное в каналах: {dt.utcfromtimestamp(time_leave_open).strftime("%H ч. %M мин. %S сек.")}')
     user_time.clear()
     return [time_leave_open, member.name, member.id, before.channel.id, before.channel.name]
 
