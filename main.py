@@ -16,8 +16,11 @@ async def access(ctx, cmd, user_id, sys=None):
             execute_operation('discord-esbot', 'delete', table_name='personal_access_cmd',
                               where=f'`cmd` = "{cmd}" AND `id_user` = {user_id} AND `server_id` = {ctx.guild.id}',
                               commit=True)
-            await ctx.send(
-                f'Пользователь {ctx.author.name} забрал персональный доступ к команде "/{cmd}", пользователю {user.name}')
+            embed = disnake.Embed(
+                title=f'Снятие личного доступа',
+                description=f'Команда: /{cmd}\n↳ Пользователь: {user.name} (ID: {user_id})',
+                color=disnake.Color.red())
+            await ctx.send(embed=embed)
         else:
             values = {
                 'cmd': cmd,
@@ -26,21 +29,26 @@ async def access(ctx, cmd, user_id, sys=None):
             }
             execute_operation('discord-esbot', 'insert', 'personal_access_cmd', values=values,
                               commit=True)
-            await ctx.send(
-                f'Пользователь {ctx.author.name} выдал персональный доступ к команде "/{cmd}", пользователю {user.name}')
+            embed = disnake.Embed(
+                title=f'Выдача личного доступа',
+                description=f'Команда: /{cmd}\n↳ Пользователь: {user.name} (ID: {user_id})',
+                color=disnake.Color.red())
+            await ctx.send(embed=embed)
     else:
         await ctx.send('Вы не имеете доступа к данной команде.')
 
 
 @bot.command(name='access_roles')
-async def access_role(ctx, cmd, *, role, sys=None):
+async def access_role(ctx, cmd, *, role, sys):
     if ctx.author.id == 479244541858152449:
         if sys == '-d':
             execute_operation('discord-esbot', 'delete', 'access_roles',
                               where=f'`role`="{role}" AND `server_id`={ctx.guild.id} AND `cmd`="{cmd}"', commit=True)
-            await ctx.send(
-                disnake.Embed(title=f'Пользователь {ctx.author.name} забрал доступ к команде "/{cmd}", у роли "{role}"',
-                              color=disnake.Color.red()))
+            embed = disnake.Embed(
+                title=f'Снятие доступа по роли',
+                description=f'Команда: /{cmd}\n↳ Роль: {role}',
+                color=disnake.Color.red())
+            await ctx.send(embed=embed)
         else:
             values = {
                 'role': role,
@@ -49,9 +57,11 @@ async def access_role(ctx, cmd, *, role, sys=None):
             }
             execute_operation('discord-esbot', 'insert', 'access_roles', values=values,
                               commit=True)
-            await ctx.send(disnake.Embed(
-                title=f'Пользователь {ctx.author.name} выдал  доступ к команде "/{cmd}", пользователям с ролью "{role}"',
-                color=disnake.Color.green()))
+            embed = disnake.Embed(
+                title=f'Выдача доступа по роли',
+                description=f'Команда: /{cmd}\n↳ Роль: {role}',
+                color=disnake.Color.red())
+            await ctx.send(embed=embed)
     else:
         await ctx.send('Вы не имеете доступа к данной команде.')
 
@@ -71,8 +81,7 @@ async def add_exception(ctx, user_id=None, date=None):
                                             where=f'`id_server` = {ctx.guild.id}')
 
         if not query:
-            await ctx.send(disnake.Embed(title=f'Нет статистики за {date} для пользователя (ID: {user_id})',
-                                         color=disnake.Color.red()))
+            await ctx.send(f'Нет статистики за {date} для пользователя (ID: {user_id})')
             return
 
         channel_stats = {}
@@ -237,6 +246,7 @@ async def get_join_info(member_id):
         if member_id in entry:
             return entry[member_id]
     return None
+
 
 async def user_leaved_voice(member, before):
     try:
