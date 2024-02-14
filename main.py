@@ -190,6 +190,14 @@ async def change_voice_parametrs(before, after):
         return True
     if before.self_deaf != after.self_deaf:
         return True
+    if before.self_video != after.self_video:
+        return True
+    if before.mute != after.mute:
+        return True
+    if before.deaf != after.deaf:
+        return True
+    if before.self_stream != after.self_stream:
+        return True
     return False
 
 
@@ -201,24 +209,34 @@ async def user_join_voice(member, after):
 
 async def user_move_voice(member, before, after):
     unix_time = time.time() + 3 * 60 * 60
-    values = {
-        'user_id': member.id,
-        'user_name': member.name,
-        'id_server': member.guild.id,
-        'time_start': join_channel[0].get(member.id, None),
-        'time_leave_voice': unix_time,
-        'id_channel': before.channel.id,
-        'name_channel': before.channel.name,
-        'date': dt.now().strftime("%d-%m-%Y")
-    }
-    execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
-    # print(f'Пользователь {member.name} переместился из "{before.channel.name}" в "{after.channel.name}"')
-    for item in join_channel:
-        if member.id in item:
-            join_channel.remove(item)
-            break
-    await user_join_voice(member, after)
+    try:
+        values = {
+            'user_id': member.id,
+            'user_name': member.name,
+            'id_server': member.guild.id,
+            'time_start': await get_join_info(member.id),
+            'time_leave_voice': unix_time,
+            'id_channel': before.channel.id,
+            'name_channel': before.channel.name,
+            'date': dt.now().strftime("%d-%m-%Y")
+        }
+        # print('MOVE: ', values)
+        execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
+        # print(f'Пользователь {member.name} переместился из "{before.channel.name}" в "{after.channel.name}"')
+        for item in join_channel:
+            if member.id in item:
+                join_channel.remove(item)
+                break
+        await user_join_voice(member, after)
+    except IndexError as e:
+        print(f"Ошибка leave_voice : {e}")
 
+
+async def get_join_info(member_id):
+    for entry in join_channel:
+        if member_id in entry:
+            return entry[member_id]
+    return None
 
 async def user_leaved_voice(member, before):
     try:
@@ -227,12 +245,13 @@ async def user_leaved_voice(member, before):
             'user_id': member.id,
             'user_name': member.name,
             'id_server': member.guild.id,
-            'time_start': join_channel[0].get(member.id, None),
+            'time_start': await get_join_info(member.id),
             'time_leave_voice': unix_time,
             'id_channel': before.channel.id,
             'name_channel': before.channel.name,
             'date': dt.now().strftime("%d-%m-%Y")
         }
+        # print('LEAVED: ', values)
         execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
         # print(f'Пользователь {member.name} вышел.\nВремя выхода: {dt.now().strftime("%H:%M:%S %d-%m-%Y")}')
         for item in join_channel:
