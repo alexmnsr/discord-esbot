@@ -7,13 +7,15 @@ from database import execute_operation
 
 bot = commands.Bot(command_prefix='/', help_command=None, intents=disnake.Intents.all())
 
+
 @bot.command(name='access')
 async def access(ctx, cmd, user_id, sys=None):
     if ctx.author.id == 479244541858152449:
         user = await bot.fetch_user(user_id)
         if sys == '-d':
             execute_operation('discord-esbot', 'delete', table_name='personal_access_cmd',
-                              where=f'`cmd` = "{cmd}" AND `id_user` = {user_id} AND `server_id` = {ctx.guild.id}', commit=True)
+                              where=f'`cmd` = "{cmd}" AND `id_user` = {user_id} AND `server_id` = {ctx.guild.id}',
+                              commit=True)
             await ctx.send(
                 f'Пользователь {ctx.author.name} забрал персональный доступ к команде "/{cmd}", пользователю {user.name}')
         else:
@@ -37,7 +39,8 @@ async def access_role(ctx, cmd, *, role, sys=None):
             execute_operation('discord-esbot', 'delete', 'access_roles',
                               where=f'`role`="{role}" AND `server_id`={ctx.guild.id} AND `cmd`="{cmd}"', commit=True)
             await ctx.send(
-                f'Пользователь {ctx.author.name} забрал доступ к команде "/{cmd}", у роли "{role}"')
+                disnake.Embed(title=f'Пользователь {ctx.author.name} забрал доступ к команде "/{cmd}", у роли "{role}"',
+                              color=disnake.Color.red()))
         else:
             values = {
                 'role': role,
@@ -46,8 +49,9 @@ async def access_role(ctx, cmd, *, role, sys=None):
             }
             execute_operation('discord-esbot', 'insert', 'access_roles', values=values,
                               commit=True)
-            await ctx.send(
-                f'Пользователь {ctx.author.name} выдал  доступ к команде "/{cmd}", пользователям с ролью "{role}"')
+            await ctx.send(disnake.Embed(
+                title=f'Пользователь {ctx.author.name} выдал  доступ к команде "/{cmd}", пользователям с ролью "{role}"',
+                color=disnake.Color.green()))
     else:
         await ctx.send('Вы не имеете доступа к данной команде.')
 
@@ -67,7 +71,8 @@ async def add_exception(ctx, user_id=None, date=None):
                                             where=f'`id_server` = {ctx.guild.id}')
 
         if not query:
-            await ctx.send(f'Нет статистики для пользователя {user_id} за {date}')
+            await ctx.send(disnake.Embed(title=f'Нет статистики за {date} для пользователя (ID: {user_id})',
+                                         color=disnake.Color.red()))
             return
 
         channel_stats = {}
@@ -75,7 +80,7 @@ async def add_exception(ctx, user_id=None, date=None):
 
         for info_user in query:
             if info_user['id_channel'] not in [exc['id'] for exc in query_exception]:
-                real = info_user['time_leave_voice'] - info_user['time_start_open']
+                real = info_user['time_leave_voice'] - info_user['time_start']
                 total_time += real
 
                 channel_name = info_user["name_channel"]
@@ -84,11 +89,11 @@ async def add_exception(ctx, user_id=None, date=None):
         embed = disnake.Embed(title=f'Статистика {query[0]["user_name"]} за {date}', color=disnake.Color.green())
 
         for channel, channel_time in channel_stats.items():
-            embed.add_field(name=f'В канале "{channel}"',
+            embed.add_field(name=f'В канале "{channel}":',
                             value=f'{dt.utcfromtimestamp(channel_time).strftime("%H ч. %M м. %S с.")}',
                             inline=False)
 
-        embed.add_field(name='Итоговое время в каналах',
+        embed.add_field(name='Итоговое время в каналах:',
                         value=f'{dt.utcfromtimestamp(total_time).strftime("%H ч. %M м. %S с.")}', inline=False)
 
         await ctx.send(embed=embed)
@@ -161,29 +166,21 @@ async def on_ready():
         print(f'Произошла ошибка при выводе информации о сервере: {e}')
 
 
-user_time = []
+join_channel = []
 
 
 @bot.event
 async def on_voice_state_update(member, before, after):
     if before.channel is None and after.channel is not None:
-        first_connect_voice = await user_join_voice(member, after)
-        print('Зашел в канал:', member.name)
-        user_time.append(first_connect_voice[0])
+        await user_join_voice(member, after)
+        # print(f'Пользователь {member.name} зашел в канал "{after.channel.name}"\nВремя захода: {dt.now().strftime("%H:%M:%S %d-%m-%Y")}')
     elif before.channel and after.channel:
         if await change_voice_parametrs(before, after):
             return
-        if len(user_time):
-            await user_move_voice(user_time[0], member, after, before)
         else:
-            print('Нет там столько')
-        connect = await user_join_voice(member, before)
-        user_time.append(connect[0])
+            await user_move_voice(member, before, after)
     elif before.channel is not None and after.channel is None:
-        if len(user_time):
-            await user_leaved_voice(user_time[0], member, after, before)
-        else:
-            print('Нет там столько')
+        await user_leaved_voice(member, before)
     else:
         print('Ошибка!')
 
@@ -196,49 +193,55 @@ async def change_voice_parametrs(before, after):
     return False
 
 
-async def user_join_voice(member, before):
-    exceptions_table = execute_operation('discord-esbot', 'select', 'servers_exceptions',
-                                         columns='id')
-    unix_time = time.time() + 3 * 60 * 60
-    time_join_open = unix_time
-    return [time_join_open, member.name, member.id, before.channel.id, before.channel.name]
+async def user_join_voice(member, after):
+    time_join = time.time() + 3 * 60 * 60
+    join_channel.append({member.id: time_join})
+    return [time_join, member.name, member.id, after.channel.id, after.channel.name]
 
 
-async def user_move_voice(time_start_open, member, after, before):
+async def user_move_voice(member, before, after):
     unix_time = time.time() + 3 * 60 * 60
     values = {
         'user_id': member.id,
         'user_name': member.name,
         'id_server': member.guild.id,
-        'time_start_open': time_start_open,
-        'time_leave_voice': unix_time,
-        'id_channel': before.channel.id,
-        'name_channel': before.channel.name,
-        'date': dt.now().strftime("%d-%m-%Y")
-    }
-    execute_operation('discord-esbot', 'select', 'servers_exceptions', columns='id')
-    execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
-    user_time.clear()
-
-
-async def user_leaved_voice(time_start_open, member, after, before):
-    unix_time = time.time() + 3 * 60 * 60
-    values = {
-        'user_id': member.id,
-        'user_name': member.name,
-        'id_server': member.guild.id,
-        'time_start_open': time_start_open,
+        'time_start': join_channel[0].get(member.id, None),
         'time_leave_voice': unix_time,
         'id_channel': before.channel.id,
         'name_channel': before.channel.name,
         'date': dt.now().strftime("%d-%m-%Y")
     }
     execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
-    time_leave_open = unix_time - time_start_open
-    print(
-        f'Пользователь {member.name} вышел из голосовых чатов:\nВремя проведенное в каналах: {dt.utcfromtimestamp(time_leave_open).strftime("%H ч. %M мин. %S сек.")}')
-    user_time.clear()
-    return [time_leave_open, member.name, member.id, before.channel.id, before.channel.name]
+    # print(f'Пользователь {member.name} переместился из "{before.channel.name}" в "{after.channel.name}"')
+    for item in join_channel:
+        if member.id in item:
+            join_channel.remove(item)
+            break
+    await user_join_voice(member, after)
+
+
+async def user_leaved_voice(member, before):
+    try:
+        unix_time = time.time() + 3 * 60 * 60
+        values = {
+            'user_id': member.id,
+            'user_name': member.name,
+            'id_server': member.guild.id,
+            'time_start': join_channel[0].get(member.id, None),
+            'time_leave_voice': unix_time,
+            'id_channel': before.channel.id,
+            'name_channel': before.channel.name,
+            'date': dt.now().strftime("%d-%m-%Y")
+        }
+        execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
+        # print(f'Пользователь {member.name} вышел.\nВремя выхода: {dt.now().strftime("%H:%M:%S %d-%m-%Y")}')
+        for item in join_channel:
+            if member.id in item:
+                join_channel.remove(item)
+                break
+    except IndexError as e:
+        print(f"Ошибка leave_voice : {e}")
+    return
 
 
 bot.run(os.getenv("TOKEN_BOT"))
