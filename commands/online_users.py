@@ -82,11 +82,10 @@ class OnlineCog(commands.Cog):
             await ctx.send('Вы не имеете доступа к данной команде.')
 
     @commands.command(name='stats')
-    async def add_exception(self, ctx, user_id=None, date=None):
+    async def add_exception(self, ctx, user_id=None, date=dt.now().strftime("%d-%m-%Y")):
         if self.is_access_command(ctx, cmd='stats'):
-            if user_id is None and date is None:
+            if user_id is None:
                 user_id = ctx.author.id
-                date = dt.now().strftime("%d-%m-%Y")
 
             query = execute_operation('discord-esbot', 'select', 'logs_users_time_on_voice',
                                       columns='*',
