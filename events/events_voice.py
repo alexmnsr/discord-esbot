@@ -1,7 +1,5 @@
 import time
 import json
-
-import pytz
 from disnake.ext import commands
 from database import execute_operation
 from datetime import datetime as dt, timedelta
