@@ -170,7 +170,7 @@ class EventCog(commands.Cog):
                 name_server = guild.name
                 id_server = guild.id
                 print(
-                    f'Bot loaded on server {name_server} (ID: {id_server})\n{self.bot.user.name} (ID: {self.bot.user.id})')
+                    f'Бот загрузился на сервер {name_server} (ID: {id_server})\n{self.bot.user.name} (ID: {self.bot.user.id})')
                 try:
                     channels_table = execute_operation('discord-esbot', 'select', 'voice_channels_on_servers',
                                                        columns='id_channel', where=f'`id_server`={id_server}')
@@ -208,6 +208,6 @@ class EventCog(commands.Cog):
             await self.user_leaved_voice(member, before)
         else:
             print('Error!')
-        print('JOIN CHANNEL:   ', self.bot.join_channel)
+        # print('JOIN CHANNEL:   ', self.bot.join_channel)
         with open('events/voice_data.json', 'w') as file:
             json.dump(self.bot.join_channel, file, indent=2)

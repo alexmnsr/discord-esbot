@@ -86,7 +86,6 @@ class OnlineCog(commands.Cog):
         if self.is_access_command(ctx, cmd='stats'):
             if user_id is None:
                 user_id = ctx.author.id
-
             query = execute_operation('discord-esbot', 'select', 'logs_users_time_on_voice',
                                       columns='*',
                                       where=f'`user_id`={user_id} AND `date` = \'{date}\' AND `id_server`={ctx.guild.id}')
