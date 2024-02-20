@@ -53,41 +53,50 @@ class OnlineCog(commands.Cog):
         else:
             return False
 
-    @commands.command(name='add_md')
-    async def add_moderator(self, ctx, id_user, nickname, role, sys):
-        if sys == '-d':
-            execute_operation('discord-esbot', 'delete', 'moderator_servers',
-                              where=f'`id_user`={id_user} AND `id_server`={ctx.guild.id}',
-                              commit=True)
-            await ctx.send(f'Удалил модератора "{role}" (ID: {id_user})')
+    @commands.command(name='add_moderator')
+    async def add_moderator(self, ctx, id_user, nickname, role, sys=None):
+        if self.is_access_command(ctx, cmd='add_moderator'):
+            if sys == '-d':
+                execute_operation('discord-esbot', 'delete', 'moderator_servers',
+                                  where=f'`id_user`={id_user} AND `id_server`={ctx.guild.id}',
+                                  commit=True)
+                await ctx.send(f'Удалил модератора "{role}" (ID: {id_user})')
+            else:
+                values = {
+                    'id_user': id_user,
+                    'id_server': ctx.guild.id,
+                    'nickname_user': nickname,
+                    'role_user': role
+                }
+                execute_operation('discord-esbot', 'insert', 'moderator_servers', values=values,
+                                  commit=True)
+            await ctx.send(f'Добавил модератора "{role}" (ID: {id_user})')
         else:
-            values = {
-                'id_user': id_user,
-                'id_server': ctx.guild.id,
-                'nickname_user': nickname,
-                'role_user': role
-            }
-            execute_operation('discord-esbot', 'insert', 'moderator_servers', values=values,
-                              commit=True)
-        await ctx.send(f'Добавил модератора "{role}" (ID: {id_user})')
+            await ctx.send('Вы не имеете доступа к данной команде.')
 
     @commands.command(name='add_exception')
-    async def add_exception(self, ctx, id_channel, sys):
-        name_channel = self.bot.get_channel(id_channel)
-        if sys == '-d':
-            execute_operation('discord-esbot', 'delete', 'servers_exceptions',
-                              where=f'`id`={id_channel} AND `id_server`={ctx.guild.id}',
-                              commit=True)
-            await ctx.send(f'Удалил исключение каналу {name_channel} (ID: {id_channel})')
+    async def add_exception(self, ctx, *id_channels, sys=None):
+        if self.is_access_command(ctx, cmd='add_exception'):
+            for id_channel in id_channels:
+                id_channel = int(id_channel)
+                name_channel = self.bot.get_channel(id_channel)
+
+                if sys == '-d':
+                    execute_operation('discord-esbot', 'delete', 'servers_exceptions',
+                                      where=f'`id`={id_channel} AND `id_server`={ctx.guild.id}',
+                                      commit=True)
+                    await ctx.send(f'Удалил исключение каналу {name_channel.name} (ID: {id_channel})')
+                else:
+                    values = {
+                        'id': id_channel,
+                        'name_channel': name_channel.name,
+                        'id_server': ctx.guild.id
+                    }
+                    execute_operation('discord-esbot', 'insert', 'servers_exceptions', values=values,
+                                      commit=True)
+                    await ctx.send(f'Добавил исключение каналу {name_channel.name} (ID: {id_channel})')
         else:
-            values = {
-                'id': id_channel,
-                'name_channel': name_channel,
-                'id_server': ctx.guild.id
-            }
-            execute_operation('discord-esbot', 'insert', 'servers_exceptions', values=values,
-                              commit=True)
-        await ctx.send(f'Добавил исключение каналу {name_channel} (ID: {id_channel})')
+            await ctx.send('Вы не имеете доступа к данной команде.')
 
     @commands.command(name='access_roles')
     async def access_role(self, ctx, cmd, *, role, sys=None):
