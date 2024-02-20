@@ -12,7 +12,7 @@ class EventCog(commands.Cog):
 
     def load_join_channel_data(self):
         try:
-            with open('events/voice_data.json', 'r') as file:
+            with open('voice_data.json', 'r') as file:
                 self.bot.join_channel = [{int(k): v for k, v in entry.items()} for entry in json.load(file)]
         except (json.JSONDecodeError, FileNotFoundError):
             self.bot.join_channel = []
@@ -27,59 +27,69 @@ class EventCog(commands.Cog):
         return [time_join, member.name, member.id, after.channel.id, after.channel.name]
 
     async def user_move_voice(self, member, before, after):
-        unix_time = time.time() + 3 * 60 * 60
+        access = False
         try:
+            unix_time = time.time() + 3 * 60 * 60
             time_start = await self.get_join_info(member.id)
-            if time_start is not None:
-                if dt.fromtimestamp(time_start).date() != dt.fromtimestamp(unix_time).date():
-                    midnight_start = dt.fromtimestamp(time_start).replace(hour=23, minute=59, second=59)
-                    midnight_leave = dt.fromtimestamp(unix_time).replace(hour=0, minute=0, second=1)
+            moderator_info = execute_operation('discord-esbot', 'select', 'moderator_servers', columns='id_user',
+                                               where=f'`id_server` = {member.guild.id}')
+            for i in moderator_info:
+                if i['id_user'] == member.id:
+                    access = True
+                    break
+            if not await self.get_exception(member, before):
+                if time_start is not None and moderator_info is not None and access:
+                    if dt.fromtimestamp(time_start).date() != dt.fromtimestamp(unix_time).date():
+                        midnight_start = dt.fromtimestamp(time_start).replace(hour=23, minute=59, second=59)
+                        midnight_leave = dt.fromtimestamp(unix_time).replace(hour=0, minute=0, second=1)
 
-                    time_start_first_day = (midnight_start + timedelta(seconds=time_start)).timestamp()
-                    time_leave_first_day = (midnight_start + timedelta(seconds=86400)).timestamp()
+                        time_start_first_day = (midnight_start + timedelta(seconds=time_start)).timestamp()
+                        time_leave_first_day = (midnight_start + timedelta(seconds=86400)).timestamp()
 
-                    time_start_next_day = (midnight_leave).timestamp()
-                    unix_time = (midnight_leave + timedelta(seconds=unix_time)).timestamp()
+                        time_start_next_day = (midnight_leave).timestamp()
+                        unix_time = (midnight_leave + timedelta(seconds=unix_time)).timestamp()
 
-                    values_first_day = {
-                        'user_id': member.id,
-                        'user_name': member.name,
-                        'id_server': member.guild.id,
-                        'time_start': time_start_first_day,
-                        'time_leave_voice': time_leave_first_day,
-                        'id_channel': before.channel.id,
-                        'name_channel': before.channel.name,
-                        'date': dt.fromtimestamp(time_start_first_day).strftime("%d-%m-%Y")
-                    }
+                        values_first_day = {
+                            'user_id': member.id,
+                            'user_name': member.name,
+                            'id_server': member.guild.id,
+                            'time_start': time_start_first_day,
+                            'time_leave_voice': time_leave_first_day,
+                            'id_channel': before.channel.id,
+                            'name_channel': before.channel.name,
+                            'date': dt.fromtimestamp(time_start_first_day).strftime("%d-%m-%Y")
+                        }
 
-                    values_next_day = {
-                        'user_id': member.id,
-                        'user_name': member.name,
-                        'id_server': member.guild.id,
-                        'time_start': time_start_next_day,
-                        'time_leave_voice': unix_time,
-                        'id_channel': before.channel.id,
-                        'name_channel': before.channel.name,
-                        'date': dt.fromtimestamp(time_start_next_day).strftime("%d-%m-%Y")
-                    }
+                        values_next_day = {
+                            'user_id': member.id,
+                            'user_name': member.name,
+                            'id_server': member.guild.id,
+                            'time_start': time_start_next_day,
+                            'time_leave_voice': unix_time,
+                            'id_channel': before.channel.id,
+                            'name_channel': before.channel.name,
+                            'date': dt.fromtimestamp(time_start_next_day).strftime("%d-%m-%Y")
+                        }
 
-                    execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values_first_day,
-                                      commit=True)
-                    execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values_next_day,
-                                      commit=True)
-                else:
-                    values = {
-                        'user_id': member.id,
-                        'user_name': member.name,
-                        'id_server': member.guild.id,
-                        'time_start': time_start,
-                        'time_leave_voice': unix_time,
-                        'id_channel': before.channel.id,
-                        'name_channel': before.channel.name,
-                        'date': dt.fromtimestamp(time_start).strftime("%d-%m-%Y")
-                    }
+                        execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice',
+                                          values=values_first_day,
+                                          commit=True)
+                        execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values_next_day,
+                                          commit=True)
+                    else:
+                        values = {
+                            'user_id': member.id,
+                            'user_name': member.name,
+                            'id_server': member.guild.id,
+                            'time_start': time_start,
+                            'time_leave_voice': unix_time,
+                            'id_channel': before.channel.id,
+                            'name_channel': before.channel.name,
+                            'date': dt.fromtimestamp(time_start).strftime("%d-%m-%Y")
+                        }
 
-                    execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
+                        execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values,
+                                          commit=True)
 
             for item in self.bot.join_channel:
                 if member.id in item:
@@ -89,63 +99,70 @@ class EventCog(commands.Cog):
         except IndexError as e:
             print(f"Ошибка move_voice : {e}")
 
-    import time
-    from datetime import datetime as dt, timedelta
-
     async def user_leaved_voice(self, member, before):
+        access = False
         try:
             unix_time = time.time() + 3 * 60 * 60
             time_start = await self.get_join_info(member.id)
-            if time_start is not None:
-                if dt.fromtimestamp(time_start).date() != dt.fromtimestamp(unix_time).date():
-                    midnight_start = dt.fromtimestamp(time_start).replace(hour=23, minute=59, second=59)
-                    midnight_leave = dt.fromtimestamp(unix_time).replace(hour=0, minute=0, second=1)
+            moderator_info = execute_operation('discord-esbot', 'select', 'moderator_servers', columns='id_user',
+                                               where=f'`id_server` = {member.guild.id}')
+            for i in moderator_info:
+                if i['id_user'] == member.id:
+                    access = True
+                    break
+            if not await self.get_exception(member, before):
+                if time_start is not None and moderator_info is not None and access:
+                    if dt.fromtimestamp(time_start).date() != dt.fromtimestamp(unix_time).date():
+                        midnight_start = dt.fromtimestamp(time_start).replace(hour=23, minute=59, second=59)
+                        midnight_leave = dt.fromtimestamp(unix_time).replace(hour=0, minute=0, second=1)
 
-                    time_start_first_day = (midnight_start + timedelta(seconds=time_start)).timestamp()
-                    time_leave_first_day = (midnight_start + timedelta(seconds=86400)).timestamp()  # 86400 секунд в дне
+                        time_start_first_day = (midnight_start + timedelta(seconds=time_start)).timestamp()
+                        time_leave_first_day = (midnight_start + timedelta(seconds=86400)).timestamp()
 
-                    time_start_next_day = (midnight_leave).timestamp()
-                    unix_time = (midnight_leave + timedelta(seconds=unix_time)).timestamp()
+                        time_start_next_day = (midnight_leave).timestamp()
+                        unix_time = (midnight_leave + timedelta(seconds=unix_time)).timestamp()
 
-                    values_first_day = {
-                        'user_id': member.id,
-                        'user_name': member.name,
-                        'id_server': member.guild.id,
-                        'time_start': time_start_first_day,
-                        'time_leave_voice': time_leave_first_day,
-                        'id_channel': before.channel.id,
-                        'name_channel': before.channel.name,
-                        'date': dt.fromtimestamp(time_start_first_day).strftime("%d-%m-%Y")
-                    }
+                        values_first_day = {
+                            'user_id': member.id,
+                            'user_name': member.name,
+                            'id_server': member.guild.id,
+                            'time_start': time_start_first_day,
+                            'time_leave_voice': time_leave_first_day,
+                            'id_channel': before.channel.id,
+                            'name_channel': before.channel.name,
+                            'date': dt.fromtimestamp(time_start_first_day).strftime("%d-%m-%Y")
+                        }
 
-                    values_next_day = {
-                        'user_id': member.id,
-                        'user_name': member.name,
-                        'id_server': member.guild.id,
-                        'time_start': time_start_next_day,
-                        'time_leave_voice': unix_time,
-                        'id_channel': before.channel.id,
-                        'name_channel': before.channel.name,
-                        'date': dt.fromtimestamp(time_start_next_day).strftime("%d-%m-%Y")
-                    }
+                        values_next_day = {
+                            'user_id': member.id,
+                            'user_name': member.name,
+                            'id_server': member.guild.id,
+                            'time_start': time_start_next_day,
+                            'time_leave_voice': unix_time,
+                            'id_channel': before.channel.id,
+                            'name_channel': before.channel.name,
+                            'date': dt.fromtimestamp(time_start_next_day).strftime("%d-%m-%Y")
+                        }
 
-                    execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values_first_day,
-                                      commit=True)
-                    execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values_next_day,
-                                      commit=True)
-                else:
-                    values = {
-                        'user_id': member.id,
-                        'user_name': member.name,
-                        'id_server': member.guild.id,
-                        'time_start': time_start,
-                        'time_leave_voice': unix_time,
-                        'id_channel': before.channel.id,
-                        'name_channel': before.channel.name,
-                        'date': dt.fromtimestamp(time_start).strftime("%d-%m-%Y")
-                    }
+                        execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice',
+                                          values=values_first_day,
+                                          commit=True)
+                        execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values_next_day,
+                                          commit=True)
+                    else:
+                        values = {
+                            'user_id': member.id,
+                            'user_name': member.name,
+                            'id_server': member.guild.id,
+                            'time_start': time_start,
+                            'time_leave_voice': unix_time,
+                            'id_channel': before.channel.id,
+                            'name_channel': before.channel.name,
+                            'date': dt.fromtimestamp(time_start).strftime("%d-%m-%Y")
+                        }
 
-                    execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values, commit=True)
+                        execute_operation('discord-esbot', 'insert', 'logs_users_time_on_voice', values=values,
+                                          commit=True)
 
             for item in self.bot.join_channel:
                 if member.id in item:
@@ -160,6 +177,15 @@ class EventCog(commands.Cog):
             if member_id in entry:
                 return entry[member_id]
         return None
+
+    async def get_exception(self, member, before):
+        query_exception = execute_operation('discord-esbot', 'select', 'servers_exceptions', columns='id',
+                                            where=f'`id_server` = {member.guild.id}')
+        for i in query_exception:
+            if i['id'] == before.channel.id:
+                return True
+        else:
+            return False
 
     @commands.Cog.listener()
     async def on_ready(self):
