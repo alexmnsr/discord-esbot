@@ -50,7 +50,7 @@ def execute_query(conn, query, args=(), commit=False):
         db_conn.close()
 
 
-def execute_operation(conn, operation, table_name, columns='*', where=None, values=None, args=(), commit=False):
+def execute_operation(conn, operation, table_name, columns='*', where=None, group=None, values=None, args=(), commit=False):
     if operation == 'insert':
         columns = ', '.join(values.keys())
         placeholders = ', '.join(['%s'] * len(values))
@@ -60,6 +60,8 @@ def execute_operation(conn, operation, table_name, columns='*', where=None, valu
         query = f"SELECT {columns} FROM {table_name}"
         if where:
             query += f" WHERE {where}"
+        if group:
+            query += f" GROUP BY {group}"
     elif operation == 'update':
         set_clause = ', '.join([f"{column} = %s" for column in values.keys()])
         query = f"UPDATE {table_name} SET {set_clause} WHERE {where}"
