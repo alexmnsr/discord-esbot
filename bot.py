@@ -1,11 +1,12 @@
 import logging
 from disnake.ext import commands
 from commands.online_users import OnlineCog
+from commands.get_info_moderate import GetInfoCog
 from events.events_voice import EventCog
 
 
 class YourBot(commands.Bot):
-    debug = True
+    debug = False
     logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO,
                         filename='logging.log' if not debug else None)
     logger = logging.getLogger(__name__)
@@ -15,3 +16,4 @@ class YourBot(commands.Bot):
 
         self.add_cog(OnlineCog(self))
         self.add_cog(EventCog(self))
+        self.add_cog(GetInfoCog(self))

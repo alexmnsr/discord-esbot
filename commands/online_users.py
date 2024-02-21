@@ -42,6 +42,12 @@ class OnlineCog(commands.Cog):
                                         where=f'`server_id`={ctx.guild.id}')
         personal_access = execute_operation('discord-esbot', 'select', 'personal_access_cmd', columns='*',
                                             where=f'`cmd`="{cmd}" AND `id_user`={ctx.author.id}')
+        moderators_info = execute_operation('discord-esbot', 'select', 'moderator_servers',
+                                            columns='id_user, role_user',
+                                            where=f'`id_server`={ctx.guild.id}')
+        for sys_admin in moderators_info:
+            if sys_admin == ctx.author.id:
+                return True
         if personal_access and personal_access[0]['id_user'] == ctx.author.id:
             return True
         elif role_access and isinstance(role_access, list):
