@@ -37,6 +37,7 @@ class EventCog(commands.Cog):
                 if i['id_user'] == member.id:
                     access = True
                     break
+            if not await self.get_exception(member, before):
                 if time_start is not None and moderator_info is not None and access:
                     if dt.fromtimestamp(time_start).date() != dt.fromtimestamp(unix_time).date():
                         midnight_start = dt.fromtimestamp(time_start).replace(hour=23, minute=59, second=59)
@@ -109,6 +110,7 @@ class EventCog(commands.Cog):
                 if i['id_user'] == member.id:
                     access = True
                     break
+            if not await self.get_exception(member, before):
                 if time_start is not None and moderator_info is not None and access:
                     if dt.fromtimestamp(time_start).date() != dt.fromtimestamp(unix_time).date():
                         midnight_start = dt.fromtimestamp(time_start).replace(hour=23, minute=59, second=59)
