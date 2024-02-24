@@ -8,26 +8,50 @@ class GetInfoCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='moderators')
+    @commands.slash_command(name='moderators', description='список модерации')
     async def get_moderators(self, ctx):
         if is_access_command(ctx, 'moderators'):
             try:
                 moderators_info = execute_operation('discord-esbot', 'select', 'moderator_servers',
                                                     columns='id_user, nickname_user, role_user',
                                                     where=f'`id_server`={ctx.guild.id}')
-                embed = Embed(title=f'Список модераторов {ctx.guild.name} (ID: {ctx.guild.id}):\n',
-                              color=Color.green())
-                for info_moder in moderators_info:
-                    embed.add_field(name=f'Модератор {info_moder["nickname_user"]} (ID: {info_moder["id_user"]}):',
-                                    value=f'↳ Роль: {info_moder["role_user"]}',
-                                    inline=False)
-                await ctx.send(embed=embed)
-            except:
-                await ctx.send("Ошибка")
-        else:
-            await ctx.send('Вы не имеете доступа к данной команде.')
 
-    @commands.command(name='exceptions_voice')
+                # Создаем словарь для хранения информации об администраторах по ролям
+                admin_roles = {
+                    'SYS': [],
+                    'GMD': [],
+                    'DS': [],
+                    'K': [],
+                    'Jr.D': [],
+                    'A': [],
+                    'SMD': [],
+                    'MD': []
+                }
+
+                for info_moder in moderators_info:
+                    role = info_moder["role_user"]
+                    if role in admin_roles:
+                        admin_roles[role].append(info_moder)
+
+                embed = Embed(title=f'Информация о модераторах {ctx.guild.name} (ID: {ctx.guild.id}):\n',
+                              color=Color.green())
+
+                for role, admins in admin_roles.items():
+                    if admins:
+                        embed.add_field(name=f'Роль "{role}":', value='', inline=False)
+                        for info_moder in admins:
+                            name = info_moder["nickname_user"]
+                            id_user = info_moder["id_user"]
+                            embed.add_field(name=f'– {name} (id: {id_user})', value='', inline=False)
+
+                await ctx.send(embed=embed)
+            except Exception as e:
+                print(e)
+                await ctx.send("Произошла ошибка при выполнении команды.")
+        else:
+            await ctx.send('У вас нет доступа к данной команде.')
+
+    @commands.slash_command(name='exceptions_voice', description='исключения по каналам')
     async def exceptions_voice(self, ctx):
         try:
             if is_access_command(ctx, 'exceptions_voice'):

@@ -10,7 +10,7 @@ class OnlineCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='access')
+    @commands.slash_command(name='access', description='выдача личного доступа')
     async def access(self, ctx, cmd, user_id, sys=None):
         if is_access_command(ctx, cmd):
             user = await get_user_info(ctx, user_id)
@@ -90,13 +90,12 @@ class OnlineCog(commands.Cog):
         await ctx.send(embed=embed)
 
 
-    @commands.command(name='moderator')
+    @commands.slash_command(name='moderator', description='добавить модератора')
     async def moderator(self, ctx, *args):
         if is_access_command(ctx, cmd='moderator'):
             await self.process_moderator_command(ctx, *args)
         else:
             await ctx.send('Вы не имеете доступа к данной команде.')
-
 
     async def process_add_exception_command(self, ctx, *args):
         if len(args) < 1:
@@ -147,7 +146,7 @@ class OnlineCog(commands.Cog):
                 await ctx.send(f'Неверный формат ID канала: {channel_id}')
 
 
-    @commands.command(name='exception')
+    @commands.slash_command(name='exception', description='добавление исключения')
     async def exception(self, ctx, *args):
         if is_access_command(ctx, cmd='exception'):
             await self.process_add_exception_command(ctx, *args)
@@ -155,7 +154,7 @@ class OnlineCog(commands.Cog):
             await ctx.send('Вы не имеете доступа к данной команде.')
 
 
-    @commands.command(name='a_role')
+    @commands.slash_command(name='a_role', description='доступ по роли')
     async def a_role(self, ctx, *args):
         if is_access_command(ctx, cmd='a_role'):
             await self.process_access_role(ctx, *args)
@@ -204,7 +203,7 @@ class OnlineCog(commands.Cog):
             await ctx.send(embed=embed)
 
 
-    @commands.command(name='stats')
+    @commands.slash_command(name='stats', description='статистика онлайна')
     async def online_user(self, ctx, user_id=None, date=None):
         if is_access_command(ctx, cmd='stats'):
             if user_id is None:
