@@ -9,14 +9,12 @@ class GetInfoCog(commands.Cog):
         self.bot = bot
 
     @commands.slash_command(name='moderators', description='список модерации')
-    async def get_moderators(self, ctx):
+    async def moderators(self, ctx):
         if is_access_command(ctx, 'moderators'):
             try:
                 moderators_info = execute_operation('discord-esbot', 'select', 'moderator_servers',
                                                     columns='id_user, nickname_user, role_user',
                                                     where=f'`id_server`={ctx.guild.id}')
-
-                # Создаем словарь для хранения информации об администраторах по ролям
                 admin_roles = {
                     'SYS': [],
                     'GMD': [],
@@ -51,10 +49,10 @@ class GetInfoCog(commands.Cog):
         else:
             await ctx.send('У вас нет доступа к данной команде.')
 
-    @commands.slash_command(name='exceptions_voice', description='исключения по каналам')
-    async def exceptions_voice(self, ctx):
+    @commands.slash_command(name='exceptions', description='исключения по каналам')
+    async def exceptions(self, ctx):
         try:
-            if is_access_command(ctx, 'exceptions_voice'):
+            if is_access_command(ctx, 'exceptions'):
                 embed_content = ''
                 i_len = 0
                 exceptions = execute_operation('discord-esbot', 'select', 'servers_exceptions',

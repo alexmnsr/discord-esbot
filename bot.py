@@ -1,4 +1,6 @@
 import logging
+import os
+
 from disnake.ext import commands
 from commands.online_users import OnlineCog
 from commands.get_info_moderate import GetInfoCog
@@ -6,7 +8,7 @@ from events.events_voice import EventCog
 
 
 class YourBot(commands.Bot):
-    debug = False
+    debug = os.getenv('DEBUG')
     logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO,
                         filename='logging.log' if not debug else None)
     logger = logging.getLogger(__name__)

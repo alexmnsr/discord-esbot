@@ -89,13 +89,16 @@ class OnlineCog(commands.Cog):
             color=Color.green())
         await ctx.send(embed=embed)
 
-
-    @commands.slash_command(name='moderator', description='добавить модератора')
+    @commands.command(name='moderator', description='добавить модератора')
     async def moderator(self, ctx, *args):
         if is_access_command(ctx, cmd='moderator'):
             await self.process_moderator_command(ctx, *args)
         else:
             await ctx.send('Вы не имеете доступа к данной команде.')
+
+    @commands.slash_command(name='moderator', description='добавить модератора')
+    async def slash_moderator(self, ctx, *args):
+        await self.moderator(ctx, *args)
 
     async def process_add_exception_command(self, ctx, *args):
         if len(args) < 1:
@@ -145,7 +148,6 @@ class OnlineCog(commands.Cog):
             except ValueError:
                 await ctx.send(f'Неверный формат ID канала: {channel_id}')
 
-
     @commands.slash_command(name='exception', description='добавление исключения')
     async def exception(self, ctx, *args):
         if is_access_command(ctx, cmd='exception'):
@@ -153,14 +155,12 @@ class OnlineCog(commands.Cog):
         else:
             await ctx.send('Вы не имеете доступа к данной команде.')
 
-
     @commands.slash_command(name='a_role', description='доступ по роли')
     async def a_role(self, ctx, *args):
         if is_access_command(ctx, cmd='a_role'):
             await self.process_access_role(ctx, *args)
         else:
             await ctx.send('Вы не имеете доступа к данной команде.')
-
 
     async def process_access_role(self, ctx, *args):
         if len(args) < 2:
@@ -201,7 +201,6 @@ class OnlineCog(commands.Cog):
                 description=f'Команда: /{cmd}\n↳ Роль: {role}',
                 color=Color.red())
             await ctx.send(embed=embed)
-
 
     @commands.slash_command(name='stats', description='статистика онлайна')
     async def online_user(self, ctx, user_id=None, date=None):
