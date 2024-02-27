@@ -1,8 +1,9 @@
 import time
 import json
+import aiofiles
 from disnake.ext import commands
 from database import execute_operation
-from datetime import datetime as dt, timedelta
+from datetime import datetime as dt
 
 
 class EventCog(commands.Cog):
@@ -39,15 +40,13 @@ class EventCog(commands.Cog):
                     break
             if not await self.get_exception(member, before):
                 if time_start is not None and moderator_info is not None and access:
-                    if dt.fromtimestamp(time_start).date() != dt.fromtimestamp(unix_time).date():
+                    if dt.fromtimestamp(time_start).strftime('%Y-%m-%d') != dt.fromtimestamp(unix_time).strftime(
+                            '%Y-%m-%d'):
                         midnight_start = dt.fromtimestamp(time_start).replace(hour=23, minute=59, second=59)
                         midnight_leave = dt.fromtimestamp(unix_time).replace(hour=0, minute=0, second=1)
-
-                        time_start_first_day = (midnight_start + timedelta(seconds=time_start)).timestamp()
-                        time_leave_first_day = (midnight_start + timedelta(seconds=86400)).timestamp()
-
+                        time_start_first_day = time_start
+                        time_leave_first_day = midnight_start.timestamp()
                         time_start_next_day = (midnight_leave).timestamp()
-                        unix_time = (midnight_leave + timedelta(seconds=unix_time)).timestamp()
 
                         values_first_day = {
                             'user_id': member.id,
@@ -112,15 +111,13 @@ class EventCog(commands.Cog):
                     break
             if not await self.get_exception(member, before):
                 if time_start is not None and moderator_info is not None and access:
-                    if dt.fromtimestamp(time_start).date() != dt.fromtimestamp(unix_time).date():
+                    if dt.fromtimestamp(time_start).strftime('%Y-%m-%d') != dt.fromtimestamp(unix_time).strftime(
+                            '%Y-%m-%d'):
                         midnight_start = dt.fromtimestamp(time_start).replace(hour=23, minute=59, second=59)
                         midnight_leave = dt.fromtimestamp(unix_time).replace(hour=0, minute=0, second=1)
-
-                        time_start_first_day = (midnight_start + timedelta(seconds=time_start)).timestamp()
-                        time_leave_first_day = (midnight_start + timedelta(seconds=86400)).timestamp()
-
+                        time_start_first_day = time_start
+                        time_leave_first_day = midnight_start.timestamp()
                         time_start_next_day = (midnight_leave).timestamp()
-                        unix_time = (midnight_leave + timedelta(seconds=unix_time)).timestamp()
 
                         values_first_day = {
                             'user_id': member.id,
@@ -232,6 +229,8 @@ class EventCog(commands.Cog):
             await self.user_leaved_voice(member, before)
         else:
             print('Error!')
-        # print('JOIN CHANNEL:   ', self.bot.join_channel)
-        with open('events/voice_data.json', 'w') as file:
-            json.dump(self.bot.join_channel, file, indent=2)
+        await self.write_to_file(self.bot.join_channel)
+
+    async def write_to_file(self, data):
+        async with aiofiles.open('events/voice_data.json', 'w') as file:
+            await file.write(json.dumps(data, indent=2))
