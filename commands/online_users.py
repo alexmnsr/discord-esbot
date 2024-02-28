@@ -134,7 +134,7 @@ class OnlineCog(commands.Cog):
                         return
                     values = {
                         'id': id_channel,
-                        'name_channel': name_channel.name,
+                        'name_channel': name_channel,
                         'id_server': ctx.guild.id
                     }
                     execute_operation('discord-esbot', 'insert', 'servers_exceptions', values=values,
