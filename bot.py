@@ -10,7 +10,7 @@ from events.events_voice import EventCog
 class YourBot(commands.Bot):
     debug = os.getenv('DEBUG')
     logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO,
-                        filename='logging.log' if not debug else None)
+                        filename='logging.log' if debug == 'False' else None)
     logger = logging.getLogger(__name__)
 
     def __init__(self, *args, **kwargs):

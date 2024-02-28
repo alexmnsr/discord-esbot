@@ -103,7 +103,7 @@ class OnlineCog(commands.Cog):
     async def process_add_exception_command(self, ctx, *args):
         if len(args) < 1:
             await ctx.send(
-                'Не указаны необходимые аргументы. Пример использования: /add_exception channel_id++ (удалить: -d)')
+                'Не указаны необходимые аргументы. Пример использования: /exception channel_id++ (удалить: -d)')
             return
         sys_flag = args[-1] if args[-1] == "-d" else None
         channels = args[0:] if not sys_flag else args[:-1]
@@ -148,7 +148,7 @@ class OnlineCog(commands.Cog):
             except ValueError:
                 await ctx.send(f'Неверный формат ID канала: {channel_id}')
 
-    @commands.slash_command(name='exception', description='добавление исключения')
+    @commands.command(name='exception', description='добавление исключения')
     async def exception(self, ctx, *args):
         if is_access_command(ctx, cmd='exception'):
             await self.process_add_exception_command(ctx, *args)
