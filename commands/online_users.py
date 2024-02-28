@@ -148,7 +148,7 @@ class OnlineCog(commands.Cog):
             except ValueError:
                 await ctx.send(f'Неверный формат ID канала: {channel_id}')
 
-    @commands.command(name='exception', description='добавление исключения')
+    @commands.command(name='exception', description='добавление исключения') # fix
     async def exception(self, ctx, *args):
         if is_access_command(ctx, cmd='exception'):
             await self.process_add_exception_command(ctx, *args)
