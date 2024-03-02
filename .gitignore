@@ -1,0 +1,5 @@
+.idea/
+logging.log
+.venv/
+utils/config.py
+.env
