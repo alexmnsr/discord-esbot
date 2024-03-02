@@ -76,7 +76,7 @@ class OnlineDatabase:
         return current_info
 
     async def add_join_info(self, member: nextcord.Member,
-                            channel: nextcord.VoiceChannel | nextcord.StageChannel,
+                            channel,
                             is_counting: bool):
         await self.current_online.insert_one({
             'user_id': member.id,
@@ -88,7 +88,7 @@ class OnlineDatabase:
         })
 
     async def add_leave_info(self, member: nextcord.Member,
-                             channel: nextcord.VoiceChannel | nextcord.StageChannel | AbstractChannel):
+                             channel):
         now = datetime.datetime.now()
 
         current_info = await self.pop_current_info(member.id, channel.id)

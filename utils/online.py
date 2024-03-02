@@ -28,11 +28,10 @@ class OnlineHandler:
                         await self.leave(AbstractUser(user, channel.guild), channel)
 
     async def join(self, member: nextcord.Member,
-                   channel: nextcord.VoiceChannel | nextcord.StageChannel) -> None:
+                   channel) -> None:
         await self.database.add_join_info(member, channel, is_counting(channel))
 
-    async def leave(self, member: nextcord.Member | AbstractUser,
-                    channel: nextcord.VoiceChannel | nextcord.StageChannel | AbstractChannel) -> None:
+    async def leave(self, member, channel) -> None:
         await self.database.add_leave_info(member, channel)
 
     async def get_info(self, is_open, *, user_id, guild_id, date: str = None):

@@ -3,7 +3,7 @@ import datetime
 import nextcord
 
 
-def is_counting(channel: nextcord.VoiceChannel | nextcord.StageChannel) -> bool:
+def is_counting(channel) -> bool:
     if isinstance(channel, nextcord.StageChannel):
         return True
 
