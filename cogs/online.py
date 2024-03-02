@@ -32,7 +32,9 @@ class Online(commands.Cog):
     async def on_ready(self) -> None:
         await self.handler.reload(self.bot.get_all_channels())
 
-    @nextcord.slash_command(name='online', description='Показать онлайн пользователя', dm_permission=False)
+    @nextcord.slash_command(name='online', description='Показать онлайн пользователя',
+                            dm_permission=False,
+                            default_member_permissions=nextcord.Permissions(administrator=True))
     async def online(self, interaction: nextcord.Interaction,
                      user: nextcord.Member = nextcord.SlashOption('пользователь', description='Пользователь, чей онлайн вы хотите проверить', required=False),
                      date: str = nextcord.SlashOption('дата', description="Дата в формате dd.mm.YYYY", required=False, autocomplete_callback=date_autocomplete),
