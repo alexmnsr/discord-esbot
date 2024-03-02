@@ -1,38 +1,66 @@
 import datetime
+from typing import Any
 
 import nextcord
+from nextcord.ext import commands
 
-from utils.neccessary import is_counting
-from utils.classes import AbstractChannel, AbstractUser
-from utils.online_database import OnlineDatabase
+from utils.neccessary import is_date_valid, date_autocomplete
+from utils.classes.bot import EsBot
 
 
-class OnlineHandler:
-    def __init__(self, mongodb) -> None:
-        self.database = OnlineDatabase(mongodb)
+class Online(commands.Cog):
+    def __init__(self, bot: EsBot) -> None:
+        self.bot = bot
+        self.handler = bot.db.online_handler
 
-    async def reload(self, all_channels):
-        current_info = await self.database.get_current_info()
-        for channel in all_channels:
-            if isinstance(channel, (nextcord.VoiceChannel, nextcord.StageChannel)):
-                for member in channel.members:
-                    if not (prev_channel := current_info.in_channel(member.id, channel.guild.id)):
-                        await self.join(member, channel)
-                    elif prev_channel != channel.id:
-                        prev_channel_obj = AbstractChannel(id=prev_channel[0], name=prev_channel[1])
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member: nextcord.Member,
+                                    before: nextcord.VoiceState,
+                                    after: nextcord.VoiceState) -> None:
+        if before.channel == after.channel:
+            return
 
-                        await self.leave(member, prev_channel_obj)
-                        await self.join(member, channel)
-                for user in current_info.get_channel_users(channel.id):
-                    if user not in [member.id for member in channel.members]:
-                        await self.leave(AbstractUser(user, channel.guild), channel)
+        if before.channel is None:
+            await self.handler.join(member, after.channel)
+        elif after.channel is None:
+            await self.handler.leave(member, before.channel)
+        else:
+            await self.handler.leave(member, before.channel)
+            await self.handler.join(member, after.channel)
 
-    async def join(self, member: nextcord.Member,
-                   channel) -> None:
-        await self.database.add_join_info(member, channel, is_counting(channel))
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        await self.handler.reload(self.bot.get_all_channels())
 
-    async def leave(self, member, channel) -> None:
-        await self.database.add_leave_info(member, channel)
+    @nextcord.slash_command(name='online', description='Показать онлайн пользователя',
+                            dm_permission=False,
+                            default_member_permissions=nextcord.Permissions(administrator=True))
+    async def online(self, interaction: nextcord.Interaction,
+                     user: nextcord.Member = nextcord.SlashOption('пользователь', description='Пользователь, чей онлайн вы хотите проверить', required=False),
+                     date: str = nextcord.SlashOption('дата', description="Дата в формате dd.mm.YYYY", required=False, autocomplete_callback=date_autocomplete),
+                     is_open: bool = nextcord.SlashOption('открытые-каналы', description="Подсчитывать онлайн только в открытых каналах.", default=True)) -> Any:
+        if not date:
+            date = datetime.datetime.now().strftime('%d.%m.%Y')
+        elif not is_date_valid(date):
+            return await interaction.send('Неверный формат даты. Формат: dd.mm.YYYY.\n'
+                                          'Пример: 07.07.2077', ephemeral=True)
 
-    async def get_info(self, is_open, *, user_id, guild_id, date: str = None):
-        return await self.database.get_info(is_open, user_id, guild_id, date if date else datetime.datetime.now().strftime('%d.%m.%Y'))
+        if not user:
+            user = interaction.user
+        info = await self.handler.get_info(is_open, user_id=user.id, guild_id=interaction.guild.id, date=date)
+
+        embed = ((nextcord.Embed(title=f'💎 Онлайн за {date}', color=nextcord.Color.dark_purple())
+                 .set_author(name=user.display_name, icon_url=user.display_avatar.url))
+                 .add_field(name='Общее время', value=info.total_time)
+                 .add_field(name='Каналы', value='Открытые' if is_open else 'Все')
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
+                 .set_footer(text=f'ID: {user.id}'))
+
+        if info.channels:
+            embed.add_field(name='Время в каналах', value=str(info), inline=False)
+
+        await interaction.send(embed=embed)
+
+
+def setup(bot: EsBot) -> None:
+    bot.add_cog(Online(bot))
