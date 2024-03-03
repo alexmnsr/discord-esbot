@@ -14,7 +14,7 @@ class Punishments(commands.Cog):
     async def on_ready(self):
         await self.handler.reload()
 
-    @nextcord.slash_command(name='mute')
+    @nextcord.slash_command(name='mute', default_member_permissions=nextcord.Permissions(administrator=True))
     async def mute_group(self, interaction):
         ...
 
@@ -44,7 +44,7 @@ class Punishments(commands.Cog):
     async def mute_full(self, interaction):
         ...
 
-    @nextcord.slash_command(name='unmute', description="Снять мут с пользователя.")
+    @nextcord.slash_command(name='unmute', description="Снять мут с пользователя.", default_member_permissions=nextcord.Permissions(administrator=True))
     async def unmute(self, interaction):
         ...
 
