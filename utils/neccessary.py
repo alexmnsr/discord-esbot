@@ -111,14 +111,12 @@ async def remove_role(client, member_id, guild_id, action_id, role_name):
     except nextcord.NotFound:
         member = None
     if not member:
-        return False, False
+        return guild, await client.fetch_user(member_id)
 
     for role in member.roles:
-        if role.name == role_name:
-            await member.remove_roles(role, reason=f'Action ID: {action_id}. Text mute expired.')
-            break
-    else:
-        return False, False
+        if role.name == role_name if not isinstance(role_name, list) else role.name in role_name:
+            await member.remove_roles(role, reason=f'Action ID: {action_id}.')
+
     return guild, member
 
 
@@ -132,12 +130,12 @@ async def add_role(client, member_id, guild_id, action_id, role_name):
     except nextcord.NotFound:
         member = None
     if not member:
-        return False, False
-    if not role_name:
-        return False, False
-    id_role = nextcord.utils.get(guild.roles, name=role_name)
+        return guild, await client.fetch_user(member_id)
 
-    await member.add_roles(id_role, reason=f'Action ID: {action_id}.')
+    for role in guild.roles:
+        if role.name == role_name if not isinstance(role_name, list) else role.name in role_name:
+            await member.add_roles(role, reason=f'Action ID: {action_id}.')
+
     return guild, member
 
 
