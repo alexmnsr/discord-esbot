@@ -2,9 +2,9 @@ import datetime
 
 import nextcord
 
-from utils.neccessary import is_counting
 from utils.classes import AbstractChannel, AbstractUser
-from utils.online_database import OnlineDatabase
+from utils.neccessary import is_counting
+from utils.online.online_database import OnlineDatabase
 
 
 class OnlineHandler:

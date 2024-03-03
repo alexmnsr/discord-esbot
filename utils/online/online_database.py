@@ -1,11 +1,8 @@
 import datetime
 
 import nextcord
-from motor.motor_asyncio import AsyncIOMotorClient
 
-import config
 from utils.neccessary import get_dict_of_time_intervals, mashup_info, seconds_to_time
-from utils.classes import AbstractChannel
 
 
 class CurrentInfo:

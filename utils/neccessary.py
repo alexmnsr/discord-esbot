@@ -1,4 +1,5 @@
 import datetime
+import re
 
 import nextcord
 
@@ -98,3 +99,66 @@ async def date_autocomplete(cog, interaction, string):
     date_list = date_list[:min(7, len(date_list))]
 
     await interaction.response.send_autocomplete(date_list)
+
+
+async def remove_role(client, member_id, guild_id, action_id, role_name):
+    guild = client.get_guild(guild_id)
+    if not guild:
+        return False, False
+
+    try:
+        member = await guild.fetch_member(member_id)
+    except nextcord.NotFound:
+        member = None
+    if not member:
+        return False, False
+
+    for role in member.roles:
+        if role.name == role_name:
+            await member.remove_roles(role, reason=f'Action ID: {action_id}. Text mute expired.')
+            break
+    else:
+        return False, False
+    return guild, member
+
+
+async def add_role(client, member_id, guild_id, action_id):
+    guild = client.get_guild(guild_id)
+    if not guild:
+        return False, False
+
+    try:
+        member = await guild.fetch_member(member_id)
+    except nextcord.NotFound:
+        member = None
+    if not member:
+        return False, False
+
+    role = nextcord.utils.get(guild.roles, name='Mute » Text')
+    if not role:
+        return False, False
+
+    await member.add_roles(role, reason=f'Action ID: {action_id}. Text mute.')
+    return guild, member
+
+
+async def send_embed(member, embed):
+    try:
+        await member.send(embed=embed)
+    except:
+        pass
+
+time_pattern = re.compile(r'(\d+)([мдmdч])?')
+
+
+def string_to_seconds(string: str) -> int:
+    if not string:
+        return None
+    time = time_pattern.match(string)
+    if not time:
+        return None
+
+    time, unit = time.groups()
+    time = int(time)
+    time_mult = 60 if unit in ('м', 'm') else 24 * 3600 if unit in ('д', 'd') else 3600 if unit in ('ч', 'h') else 60
+    return time * time_mult

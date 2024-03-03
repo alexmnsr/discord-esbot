@@ -1,8 +1,8 @@
 import os
 
-import config
-from utils.classes.bot import EsBot
 from dotenv import load_dotenv
+
+from utils.classes.bot import EsBot
 
 load_dotenv()
 
