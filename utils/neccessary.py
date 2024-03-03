@@ -122,7 +122,7 @@ async def remove_role(client, member_id, guild_id, action_id, role_name):
     return guild, member
 
 
-async def add_role(client, member_id, guild_id, action_id):
+async def add_role(client, member_id, guild_id, action_id, role_name):
     guild = client.get_guild(guild_id)
     if not guild:
         return False, False
@@ -133,12 +133,11 @@ async def add_role(client, member_id, guild_id, action_id):
         member = None
     if not member:
         return False, False
-
-    role = nextcord.utils.get(guild.roles, name='Mute » Text')
-    if not role:
+    if not role_name:
         return False, False
+    id_role = nextcord.utils.get(guild.roles, name=role_name)
 
-    await member.add_roles(role, reason=f'Action ID: {action_id}. Text mute.')
+    await member.add_roles(id_role, reason=f'Action ID: {action_id}.')
     return guild, member
 
 
