@@ -139,11 +139,27 @@ async def add_role(client, member_id, guild_id, action_id, role_name):
     return guild, member
 
 
+async def add_ban(client, member_id, guild_id):
+    guild = client.get_guild(guild_id)
+    if not guild:
+        return False, False
+
+    try:
+        member = await guild.fetch_member(member_id)
+    except nextcord.NotFound:
+        member = None
+    if not member:
+        return guild, await client.fetch_user(member_id)
+
+    return guild, member
+
+
 async def send_embed(member, embed):
     try:
         await member.send(embed=embed)
     except:
         pass
+
 
 time_pattern = re.compile(r'(\d+)([мдmdч])?')
 

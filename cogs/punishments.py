@@ -1,6 +1,7 @@
 import nextcord
 from nextcord.ext import commands
 
+from utils.classes.actions import ActionType
 from utils.classes.bot import EsBot
 from utils.neccessary import string_to_seconds
 
@@ -35,8 +36,8 @@ class Punishments(commands.Cog):
         await interaction.send(embed=embed)
 
         await self.handler.mutes.give_mute(role_name, user=user, guild=interaction.guild, moderator=interaction.user,
-                                                reason=reason,
-                                                duration=mute_seconds)
+                                           reason=reason,
+                                           duration=mute_seconds)
 
     @mute_group.subcommand(name='text', description="Выдать мут пользователю в текстовых каналах.")
     async def mute_text(self, interaction,
@@ -105,6 +106,34 @@ class Punishments(commands.Cog):
                                                                               description='Пользователь, у которого вы хотите снять мут.',
                                                                               required=True)):
         await self.remove_mute(interaction, user, 'Mute » Full')
+
+    @nextcord.slash_command(name='ban', description="Заблокировать пользователя",
+                            default_member_permissions=nextcord.Permissions(administrator=True))
+    async def bans_group(self, interaction):
+        ...
+
+    @bans_group.subcommand(name='ban', description="Заблокировать пользователя на сервере")
+    async def ban(self, interaction,
+                  user: str = nextcord.SlashOption('пользователь',
+                                                   description='Пользователь, которому вы хотите выдать блокировку.',
+                                                   required=True),
+                  duration: str = nextcord.SlashOption('длительность',
+                                                       description='Длительность блокировки. Пример: 5 = 5 дней. -1 = навсегда.',
+                                                       required=True),
+                  reason: str = nextcord.SlashOption('причина', description='Причина блокировки.', required=True)):
+        await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user_id=user, guild=interaction.guild, moderator=interaction.user, reason=reason, duration=duration)
+
+    @bans_group.subcommand(name='gban', description="Заблокировать пользователя на всех серверах")
+    async def gban(self, interaction,
+                   user: str = nextcord.SlashOption('пользователь',
+                                                    description='Пользователь, которому вы хотите выдать блокировку.',
+                                                    required=True),
+                   duration: str = nextcord.SlashOption('длительность',
+                                                        description='Длительность блокировки. Пример: 5 = 5 дней. -1 = навсегда.',
+                                                        required=True),
+                   reason: str = nextcord.SlashOption('причина', description='Причина блокировки.', required=True)):
+        ...
+        await self.handler.bans.give_ban(ActionType.BAN_GLOBAL, user, interaction.guild.id, interaction.user.id, reason, duration)
 
 
 def setup(bot: EsBot) -> None:

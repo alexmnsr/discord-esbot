@@ -5,6 +5,8 @@ from motor import motor_asyncio
 
 
 class ActionType(enum.Enum):
+    BAN_LOCAL = 'ban_local'
+    BAN_GLOBAL = 'ban_global'
     MUTE_TEXT = 'mute_text'
     MUTE_VOICE = 'mute_voice'
     MUTE_FULL = 'mute_full'
