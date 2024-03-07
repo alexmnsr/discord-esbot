@@ -175,3 +175,22 @@ def string_to_seconds(string: str) -> int:
     time = int(time)
     time_mult = 60 if unit in ('м', 'm') else 24 * 3600 if unit in ('д', 'd') else 3600 if unit in ('ч', 'h') else 60
     return time * time_mult
+
+
+def print_user(user, newline=True):
+    return user.mention + ('\n' if newline else '') + user.name + (
+        f'#{user.discriminator}' if user.discriminator and str(user.discriminator) != '0' else '')
+
+
+def user_visual(user):
+    return print_user(user)
+
+
+def user_text(user):
+    return print_user(user, False)
+
+
+def mute_name(role_name):
+    if isinstance(role_name, list):
+        return 'Full'
+    return role_name.split('» ')[1].capitalize()
