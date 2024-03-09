@@ -7,6 +7,7 @@ from datetime import timedelta
 from utils.classes.actions import ActionType
 from utils.neccessary import remove_role, send_embed, add_role, add_ban, user_visual, user_text, mute_name
 from utils.punishments.punishments_database import PunishmentsDatabase
+from utils.roles.roles import RolesHandler
 
 
 class MuteHandler:

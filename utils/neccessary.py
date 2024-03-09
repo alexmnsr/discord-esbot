@@ -194,3 +194,7 @@ def mute_name(role_name):
     if isinstance(role_name, list):
         return 'Full'
     return role_name.split('» ')[1].capitalize()
+
+
+def nick_without_tag(nick):
+    return nick.split('] ')[1] if ']' in nick else nick
