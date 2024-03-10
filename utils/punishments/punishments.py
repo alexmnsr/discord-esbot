@@ -218,3 +218,7 @@ class PunishmentsHandler:
         for mute in current_mutes:
             role_name = 'Mute » Text' if mute['type'] == 'text' else 'Mute » Voice' if mute[
                                                                                            'type'] == 'voice' else 'Mute » Full'
+            self.client.loop.create_task(self.mutes.wait_mute(mute['action_id'],
+                                                              ((mute['given_at'] + datetime.timedelta(seconds=mute[
+                                                                  'duration'])) - datetime.datetime.now()).total_seconds(),
+                                                              role_name))
