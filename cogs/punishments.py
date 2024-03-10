@@ -1,18 +1,22 @@
+import datetime
+
 import nextcord
 from nextcord.ext import commands
 
 from utils.classes.actions import ActionType
 from utils.classes.bot import EsBot
-from utils.neccessary import string_to_seconds
+from utils.neccessary import string_to_seconds, add_role, checking_presence
 
 
 class Punishments(commands.Cog):
     def __init__(self, bot: EsBot) -> None:
         self.bot = bot
         self.handler = bot.db.punishments_handler
+        self.client = self.handler.client
 
     @commands.Cog.listener()
     async def on_ready(self):
+        await checking_presence(self.bot)
         await self.handler.reload()
 
     @commands.Cog.listener()
@@ -30,6 +34,21 @@ class Punishments(commands.Cog):
                 await give_role('Mute » Text', mute['action_id'])
             elif mute['type'] == 'voice':
                 await give_role('Mute » Voice', mute['action_id'])
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member):
+        mutes = await self.handler.database.get_mutes()
+
+        if not mutes or member.guild.id != mutes[0]['guild_id']:
+            return
+
+        role_type = mutes[0]['type']
+        role_name = f'Mute » {role_type.capitalize()}' if role_type in ['voice', 'text'] else 'Mute » Full'
+
+        if role_name == 'Mute » Full':
+            role_name = ['Mute » Text', 'Mute » Voice']
+        await add_role(self.client, member.id, member.guild.id, mutes[0]['action_id'], role_name)
+        await self.handler.mutes.wait_mute(mutes[0]['action_id'], mutes[0]['duration'], role_name)
 
     @nextcord.slash_command(name='mute', default_member_permissions=nextcord.Permissions(administrator=True))
     async def mute_group(self, interaction):

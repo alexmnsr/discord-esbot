@@ -161,6 +161,31 @@ async def send_embed(member, embed):
         pass
 
 
+async def checking_presence(bot):
+    for guild in bot.guilds:
+        mute_text_role = nextcord.utils.get(guild.roles, name='Mute » Text')
+        mute_voice_role = nextcord.utils.get(guild.roles, name='Mute » Voice')
+        if not mute_text_role:
+            await create_role_mutes('Mute » Text', guild)
+        if not mute_voice_role:
+            await create_role_mutes('Mute » Voice', guild)
+
+
+async def create_role_mutes(role_name, guild):
+    if role_name == 'Mute » Text':
+        await guild.create_role(name='Mute » Text', permissions=nextcord.Permissions(send_messages=False),
+                                color=nextcord.Color.light_grey())
+    if role_name == 'Mute » Voice':
+        await guild.create_role(name='Mute » Voice', permissions=nextcord.Permissions(speak=False),
+                                color=nextcord.Color.light_grey())
+    for channel in guild.channels:
+        role = nextcord.utils.get(guild.roles, name=role_name)
+        if role_name == 'Mute » Text' and role:
+            await channel.set_permissions(role, send_messages=False, reason='Создание ролей Mutes')
+        if role_name == 'Mute » Voice' and role:
+            await channel.set_permissions(role, speak=False, reason='Создание ролей Mutes')
+
+
 time_pattern = re.compile(r'(\d+)([мдmdч])?')
 
 

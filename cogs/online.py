@@ -32,6 +32,7 @@ class Online(commands.Cog):
     async def on_ready(self) -> None:
         await self.handler.reload(self.bot.get_all_channels())
 
+
     @nextcord.slash_command(name='online', description='Показать онлайн пользователя',
                             dm_permission=False,
                             default_member_permissions=nextcord.Permissions(administrator=True))

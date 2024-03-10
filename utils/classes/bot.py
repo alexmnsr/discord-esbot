@@ -16,6 +16,8 @@ class EsBot(commands.Bot):
         print(f'Logged in as {self.user} ({self.user.id})')
         print('------')
 
+
+
     async def resolve_user(self, user_str):
         try:
             if user_id := re.findall(r'<?@?!?(\d{18,20})>?', user_str):
