@@ -2,6 +2,31 @@ import datetime
 import re
 
 import nextcord
+from nextcord.ext.application_checks.core import CheckWrapper
+
+grant_levels = {
+    1: [...],
+    2: [...],
+    3: [...]
+}
+
+
+def grant_level(roles):
+    for level, role in grant_levels.items():
+        if role.lower() in [role.name.lower() for role in roles]:
+            return level
+    return 0
+
+
+def restricted_command(access_level: int):
+    def predicate(interaction: nextcord.Interaction):
+        return grant_level(interaction.user.roles) >= access_level
+
+    def wrapper(func):
+        return CheckWrapper(func, predicate)
+
+    wrapper.predicate = predicate
+    return wrapper
 
 
 def is_counting(channel) -> bool:
@@ -171,19 +196,14 @@ async def checking_presence(bot):
             await create_role_mutes('Mute » Voice', guild)
 
 
-async def create_role_mutes(role_name, guild):
-    if role_name == 'Mute » Text':
-        await guild.create_role(name='Mute » Text', permissions=nextcord.Permissions(send_messages=False),
-                                color=nextcord.Color.light_grey())
-    if role_name == 'Mute » Voice':
-        await guild.create_role(name='Mute » Voice', permissions=nextcord.Permissions(speak=False),
-                                color=nextcord.Color.light_grey())
+async def create_role_mutes(role_name, guild: nextcord.Guild):
+    permissions_kwargs = {'send_messages' if 'Text' in role_name else 'speak': False}
+
+    role = await guild.create_role(
+        name=role_name, permissions=nextcord.Permissions(**permissions_kwargs), color=nextcord.Color.light_grey()
+    )
     for channel in guild.channels:
-        role = nextcord.utils.get(guild.roles, name=role_name)
-        if role_name == 'Mute » Text' and role:
-            await channel.set_permissions(role, send_messages=False, reason='Создание ролей Mutes')
-        if role_name == 'Mute » Voice' and role:
-            await channel.set_permissions(role, speak=False, reason='Создание ролей Mutes')
+        await channel.set_permissions(role, reason='Создание ролей Mutes', **permissions_kwargs)
 
 
 time_pattern = re.compile(r'(\d+)([мдmdч])?')

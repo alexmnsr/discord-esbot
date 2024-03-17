@@ -5,7 +5,7 @@ import nextcord
 from nextcord.ext import commands
 
 from utils.classes.bot import EsBot
-from utils.neccessary import is_date_valid, date_autocomplete
+from utils.neccessary import is_date_valid, date_autocomplete, restricted_command
 
 
 class Online(commands.Cog):
@@ -32,10 +32,10 @@ class Online(commands.Cog):
     async def on_ready(self) -> None:
         await self.handler.reload(self.bot.get_all_channels())
 
-
     @nextcord.slash_command(name='online', description='Показать онлайн пользователя',
                             dm_permission=False,
                             default_member_permissions=nextcord.Permissions(administrator=True))
+    @restricted_command(2)
     async def online(self, interaction: nextcord.Interaction,
                      user: nextcord.Member = nextcord.SlashOption('пользователь', description='Пользователь, чей онлайн вы хотите проверить', required=False),
                      date: str = nextcord.SlashOption('дата', description="Дата в формате dd.mm.YYYY", required=False, autocomplete_callback=date_autocomplete),
