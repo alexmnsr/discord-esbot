@@ -35,11 +35,16 @@ class Online(commands.Cog):
     @nextcord.slash_command(name='online', description='Показать онлайн пользователя',
                             dm_permission=False,
                             default_member_permissions=nextcord.Permissions(administrator=True))
-    @restricted_command(2)
+    @restricted_command(1)
     async def online(self, interaction: nextcord.Interaction,
-                     user: nextcord.Member = nextcord.SlashOption('пользователь', description='Пользователь, чей онлайн вы хотите проверить', required=False),
-                     date: str = nextcord.SlashOption('дата', description="Дата в формате dd.mm.YYYY", required=False, autocomplete_callback=date_autocomplete),
-                     is_open: bool = nextcord.SlashOption('открытые-каналы', description="Подсчитывать онлайн только в открытых каналах.", default=True)) -> Any:
+                     user: nextcord.Member = nextcord.SlashOption('пользователь',
+                                                                  description='Пользователь, чей онлайн вы хотите проверить',
+                                                                  required=False),
+                     date: str = nextcord.SlashOption('дата', description="Дата в формате dd.mm.YYYY", required=False,
+                                                      autocomplete_callback=date_autocomplete),
+                     is_open: bool = nextcord.SlashOption('открытые-каналы',
+                                                          description="Подсчитывать онлайн только в открытых каналах.",
+                                                          default=True)) -> Any:
         if not date:
             date = datetime.datetime.now().strftime('%d.%m.%Y')
         elif not is_date_valid(date):
@@ -51,7 +56,7 @@ class Online(commands.Cog):
         info = await self.handler.get_info(is_open, user_id=user.id, guild_id=interaction.guild.id, date=date)
 
         embed = ((nextcord.Embed(title=f'💎 Онлайн за {date}', color=nextcord.Color.dark_purple())
-                 .set_author(name=user.display_name, icon_url=user.display_avatar.url))
+                  .set_author(name=user.display_name, icon_url=user.display_avatar.url))
                  .add_field(name='Общее время', value=info.total_time)
                  .add_field(name='Каналы', value='Открытые' if is_open else 'Все')
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)

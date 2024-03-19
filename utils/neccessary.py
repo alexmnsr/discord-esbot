@@ -5,16 +5,19 @@ import nextcord
 from nextcord.ext.application_checks.core import CheckWrapper
 
 grant_levels = {
-    1: [...],
-    2: [...],
-    3: [...]
+    1: ["Модератор", "super_moderator"],
+    2: ["Ст. Модератор"],
+    3: ["Assistant Discord"],
+    4: ["Главный Модератор Discord"],
+    5: ["Следящий за Discord"]
 }
 
 
 def grant_level(roles):
     for level, role in grant_levels.items():
-        if role.lower() in [role.name.lower() for role in roles]:
-            return level
+        if isinstance(role[0], str) and isinstance(roles, list):
+            if str(role[0].lower()) in str([r.name.lower() for r in roles if hasattr(r, 'name')]):
+                return level
     return 0
 
 
