@@ -13,7 +13,9 @@ class PunishmentsDatabase:
         self.actions = global_db.actions
 
     async def get_mutes(self, user_id=None, guild_id=None):
-        return await self.mutes.find({'user_id': user_id if user_id else '$exists', 'guild_id': guild_id if guild_id else '$exists'}).to_list(length=None)
+        return await self.mutes.find(
+            {'user_id': user_id if user_id else '$exists', 'guild_id': guild_id if guild_id else '$exists'}).to_list(
+            length=None)
 
     async def get_text_mute(self, *, user_id=None, guild_id=None, action_id=None):
         return await self.mutes.find_one({

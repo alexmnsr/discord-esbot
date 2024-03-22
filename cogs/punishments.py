@@ -201,13 +201,34 @@ class Punishments(commands.Cog):
 
     @nextcord.slash_command(name='alist', description="Проверить /alist пользователя",
                             default_member_permissions=nextcord.Permissions(administrator=True))
+    @restricted_command(5)
     async def alist(self, interaction,
                     user: str = nextcord.SlashOption('пользователь',
                                                      description='Пользователь, чей список наказаний вы хотите посмотреть.',
                                                      required=True),
-                    server: str = nextcord.SlashOption('сервер', description='Тот на котором запрашиваете (по умолчанию).')):
+                    type_punishment: str = nextcord.SlashOption('тип', description='Тип наказания', choices=['MUTE_TEXT', 'MUTE_VOICE', 'MUTE_FULL', 'BAN_LOCAL', 'BAN_GLOBAL'], default='FULL'),
+                    server: str = nextcord.SlashOption('сервер',
+                                                       description='Тот на котором запрашиваете (по умолчанию).',
+                                                       default=1)):
         if not (user := await self.bot.resolve_user(user)):
             return await interaction.send('Пользователь не найден.', ephemeral=True)
+        if server == 1:
+            server = interaction.guild.id
+        list = await self.handler.database.actions.get_punishments(user_id=user.id, guild_id=server,
+                                                                   type_punishment=type_punishment)
+        embed = (
+            nextcord.Embed(title=f'Список наказаний пользователя {user.display_name}', color=nextcord.Color.red())
+            .set_author(name=user.display_name, icon_url=user.display_avatar.url)
+            .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
+
+        for items in list:
+            embed.add_field(name=f'Наказание №{items["_id"]}',
+                            value=f'Модератор: <@{items["moderator_id"]}>\n'
+                                  f'Тип наказания: {items["action_type"].split(".")[-1]}\n'
+                                  f'Причина: {items["payload"]["reason"]}\n',
+                            inline=False)
+
+        await interaction.send(embed=embed, ephemeral=True)
 
 
 def setup(bot: EsBot) -> None:

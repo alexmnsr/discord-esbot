@@ -30,6 +30,16 @@ class Actions:
         })
         return action_id
 
+    async def get_punishments(self, type_punishment, *, user_id=None, guild_id=None):
+        query = {'user_id': user_id}
+        if guild_id:
+            query['guild_id'] = guild_id
+        if type_punishment != 'FULL':
+            query['action_type'] = 'ActionType.' + type_punishment
+
+        punishments = await self.actions.find(query).to_list(length=None)
+        return punishments
+
     @staticmethod
     async def send_log(action_id, guild, embed):
         embed.set_footer(text=f'ID: {action_id}')
