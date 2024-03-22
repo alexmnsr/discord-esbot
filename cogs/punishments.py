@@ -5,7 +5,7 @@ from nextcord.ext import commands
 
 from utils.classes.actions import ActionType
 from utils.classes.bot import EsBot
-from utils.neccessary import string_to_seconds, add_role, checking_presence
+from utils.neccessary import string_to_seconds, add_role, checking_presence, restricted_command
 
 
 class Punishments(commands.Cog):
@@ -24,7 +24,8 @@ class Punishments(commands.Cog):
         mutes = await self.handler.mutes.user_muted(member.id, member.guild.id)
 
         async def give_role(role_name, action_id):
-            await member.add_roles(nextcord.utils.get(member.guild.roles, name=role_name), reason=f'Rejoin. Action ID: {action_id}')
+            await member.add_roles(nextcord.utils.get(member.guild.roles, name=role_name),
+                                   reason=f'Rejoin. Action ID: {action_id}')
 
         for mute in mutes:
             if mute['type'] == 'full':
@@ -50,7 +51,8 @@ class Punishments(commands.Cog):
         await add_role(self.client, member.id, member.guild.id, mutes[0]['action_id'], role_name)
         await self.handler.mutes.wait_mute(mutes[0]['action_id'], mutes[0]['duration'], role_name)
 
-    @nextcord.slash_command(name='mute', default_member_permissions=nextcord.Permissions(administrator=True))
+    @nextcord.slash_command(name='mute')
+    @restricted_command(1)
     async def mute_group(self, interaction):
         ...
 
@@ -108,8 +110,8 @@ class Punishments(commands.Cog):
                         reason: str = nextcord.SlashOption('причина', description='Причина мута.', required=True)):
         await self.give_mute(interaction, user, duration, reason, 'Mute » Full')
 
-    @nextcord.slash_command(name='unmute', description="Снять мут с пользователя.",
-                            default_member_permissions=nextcord.Permissions(administrator=True))
+    @nextcord.slash_command(name='unmute', description="Снять мут с пользователя.")
+    @restricted_command(1)
     async def unmute(self, interaction):
         ...
 
@@ -146,7 +148,8 @@ class Punishments(commands.Cog):
                                                            required=True)):
         await self.remove_mute(interaction, user, 'Mute » Full')
 
-    @nextcord.slash_command(name='ban', description="Заблокировать пользователя на сервере", default_member_permissions=nextcord.Permissions(administrator=True))
+    @nextcord.slash_command(name='ban', description="Заблокировать пользователя на сервере")
+    @restricted_command(4)
     async def ban(self, interaction,
                   user: str = nextcord.SlashOption('пользователь',
                                                    description='Пользователь, которому вы хотите выдать блокировку.',
@@ -161,14 +164,17 @@ class Punishments(commands.Cog):
         embed = ((nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
                  .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
-                 .add_field(name='Длительность', value=f'{duration} дней' if duration != -1 else 'Навсегда', inline=True)
+                 .add_field(name='Длительность', value=f'{duration} дней' if duration != -1 else 'Навсегда',
+                            inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
         await interaction.send(embed=embed, ephemeral=True)
 
-        await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user=user, guild=interaction.guild, moderator=interaction.user, reason=reason, duration=duration)
+        await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user=user, guild=interaction.guild,
+                                         moderator=interaction.user, reason=reason, duration=duration)
 
-    @nextcord.slash_command(name='gban', description="Заблокировать пользователя на всех серверах", default_member_permissions=nextcord.Permissions(administrator=True))
+    @nextcord.slash_command(name='gban', description="Заблокировать пользователя на всех серверах",
+                            default_member_permissions=nextcord.Permissions(administrator=True))
     async def gban(self, interaction,
                    user: str = nextcord.SlashOption('пользователь',
                                                     description='Пользователь, которому вы хотите выдать блокировку.',
@@ -184,12 +190,24 @@ class Punishments(commands.Cog):
         embed = ((nextcord.Embed(title='Выдача бана на всех серверах', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
                  .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
-                 .add_field(name='Длительность', value=f'{duration} дней' if duration != -1 else 'Навсегда', inline=True)
+                 .add_field(name='Длительность', value=f'{duration} дней' if duration != -1 else 'Навсегда',
+                            inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
         await interaction.send(embed=embed, ephemeral=True)
 
-        await self.handler.bans.give_ban(ActionType.BAN_GLOBAL, user_id=user, guild=interaction.guild.id, moderator=interaction.user.id, reason=reason, duration=duration)
+        await self.handler.bans.give_ban(ActionType.BAN_GLOBAL, user_id=user, guild=interaction.guild.id,
+                                         moderator=interaction.user.id, reason=reason, duration=duration)
+
+    @nextcord.slash_command(name='alist', description="Проверить /alist пользователя",
+                            default_member_permissions=nextcord.Permissions(administrator=True))
+    async def alist(self, interaction,
+                    user: str = nextcord.SlashOption('пользователь',
+                                                     description='Пользователь, чей список наказаний вы хотите посмотреть.',
+                                                     required=True),
+                    server: str = nextcord.SlashOption('сервер', description='Тот на котором запрашиваете (по умолчанию).')):
+        if not (user := await self.bot.resolve_user(user)):
+            return await interaction.send('Пользователь не найден.', ephemeral=True)
 
 
 def setup(bot: EsBot) -> None:

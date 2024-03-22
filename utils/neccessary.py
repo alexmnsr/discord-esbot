@@ -5,7 +5,7 @@ import nextcord
 from nextcord.ext.application_checks.core import CheckWrapper
 
 grant_levels = {
-    1: ["Модератор", "super_moderator"],
+    1: ["Модератор"],
     2: ["Ст. Модератор"],
     3: ["Assistant Discord"],
     4: ["Главный Модератор Discord"],
@@ -13,12 +13,13 @@ grant_levels = {
 }
 
 
-def grant_level(roles):
-    for level, role in grant_levels.items():
-        if isinstance(role[0], str) and isinstance(roles, list):
-            if str(role[0].lower()) in str([r.name.lower() for r in roles if hasattr(r, 'name')]):
-                return level
-    return 0
+def grant_level(user_roles):
+    max_level = 0
+    for level, roles in grant_levels.items():
+        for role in roles:
+            if str(role.lower()) in str([role.name.lower() for role in user_roles]):
+                max_level = max(max_level, level)
+    return max_level
 
 
 def restricted_command(access_level: int):
