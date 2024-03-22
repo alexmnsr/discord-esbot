@@ -13,7 +13,10 @@ grant_levels = {
 }
 
 
-def grant_level(user_roles):
+def grant_level(user_roles, member):
+    if member.guild_permissions.administrator:
+        return max(grant_levels.keys())
+
     max_level = 0
     for level, roles in grant_levels.items():
         for role in roles:
@@ -24,7 +27,10 @@ def grant_level(user_roles):
 
 def restricted_command(access_level: int):
     def predicate(interaction: nextcord.Interaction):
-        return grant_level(interaction.user.roles) >= access_level
+        member = interaction.guild.get_member(interaction.user.id)
+        if member:
+            return grant_level(interaction.user.roles, member) >= access_level
+        return False
 
     def wrapper(func):
         return CheckWrapper(func, predicate)
