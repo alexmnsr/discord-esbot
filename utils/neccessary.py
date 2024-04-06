@@ -235,7 +235,7 @@ def string_to_seconds(string: str) -> int:
 
 
 def print_user(user, newline=True):
-    return user.mention + ('\n' if newline else '') + user.name + (
+    return user.mention + ('\n' if newline else ' ') + user.name + (
         f'#{user.discriminator}' if user.discriminator and str(user.discriminator) != '0' else '')
 
 

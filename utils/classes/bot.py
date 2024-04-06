@@ -5,14 +5,21 @@ from nextcord import Intents
 from nextcord.ext import commands
 
 from database import Database
+from utils.roles.role_info import StartView, ReviewView
 
 
 class EsBot(commands.Bot):
     def __init__(self) -> None:
         super().__init__(command_prefix='!', intents=Intents.all())
         self.db = Database(self)
+        self.is_view_initialised = False
 
     async def on_ready(self):
+        if not self.is_view_initialised:
+            self.is_view_initialised = True
+            self.add_view(StartView(self.db.roles_handler))
+            self.add_view(ReviewView(self.db.roles_handler))
+
         print(f'Logged in as {self.user} ({self.user.id})')
         print('------')
 

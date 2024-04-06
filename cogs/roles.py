@@ -7,16 +7,41 @@ from utils.neccessary import string_to_seconds, nick_without_tag
 from utils.roles.role_info import role_info, RoleRequest
 
 
+def command_mention(app_command, guild_id):
+    command_id = app_command.command_ids.get(guild_id)
+
+    if not command_id:
+        command_id = app_command.command_ids.get(None)
+
+    return f'</{app_command.name}:{command_id}>'
+
+
 class Roles(commands.Cog):
     def __init__(self, bot: EsBot) -> None:
         self.bot = bot
         self.handler = bot.db.roles_handler
 
+    async def rang_callback(self, interaction: nextcord.Interaction, rang):
+        for option in interaction.data.get('options', []):
+            if option['name'] == "роль":
+                role = role_info.get(option['value'])
+                break
+        else:
+            return await interaction.response.send_autocomplete([])
+
+        if rang and len(role.rangs) >= rang >= 1:
+            enumerated_rangs = [(rang, role.rangs[rang-1])]
+        else:
+            enumerated_rangs = enumerate(role.rangs, 1)
+
+        options = {f'[{v}] {k}': v for v, k in enumerated_rangs}
+        await interaction.response.send_autocomplete(options)
+
     @nextcord.slash_command(name='role', description='Подать заявление на роль.', default_member_permissions=nextcord.Permissions(administrator=True))
     async def request_role(self, interaction: nextcord.Interaction,
-                           nickname: str = nextcord.SlashOption(name='никнейм', description='Ваш никнейм на сервере. В формате Name_Surname.'),
+                           nickname: str = nextcord.SlashOption(name='никнейм', max_length=32, description='Ваш никнейм на сервере. В формате Name_Surname.'),
                            role: str = nextcord.SlashOption(name='роль', description='Роль, которую вы запрашиваете.', choices=role_info.keys()),
-                           rang: int = nextcord.SlashOption(name='ранг', description='Ваш ранг во фракции.', min_value=1, max_value=9),
+                           rang: int = nextcord.SlashOption(name='ранг', description='Ваш ранг во фракции.', min_value=1, max_value=8, autocomplete_callback=rang_callback),
                            statistics: nextcord.Attachment = nextcord.SlashOption(name='статистика', description='Скриншот вашей статистики (M в игре) с /c 60.'),
                            statistics_hassle: nextcord.Attachment = nextcord.SlashOption(name='дополнение-к-статистике', description='Дополнение к скриншоту статистики [/c 60] (только если играете с Hassle).', required=False)):
         if not self.handler.check_nickname(nickname):
@@ -26,6 +51,11 @@ class Roles(commands.Cog):
         if rang > 4 and role == 'Федеральная Служба Исполнения Наказаний':
             return await interaction.response.send_message('Ранг не может быть выше 4 для этой роли.', ephemeral=True)
 
+        if await self.handler.request_role(interaction.user, interaction.guild):
+            message = await interaction.send('Заявление обрабатывается.')
+        else:
+            return await interaction.send("Вы уже подавали на роль.")
+
         statistics = await statistics.to_file()
         if statistics_hassle:
             statistics_hassle = await statistics_hassle.to_file()
@@ -33,14 +63,32 @@ class Roles(commands.Cog):
         request = RoleRequest(interaction.user, interaction.guild, nickname, rang, role_info[role], statistics, statistics_hassle)
         if request.already_roled:
             await interaction.user.edit(nick=request.must_nick)
-            return await interaction.send('Ваш ранг изменён.', ephemeral=True)
+            await self.handler.remove_request(interaction.user, interaction.guild)
+            return await message.edit('Ваш ранг изменён.')
+
+        embed = nextcord.Embed(
+            colour=nextcord.Color.dark_green(),
+            title='✅ Вы подали заявление на роль.'
+        )
+        embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+        embed.add_field(name='ℹ️ Информация о заявлении', value=f'Никнейм: {nickname.replace("_", " ")}\n'
+                                                                f'Роль: {role}\n'
+                                                                f'Ранг: {rang}', inline=False)
+
+        await message.edit('', embed=embed)
+        await request.send(self.handler)
 
         if role := request.in_organization:
-            await interaction.user.edit(nick=nick_without_tag(request.user.display_name))
+            if (wo_tag := nick_without_tag(request.user.display_name)) != request.user.display_name:
+                await interaction.user.edit(nick=wo_tag)
             await interaction.user.remove_roles(role, reason=f'Заявление на роль.')
 
-        await interaction.send('Заявление отправлено.', ephemeral=True)
-        await request.send()
+        async for message in interaction.channel.history(limit=5):
+            if message.content and message.content.startswith('## Используйте'):
+                await message.delete()
+                break
+
+        await interaction.channel.send(f"## Используйте {command_mention(interaction.application_command, interaction.guild_id)} для подачи заявления")
 
 
 def setup(bot: EsBot) -> None:
