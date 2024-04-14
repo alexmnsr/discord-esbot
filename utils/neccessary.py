@@ -44,11 +44,10 @@ def is_counting(channel) -> bool:
         return True
 
     if "вопрос" in channel.name.lower() or "общение" in channel.name.lower():
-        if "close" in channel.name.lower():
+        if "close" or "закрыт" in channel.name.lower():
             return False
         if channel.user_limit > 2 or not channel.user_limit:
-            if channel.overwrites_for(channel.guild.default_role).connect != False:
-                return True
+            return True
     return False
 
 
