@@ -40,9 +40,6 @@ def restricted_command(access_level: int):
 
 
 def is_counting(channel) -> bool:
-    if isinstance(channel, nextcord.StageChannel):
-        return True
-
     if "вопрос" in channel.name.lower() or "общение" in channel.name.lower():
         if "close" in channel.name.lower():
             return False

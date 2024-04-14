@@ -77,7 +77,7 @@ class ReviewView(nextcord.ui.View):
         await interaction.edit_original_message(embed=embed, view=None)
         if request:
             await request.reject(emoji, reason, user_text(interaction.user))
-        await self.roles_handler.remove_request(user, guild)
+        await self.roles_handler.remove_request(user, guild, interaction.user.id, False)
 
     @nextcord.ui.string_select(
         placeholder="Отказать за...", custom_id="role_request:reject", options=[
@@ -126,7 +126,7 @@ class ReviewView(nextcord.ui.View):
         await interaction.edit_original_message(embed=embed, view=None)
         if request:
             await request.approve(user_text(interaction.user))
-        await self.roles_handler.remove_request(user, guild)
+        await self.roles_handler.remove_request(user, guild, moderator_id, True)
 
 
 class StartView(nextcord.ui.View):

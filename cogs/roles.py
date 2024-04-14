@@ -53,6 +53,12 @@ class Roles(commands.Cog):
 
         if await self.handler.request_role(interaction.user, interaction.guild):
             message = await interaction.send('Заявление обрабатывается.')
+            async for channel_message in interaction.channel.history(limit=5):
+                if channel_message.content and channel_message.content.startswith('## Используйте'):
+                    await channel_message.delete()
+                    break
+            await interaction.channel.send(
+                f"## Используйте {command_mention(interaction.application_command, interaction.guild_id)} для подачи заявления")
         else:
             return await interaction.send("Вы уже подавали на роль.")
 
@@ -63,7 +69,7 @@ class Roles(commands.Cog):
         request = RoleRequest(interaction.user, interaction.guild, nickname, rang, role_info[role], statistics, statistics_hassle)
         if request.already_roled:
             await interaction.user.edit(nick=request.must_nick)
-            await self.handler.remove_request(interaction.user, interaction.guild)
+            await self.handler.remove_request(interaction.user, interaction.guild, None, None)
             return await message.edit('Ваш ранг изменён.')
 
         embed = nextcord.Embed(
@@ -82,13 +88,6 @@ class Roles(commands.Cog):
             if (wo_tag := nick_without_tag(request.user.display_name)) != request.user.display_name:
                 await interaction.user.edit(nick=wo_tag)
             await interaction.user.remove_roles(role, reason=f'Заявление на роль.')
-
-        async for message in interaction.channel.history(limit=5):
-            if message.content and message.content.startswith('## Используйте'):
-                await message.delete()
-                break
-
-        await interaction.channel.send(f"## Используйте {command_mention(interaction.application_command, interaction.guild_id)} для подачи заявления")
 
 
 def setup(bot: EsBot) -> None:
