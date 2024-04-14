@@ -41,10 +41,9 @@ def restricted_command(access_level: int):
 
 def is_counting(channel) -> bool:
     if "вопрос" in channel.name.lower() or "общение" in channel.name.lower():
-        if "close" or "закрыт" in channel.name.lower():
-            return False
         if channel.user_limit > 2 or not channel.user_limit:
-            return True
+            if channel.overwrites_for(channel.guild.default_role).connect != False:
+                return True
     return False
 
 
