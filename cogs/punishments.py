@@ -1,5 +1,3 @@
-import datetime
-
 import nextcord
 from nextcord.ext import commands
 
@@ -100,6 +98,7 @@ class Punishments(commands.Cog):
         await self.give_mute(interaction, user, duration, reason, 'Mute » Voice')
 
     @mute_group.subcommand(name='full', description="Выдать полный мут пользователю.")
+    @restricted_command(1)
     async def mute_full(self, interaction,
                         user: str = nextcord.SlashOption('пользователь',
                                                          description='Пользователь, которому вы хотите выдать мут.',
@@ -175,6 +174,7 @@ class Punishments(commands.Cog):
 
     @nextcord.slash_command(name='gban', description="Заблокировать пользователя на всех серверах",
                             default_member_permissions=nextcord.Permissions(administrator=True))
+    @restricted_command(5)
     async def gban(self, interaction,
                    user: str = nextcord.SlashOption('пользователь',
                                                     description='Пользователь, которому вы хотите выдать блокировку.',
@@ -206,7 +206,9 @@ class Punishments(commands.Cog):
                     user: str = nextcord.SlashOption('пользователь',
                                                      description='Пользователь, чей список наказаний вы хотите посмотреть.',
                                                      required=True),
-                    type_punishment: str = nextcord.SlashOption('тип', description='Тип наказания', choices=['MUTE_TEXT', 'MUTE_VOICE', 'MUTE_FULL', 'BAN_LOCAL', 'BAN_GLOBAL'], default='FULL'),
+                    type_punishment: str = nextcord.SlashOption('тип', description='Тип наказания',
+                                                                choices=['MUTE_TEXT', 'MUTE_VOICE', 'MUTE_FULL',
+                                                                         'BAN_LOCAL', 'BAN_GLOBAL'], default='FULL'),
                     server: str = nextcord.SlashOption('сервер',
                                                        description='Тот на котором запрашиваете (по умолчанию).',
                                                        default=1)):
