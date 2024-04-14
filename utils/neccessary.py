@@ -39,10 +39,13 @@ def restricted_command(access_level: int):
     return wrapper
 
 
-def is_counting(channel) -> bool:
+def is_counting(channel: nextcord.VoiceChannel) -> bool:
     if "вопрос" in channel.name.lower() or "общение" in channel.name.lower():
         if channel.user_limit > 2 or not channel.user_limit:
-            if channel.overwrites_for(channel.guild.default_role).connect != False:
+            if (
+                channel.overwrites_for(channel.guild.default_role).connect != False and
+                channel.overwrites_for(channel.guild.default_role).view_channel != False
+            ):
                 return True
     return False
 
