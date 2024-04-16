@@ -113,6 +113,60 @@ class MuteHandler:
         return True
 
 
+class WarnHandler:
+    def __init__(self, handler) -> None:
+        self.handler = handler
+        self.client = handler.client
+        self.database = handler.database
+
+    async def wait_warn(self, action_id, days):
+        await asyncio.sleep(days)  # * 86400)
+        warn = await self.database.get_warn(action_id=action_id)
+        if not warn:
+            return
+
+        await self.database.remove_warn(action_id=action_id)
+        guild = self.client.get_guild(warn['guild_id'])
+        if not guild:
+            return
+
+        embed = nextcord.Embed(
+            title=f'Срок Вашего предупреждения на сервере {guild.name} истек.',
+            description=f'Постарайтесь более не нарушать.',
+            color=0x00FF00
+        )
+        embed.set_author(name=guild.name, icon_url=guild.icon.url)
+
+        await send_embed(await self.client.fetch_user(warn['user_id']), embed)
+
+    async def give_warn(self, type_warn, *, user, guild, moderator, reason):
+        action_id = await self.database.give_warn(user_id=user.id, guild_id=guild.id, moderator_id=moderator.id,
+                                                  reason=reason, warn_type=type_warn)
+        if not action_id:
+            return
+
+        embed = nextcord.Embed(
+            title=f'Вам выдано предупреждение на сервере {guild.name}.',
+            description=f'Причина: {reason}\nВремя истечения: <t:{round(((datetime.datetime.now() + datetime.timedelta(days=10)).timestamp()))}:R>',
+            color=0xFF0000
+        )
+        embed.set_author(name=guild.name, icon_url=guild.icon.url)
+
+        await send_embed(user.id, embed)
+
+        log_embed = nextcord.Embed(
+            title=f'Выдача предупреждения на сервере {guild.name}',
+            color=0xFF0000)
+        log_embed.add_field(name='Модератор', value=moderator.mention)
+        log_embed.add_field(name='Причина', value=reason)
+        log_embed.add_field(name='Время истечения',
+                            value=f'<t:{round(((datetime.datetime.now() + datetime.timedelta(days=10)).timestamp()))}:R>')
+        log_embed.set_footer(text=f'ID: {user.id}')
+        await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
+
+        self.client.loop.create_task(self.wait_warn(action_id, 10))
+
+
 class BanHandler:
     def __init__(self, handler) -> None:
         self.handler = handler
@@ -212,6 +266,7 @@ class PunishmentsHandler:
         self.client = client
         self.mutes = MuteHandler(self)
         self.bans = BanHandler(self)
+        self.warns = WarnHandler(self)
 
     async def reload(self):
         current_mutes = await self.database.get_mutes()

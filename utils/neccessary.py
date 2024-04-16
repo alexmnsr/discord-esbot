@@ -39,7 +39,8 @@ def restricted_command(access_level: int):
     return wrapper
 
 
-def is_counting(channel: nextcord.VoiceChannel) -> bool:
+def is_counting(channel: nextcord
+                .VoiceChannel) -> bool:
     if "вопрос" in channel.name.lower() or "общение" in channel.name.lower():
         if channel.user_limit > 2 or not channel.user_limit:
             if (

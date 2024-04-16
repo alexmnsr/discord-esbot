@@ -147,6 +147,26 @@ class Punishments(commands.Cog):
                                                            required=True)):
         await self.remove_mute(interaction, user, 'Mute » Full')
 
+    @nextcord.slash_command(name='warn', description="Предупредить пользователя")
+    @restricted_command(2)
+    async def warn(self, interaction,
+                   user: str = nextcord.SlashOption('пользователь',
+                                                    description='Пользователь, которому вы хотите выдать предупреждение.',
+                                                    required=True),
+                   reason: str = nextcord.SlashOption('причина', description='Причина предупреждения.', required=True)):
+        if not (user := await self.bot.resolve_user(user)):
+            return await interaction.send('Пользователь не найден.', ephemeral=True)
+        embed = ((nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
+                  .set_author(name=user.display_name, icon_url=user.display_avatar.url))
+                 .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
+                 .add_field(name='Причина', value=reason, inline=True)
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
+        await interaction.send(embed=embed, ephemeral=True)
+
+        await self.handler.warns.give_warn(ActionType.WARN_LOCAL, user=user, guild=interaction.guild,
+                                           moderator=interaction.user, reason=reason)
+
+
     @nextcord.slash_command(name='ban', description="Заблокировать пользователя на сервере")
     @restricted_command(4)
     async def ban(self, interaction,

@@ -10,6 +10,7 @@ class PunishmentsDatabase:
         self.db = db
         self.mutes = self.db['mutes']
         self.bans = self.db['bans']
+        self.warns = self.db['warns']
         self.actions = global_db.actions
 
     async def get_mutes(self, user_id=None, guild_id=None):
@@ -86,6 +87,41 @@ class PunishmentsDatabase:
 
     async def remove_full_mute(self, user_id, guild_id):
         return await self.remove_mute(user_id, guild_id, ActionType.MUTE_FULL)
+
+    async def give_warn(self, user_id, guild_id, moderator_id, reason, warn_type):
+        action_id = await self.actions.add_action(
+            user_id=user_id,
+            guild_id=guild_id,
+            moderator_id=moderator_id,
+            action_type=str(warn_type),
+            payload={
+                'reason': reason
+            }
+        )
+        await self.warns.insert_one({
+            'user_id': user_id,
+            'guild_id': guild_id,
+            'moderator_id': moderator_id,
+            'reason': reason,
+            'given_at': datetime.datetime.now(),
+            'type': str(warn_type),
+            'action_id': action_id
+        })
+        return action_id
+
+    async def get_warn(self, *, user_id=None, guild_id=None, action_id=None, type_warn=None):
+        return await self.bans.find_one({
+                                            'user_id': user_id,
+                                            'guild_id': guild_id,
+                                            'type': type_warn
+                                        } if not action_id else {'action_id': action_id})
+
+    async def remove_warn(self, *, user_id=None, guild_id=None, action_id=None, type_warn=None):
+        return await self.bans.delete_one({
+                                              'user_id': user_id,
+                                              'guild_id': guild_id,
+                                              'type': type_warn
+                                          } if not action_id else {'action_id': action_id})
 
     async def give_ban(self, user_id, guild_id, moderator_id, reason, duration, ban_type):
         action_id = await self.actions.add_action(
