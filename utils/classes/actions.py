@@ -12,6 +12,7 @@ class ActionType(enum.Enum):
     MUTE_TEXT = 'mute_text'
     MUTE_VOICE = 'mute_voice'
     MUTE_FULL = 'mute_full'
+    ROLES = 'roles_action'
 
 
 class Actions:

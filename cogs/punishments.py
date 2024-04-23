@@ -56,20 +56,20 @@ class Punishments(commands.Cog):
 
     async def give_mute(self, interaction, user, duration, reason, role_name):
         if not (user := await self.bot.resolve_user(user)):
-            return await interaction.send('Пользователь не найден.', ephemeral=True)
+            return await interaction.send('Пользователь не найден.')
 
         mute_seconds = string_to_seconds(duration)
         if not mute_seconds:
-            return await interaction.send('Неверный формат длительности мута.', ephemeral=True)
+            return await interaction.send('Неверный формат длительности мута.')
         get, give, remove = self.handler.mutes.mute_info(role_name)
         if await get(user_id=user.id, guild_id=interaction.guild.id):
-            return await interaction.send('У пользователя уже есть мут.', ephemeral=True)
+            return await interaction.send('У пользователя уже есть мут.')
         embed = ((nextcord.Embed(title='Выдача наказания', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
                  .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
-        await interaction.send(embed=embed, ephemeral=True)
+        await interaction.send(embed=embed)
 
         await self.handler.mutes.give_mute(role_name, user=user, guild=interaction.guild, moderator=interaction.user,
                                            reason=reason,
@@ -116,15 +116,15 @@ class Punishments(commands.Cog):
 
     async def remove_mute(self, interaction, user, role_name):
         if not (user := await self.bot.resolve_user(user)):
-            return await interaction.send('Пользователь не найден.', ephemeral=True)
+            return await interaction.send('Пользователь не найден.')
 
         if not await self.handler.mutes.remove_mute(user.id, interaction.guild.id, role_name, interaction.user):
-            return await interaction.send('У пользователя нет мута.', ephemeral=True)
+            return await interaction.send('У пользователя нет мута.')
 
         embed = nextcord.Embed(
             title='Снятие наказания',
             description=f'У пользователя {user.mention} снят мут.')
-        await interaction.send(embed=embed, ephemeral=True)
+        await interaction.send(embed=embed)
 
     @unmute.subcommand(name='text', description="Снять текстовый мут с пользователя.")
     async def unmute_text(self, interaction,
@@ -155,13 +155,13 @@ class Punishments(commands.Cog):
                                                     required=True),
                    reason: str = nextcord.SlashOption('причина', description='Причина предупреждения.', required=True)):
         if not (user := await self.bot.resolve_user(user)):
-            return await interaction.send('Пользователь не найден.', ephemeral=True)
+            return await interaction.send('Пользователь не найден.')
         embed = ((nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
                  .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
-        await interaction.send(embed=embed, ephemeral=True)
+        await interaction.send(embed=embed)
 
         await self.handler.warns.give_warn(ActionType.WARN_LOCAL, user=user, guild=interaction.guild,
                                            moderator=interaction.user, reason=reason)
@@ -178,7 +178,7 @@ class Punishments(commands.Cog):
                                                        required=True, min_value=-1, max_value=30),
                   reason: str = nextcord.SlashOption('причина', description='Причина блокировки.', required=True)):
         if not (user := await self.bot.resolve_user(user)):
-            return await interaction.send('Пользователь не найден.', ephemeral=True)
+            return await interaction.send('Пользователь не найден.')
 
         embed = ((nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
@@ -187,7 +187,7 @@ class Punishments(commands.Cog):
                             inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
-        await interaction.send(embed=embed, ephemeral=True)
+        await interaction.send(embed=embed)
 
         await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user=user, guild=interaction.guild,
                                          moderator=interaction.user, reason=reason, duration=duration)
@@ -205,7 +205,7 @@ class Punishments(commands.Cog):
                    reason: str = nextcord.SlashOption('причина', description='Причина блокировки.', required=True)):
 
         if not (user := await self.bot.resolve_user(user)):
-            return await interaction.send('Пользователь не найден.', ephemeral=True)
+            return await interaction.send('Пользователь не найден.')
 
         embed = ((nextcord.Embed(title='Выдача бана на всех серверах', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
@@ -214,7 +214,7 @@ class Punishments(commands.Cog):
                             inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
-        await interaction.send(embed=embed, ephemeral=True)
+        await interaction.send(embed=embed)
 
         await self.handler.bans.give_ban(ActionType.BAN_GLOBAL, user_id=user, guild=interaction.guild.id,
                                          moderator=interaction.user.id, reason=reason, duration=duration)
@@ -233,7 +233,7 @@ class Punishments(commands.Cog):
                                                        description='Тот на котором запрашиваете (по умолчанию).',
                                                        default=1)):
         if not (user := await self.bot.resolve_user(user)):
-            return await interaction.send('Пользователь не найден.', ephemeral=True)
+            return await interaction.send('Пользователь не найден.')
         if server == 1:
             server = interaction.guild.id
         list = await self.handler.database.actions.get_punishments(user_id=user.id, guild_id=server,
@@ -250,7 +250,7 @@ class Punishments(commands.Cog):
                                   f'Причина: {items["payload"]["reason"]} Время: {items["payload"]["duration"]}\n',
                             inline=False)
 
-        await interaction.send(embed=embed, ephemeral=True)
+        await interaction.send(embed=embed)
 
 
 def setup(bot: EsBot) -> None:

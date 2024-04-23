@@ -3,6 +3,8 @@ import re
 
 from motor.core import AgnosticCollection
 
+from utils.classes.actions import ActionType
+
 nickname_regex = re.compile(r'^[A-Z][a-z]+(?:_[A-Z][a-z]+)?_[A-Z][a-z]+$')
 
 
@@ -11,6 +13,7 @@ class RolesHandler:
         self.client = client
         self.mongo = mongodb["Requests"]
         self.moder_mongo = mongodb["Review"]
+        self.actions = global_db.actions
 
     @staticmethod
     def check_nickname(nickname):
@@ -26,6 +29,18 @@ class RolesHandler:
 
         return True
 
+    async def accept_request(self, user, guild, moderator_id):
+        action_id = await self.actions.add_action(
+            user_id=user.id,
+            guild_id=guild.id,
+            moderator_id=None,
+            action_type=ActionType.ROLES,
+            payload={
+
+            }
+        )
+        return action_id
+
     async def remove_request(self, user, guild, moderator_id, approve):
         info = {"user": user.id, "guild": guild.id}
         if not await self.mongo.count_documents(info):
@@ -39,5 +54,15 @@ class RolesHandler:
                 {'$push': {'roles_approved' if approve else 'roles_rejected': user.id}},
                 upsert=True
             )
+
+        await self.actions.add_action(
+            user_id=user.id,
+            guild_id=guild.id,
+            moderator_id=moderator_id,
+            action_type=ActionType.ROLES,
+            payload={
+
+            }
+        )
 
         return True

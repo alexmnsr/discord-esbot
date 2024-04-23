@@ -17,22 +17,28 @@ class RoleInfo:
         return None
 
     def rang_name(self, num):
-        return self.rangs[num-1]
+        return self.rangs[num - 1]
 
 
 role_info = {
     'Правительство': RoleInfo(['Правительство', 'Пра-во'], 'Пра-во | {}',
-                              ["Водитель", "Охранник", "Нач.Охраны", "Секретарь", "Старший секретарь", "Лицензёр", "Адвокат", "Депутат"]),
+                              ["Водитель", "Охранник", "Нач.Охраны", "Секретарь", "Старший секретарь", "Лицензёр",
+                               "Адвокат", "Депутат"]),
 
     'Министерство Обороны': RoleInfo(['Министерство Обороны', 'МО'], 'МО | {}',
-                                     ["Рядовой", "Ефрейтор", "Сержант", "Прапорщик", "Лейтенант", "Капитан", "Майор", "Подполковник"]),
+                                     ["Рядовой", "Ефрейтор", "Сержант", "Прапорщик", "Лейтенант", "Капитан", "Майор",
+                                      "Подполковник"]),
     'Министерство Здравоохранения': RoleInfo(['Министерство Здравоохранения', 'МЗ'], 'МЗ | {}',
-                                             ["Интерн", "Фельдшер", "Участковый врач", "Терапевт", "Проктолог", "Нарколог", "Хирург", "Заведующий отделением"]),
+                                             ["Интерн", "Фельдшер", "Участковый врач", "Терапевт", "Проктолог",
+                                              "Нарколог", "Хирург", "Заведующий отделением"]),
     'Теле-Радио Компания «Ритм»': RoleInfo(['Теле-Радио Компания «Ритм»', 'ТРК'], 'ТРК | {}',
-                                             ["Стажёр", "Светотехник", "Монтажёр", "Оператор", "Дизайнер", "Репортер", "Ведущий", "Режиссёр"]),
+                                           ["Стажёр", "Светотехник", "Монтажёр", "Оператор", "Дизайнер", "Репортер",
+                                            "Ведущий", "Режиссёр"]),
     'Министерство Внутренних Дел': RoleInfo(['Министерство Внутренних Дел', 'МВД'], 'МВД | {}',
-                                            ["Рядовой", "Сержант", "Старшина", "Прапорщик", "Лейтенант", "Капитан", "Майор", "Подполковник"]),
-    'Федеральная Служба Исполнения Наказаний': RoleInfo(['Федеральная Служба Исполнения Наказаний', 'ФСИН'], 'ФСИН | {}',
+                                            ["Рядовой", "Сержант", "Старшина", "Прапорщик", "Лейтенант", "Капитан",
+                                             "Майор", "Подполковник"]),
+    'Федеральная Служба Исполнения Наказаний': RoleInfo(['Федеральная Служба Исполнения Наказаний', 'ФСИН'],
+                                                        'ФСИН | {}',
                                                         ["Охранник", "Конвоир", "Надзиратель", "Инспектор"])
 }
 
@@ -81,8 +87,14 @@ class ReviewView(nextcord.ui.View):
 
     @nextcord.ui.string_select(
         placeholder="Отказать за...", custom_id="role_request:reject", options=[
-            SelectOption(label=key, description=value[1], emoji=value[0], value=key) for key, value in reasons_dict.items()
-        ] + [SelectOption(label="Другая причина", value="own", emoji='❔', description="Откроет меню для ввода вашей причины.")]
+                                                                                   SelectOption(label=key,
+                                                                                                description=value[1],
+                                                                                                emoji=value[0],
+                                                                                                value=key) for
+                                                                                   key, value in reasons_dict.items()
+                                                                               ] + [SelectOption(label="Другая причина",
+                                                                                                 value="own", emoji='❔',
+                                                                                                 description="Откроет меню для ввода вашей причины.")]
     )
     async def reject(self, select: nextcord.ui.Select, interaction: nextcord.Interaction):
         moderator_id = nextcord.utils.parse_raw_mentions(interaction.message.embeds[0].fields[-1].value)[0]
@@ -100,6 +112,7 @@ class ReviewView(nextcord.ui.View):
                 nonlocal reason
                 reason = reason.value
                 await self.reject_process(modal_interaction, reason)
+
             modal.add_item(reason)
 
             modal.callback = reject_callback
@@ -112,7 +125,7 @@ class ReviewView(nextcord.ui.View):
     async def approve(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         moderator_id = nextcord.utils.parse_raw_mentions(interaction.message.embeds[0].fields[-1].value)[0]
         if moderator_id != interaction.user.id:
-            return await interaction.send("Извините, но запросом занимается другой модератор.", ephemeral=True)
+            return await interaction.send("Запросом занимается другой модератор.", ephemeral=True)
         self.stop()
 
         await interaction.response.defer()
