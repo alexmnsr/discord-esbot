@@ -68,7 +68,7 @@ class Punishments(commands.Cog):
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
                  .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
-                 .add_field(name='Время', value=duration, inline=True)
+                 .add_field(name='Время', value=f"{duration} мин.", inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
         await interaction.send(embed=embed)
 
