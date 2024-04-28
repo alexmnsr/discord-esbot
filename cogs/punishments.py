@@ -269,6 +269,8 @@ class Punishments(commands.Cog):
                             inline=True)
                  .add_field(name='Причина', value=f'{data["payload"]["reason"]}', inline=True)
                  .add_field(name='Ссылка на сообщение', value=f'{data["payload"].get("jump_url")}', inline=True)
+                 .add_field(name='Тип наказания', value=f'{data["action_type"]}',
+                            inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f'Модератор: {data["moderator_id"]}'))
         return await interaction.send(embed=embed)
