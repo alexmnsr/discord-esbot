@@ -273,6 +273,8 @@ class PunishmentsHandler:
 
     async def reload(self):
         current_mutes = await self.database.get_mutes()
+        current_bans = await self.database.get_bans()
+        current_warns = await self.database.get_warns()
         for mute in current_mutes:
             role_name = 'Mute » Text' if mute['type'] == 'text' else 'Mute » Voice' if mute[
                                                                                            'type'] == 'voice' else 'Mute » Full'
@@ -280,3 +282,11 @@ class PunishmentsHandler:
                                                               ((mute['given_at'] + datetime.timedelta(seconds=mute[
                                                                   'duration'])) - datetime.datetime.now()).total_seconds(),
                                                               role_name))
+        for ban in current_bans:
+            self.client.loop.create_task(self.bans.wait_ban(ban['action_id'],
+                                                            ((ban['given_at'] + datetime.timedelta(days=ban[
+                                                                'duration'])) - datetime.datetime.now()).total_seconds()))
+        for warn in current_warns:
+            self.client.loop.create_task(self.warns.wait_warn(warn['action_id'],
+                                                              ((warn['given_at'] + datetime.timedelta(days=warn[
+                                                                  'duration'])) - datetime.datetime.now()).total_seconds()))
