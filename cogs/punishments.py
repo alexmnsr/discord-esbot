@@ -303,7 +303,7 @@ class Punishments(commands.Cog):
             embed.add_field(name=f'Наказание №{items["_id"]}',
                             value=f'Модератор: <@{items["moderator_id"]}>\n'
                                   f'Тип наказания: {items["action_type"].split(".")[-1]}\n'
-                                  f'Причина: {items["payload"]["reason"]} Время: {items["payload"]["duration"]} Сообщение: {items["payload"]["jump_url"] if items["payload"]["jump_url"] else None}\n',
+                                  f'Причина: {items["payload"]["reason"]} Время: {items["payload"]["duration"]} Сообщение: {items["payload"].get("jump_url")}\n',
                             inline=False)
 
         await interaction.send(embed=embed)
