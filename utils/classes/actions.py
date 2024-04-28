@@ -7,6 +7,7 @@ from motor import motor_asyncio
 class ActionType(enum.Enum):
     BAN_LOCAL = 'ban_local'
     BAN_GLOBAL = 'ban_global'
+    UNBAN_LOCAL = 'unban_local'
     WARN_LOCAL = 'warn_local'
     TIME_WARN = 'warn_time'
     MUTE_TEXT = 'mute_text'
@@ -29,7 +30,7 @@ class Actions:
             'action_type': str(action_type),
             'payload': payload,
             '_id': action_id,
-            'time': datetime.datetime.now(),
+            'time': datetime.datetime.now()
         })
         return action_id
 
@@ -42,6 +43,9 @@ class Actions:
 
         punishments = await self.actions.find(query).to_list(length=None)
         return punishments
+
+    async def get_action(self, action_id):
+        return await self.actions.find_one({'_id': action_id})
 
     @staticmethod
     async def send_log(action_id, guild, embed):

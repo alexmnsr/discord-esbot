@@ -39,7 +39,7 @@ class PunishmentsDatabase:
                                              'type': 'full'
                                          } if not action_id else {'action_id': action_id})
 
-    async def give_mute(self, user_id, guild_id, moderator_id, reason, duration, mute_type):
+    async def give_mute(self, user_id, guild_id, moderator_id, reason, duration, mute_type, *, jump_url):
         action_id = await self.actions.add_action(
             user_id=user_id,
             guild_id=guild_id,
@@ -47,7 +47,8 @@ class PunishmentsDatabase:
             action_type=str(mute_type),
             payload={
                 'reason': reason,
-                'duration': duration
+                'duration': duration,
+                'jump_url': jump_url
             }
         )
 
@@ -59,18 +60,19 @@ class PunishmentsDatabase:
             'duration': duration,
             'given_at': datetime.datetime.now(),
             'type': mute_type.name.split('_')[1].lower(),
+            'jump_url': jump_url,
             'action_id': action_id
         })
         return action_id
 
-    async def give_text_mute(self, user_id, guild_id, moderator_id, reason, duration):
-        return await self.give_mute(user_id, guild_id, moderator_id, reason, duration, ActionType.MUTE_TEXT)
+    async def give_text_mute(self, user_id, guild_id, moderator_id, reason, duration, jump_url):
+        return await self.give_mute(user_id, guild_id, moderator_id, reason, duration, ActionType.MUTE_TEXT, jump_url=jump_url)
 
-    async def give_voice_mute(self, user_id, guild_id, moderator_id, reason, duration):
-        return await self.give_mute(user_id, guild_id, moderator_id, reason, duration, ActionType.MUTE_VOICE)
+    async def give_voice_mute(self, user_id, guild_id, moderator_id, reason, duration, jump_url):
+        return await self.give_mute(user_id, guild_id, moderator_id, reason, duration, ActionType.MUTE_VOICE, jump_url=jump_url)
 
-    async def give_full_mute(self, user_id, guild_id, moderator_id, reason, duration):
-        return await self.give_mute(user_id, guild_id, moderator_id, reason, duration, ActionType.MUTE_FULL)
+    async def give_full_mute(self, user_id, guild_id, moderator_id, reason, duration, jump_url):
+        return await self.give_mute(user_id, guild_id, moderator_id, reason, duration, ActionType.MUTE_FULL, jump_url=jump_url)
 
     async def remove_mute(self, user_id, guild_id, mute_type):
         return (await self.mutes.delete_one({
@@ -88,14 +90,15 @@ class PunishmentsDatabase:
     async def remove_full_mute(self, user_id, guild_id):
         return await self.remove_mute(user_id, guild_id, ActionType.MUTE_FULL)
 
-    async def give_warn(self, user_id, guild_id, moderator_id, reason, warn_type):
+    async def give_warn(self, user_id, guild_id, moderator_id, reason, warn_type, *, jump_url):
         action_id = await self.actions.add_action(
             user_id=user_id,
             guild_id=guild_id,
             moderator_id=moderator_id,
             action_type=str(warn_type),
             payload={
-                'reason': reason
+                'reason': reason,
+                'jump_url': jump_url
             }
         )
         await self.warns.insert_one({
@@ -123,7 +126,7 @@ class PunishmentsDatabase:
                                               'type': type_warn
                                           } if not action_id else {'action_id': action_id})
 
-    async def give_ban(self, user_id, guild_id, moderator_id, reason, duration, ban_type):
+    async def give_ban(self, user_id, guild_id, moderator_id, reason, duration, ban_type, *, jump_url):
         action_id = await self.actions.add_action(
             user_id=user_id,
             guild_id=guild_id,
@@ -131,7 +134,8 @@ class PunishmentsDatabase:
             action_type=str(ban_type),
             payload={
                 'reason': reason,
-                'duration': duration
+                'duration': duration,
+                'jump_url': jump_url
             }
         )
 
@@ -143,6 +147,7 @@ class PunishmentsDatabase:
             'duration': duration,
             'given_at': datetime.datetime.now(),
             'type': ban_type.name.split('_')[1].lower(),
+            'jump_url': jump_url,
             'action_id': action_id
         })
         return action_id

@@ -1,3 +1,5 @@
+import re
+
 import nextcord
 from nextcord.ext import commands
 
@@ -69,12 +71,14 @@ class Punishments(commands.Cog):
                  .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
                  .add_field(name='Время', value=f"{duration} мин.", inline=True)
-                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
-        await interaction.send(embed=embed)
-
-        await self.handler.mutes.give_mute(role_name, user=user, guild=interaction.guild, moderator=interaction.user,
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
+                 .set_footer(text=f"Модератор: {interaction.user.id}"))
+        mess = await interaction.send(embed=embed)
+        jump_url = (await mess.fetch()).jump_url
+        await self.handler.mutes.give_mute(role_name, user=user, guild=interaction.guild,
+                                           moderator=interaction.user,
                                            reason=reason,
-                                           duration=mute_seconds)
+                                           duration=mute_seconds, jump_url=jump_url)
 
     @mute_group.subcommand(name='text', description="Выдать мут пользователю в текстовых каналах.")
     async def mute_text(self, interaction,
@@ -161,15 +165,16 @@ class Punishments(commands.Cog):
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
                  .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
-                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
+                 .set_footer(text=f"Модератор: {interaction.user.id}"))
         await interaction.send(embed=embed)
 
-        await self.handler.warns.give_warn(ActionType.WARN_LOCAL, user=user, guild=interaction.guild,
-                                           moderator=interaction.user, reason=reason)
-
+        action_id = await self.handler.warns.give_warn(ActionType.WARN_LOCAL, user=user, guild=interaction.guild,
+                                                       moderator=interaction.user, reason=reason)
+        await interaction.guild.kick(user.id, reason=f"Warn\nAction ID: {action_id}")
 
     @nextcord.slash_command(name='ban', description="Заблокировать пользователя на сервере")
-    @restricted_command(4)
+    @restricted_command(3)
     async def ban(self, interaction,
                   user: str = nextcord.SlashOption('пользователь',
                                                    description='Пользователь, которому вы хотите выдать блокировку.',
@@ -187,11 +192,42 @@ class Punishments(commands.Cog):
                  .add_field(name='Длительность', value=f'{duration} дней' if duration != -1 else 'Навсегда',
                             inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
-                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
+                 .set_footer(text=f"Модератор: {interaction.user.id}"))
         await interaction.send(embed=embed)
-
         await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user=user, guild=interaction.guild,
                                          moderator=interaction.user, reason=reason, duration=duration)
+
+    @nextcord.slash_command(name='unban', description="Разблокировать пользователя")
+    @restricted_command(3)
+    async def unban(self, interaction,
+                    user: str = nextcord.SlashOption('пользователь',
+                                                     description='Пользователь, которому вы хотите выдать блокировку.',
+                                                     required=True),
+                    action_id: int = nextcord.SlashOption('номер',
+                                                          description='Номер выданного наказания - Action ID  ',
+                                                          required=True)):
+        if not (user := await self.bot.resolve_user(user)):
+            return await interaction.send('Пользователь не найден.')
+
+        ban = await self.handler.database.get_ban(user_id=user.id, guild_id=interaction.guild.id, action_id=action_id,
+                                                  type_ban='local')
+        if ban:
+            await self.handler.database.remove_ban(user_id=user.id, guild_id=interaction.guild.id, action_id=action_id,
+                                                   type_ban='local')
+        else:
+            return interaction.send('Блокировка не найдена')
+
+        await interaction.guild.unban(user, reason=f"Action ID блокировки: {action_id}")
+
+        embed = ((nextcord.Embed(title='Разблокировка пользователя', color=nextcord.Color.red())
+                  .set_author(name=user.display_name, icon_url=user.display_avatar.url))
+                 .add_field(name='Пользователь', value=f'<@{user.id}>', inline=False)
+                 .add_field(name='Блокировал модератор', value=f'<@{ban["moderator_id"]}>', inline=True)
+                 .add_field(name='Разблокировал:', value=f'<@{interaction.user.id}>', inline=True)
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
+                 .set_footer(text=f"Action ID: {action_id}"))
+        return await interaction.send(embed=embed)
 
     @nextcord.slash_command(name='gban', description="Заблокировать пользователя на всех серверах",
                             default_member_permissions=nextcord.Permissions(administrator=True))
@@ -214,15 +250,32 @@ class Punishments(commands.Cog):
                  .add_field(name='Длительность', value=f'{duration} дней' if duration != -1 else 'Навсегда',
                             inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
-                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
+                 .set_footer(text=f"Модератор: {interaction.user.id}"))
         await interaction.send(embed=embed)
-
         await self.handler.bans.give_ban(ActionType.BAN_GLOBAL, user_id=user, guild=interaction.guild.id,
                                          moderator=interaction.user.id, reason=reason, duration=duration)
 
-    @nextcord.slash_command(name='alist', description="Проверить /alist пользователя",
-                            default_member_permissions=nextcord.Permissions(administrator=True))
-    @restricted_command(5)
+    @nextcord.slash_command(name='act', description="Найти событие по ID")
+    @restricted_command(3)
+    async def act(self, interaction,
+                  action_id: int = nextcord.SlashOption('id', description='Action ID события')):
+        data = await self.handler.database.actions.get_action(action_id)
+        user = await self.client.fetch_user(data["moderator_id"])
+        embed = ((nextcord.Embed(title=f'Action ID: {action_id}', color=nextcord.Color.red())
+                  .set_author(name=interaction.user.display_name, icon_url=user.display_avatar.url))
+                 .add_field(name='Нарушитель', value=f'<@{data["user_id"]}>', inline=True)
+                 .add_field(name='Длительность', value=f'{data["payload"]["duration"]}',
+                            inline=True)
+                 .add_field(name='Причина', value=f'{data["payload"]["reason"]}', inline=True)
+                 .add_field(name='Ссылка на сообщение', value=f'{data["payload"]["jump_url"] if data["payload"]["jump_url"] else None}', inline=True)
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
+                 .set_footer(text=f'Модератор: {data["moderator_id"]}'))
+        return await interaction.send(embed=embed)
+
+
+    @nextcord.slash_command(name='alist', description="Проверить /alist пользователя")
+    @restricted_command(3)
     async def alist(self, interaction,
                     user: str = nextcord.SlashOption('пользователь',
                                                      description='Пользователь, чей список наказаний вы хотите посмотреть.',
@@ -248,7 +301,7 @@ class Punishments(commands.Cog):
             embed.add_field(name=f'Наказание №{items["_id"]}',
                             value=f'Модератор: <@{items["moderator_id"]}>\n'
                                   f'Тип наказания: {items["action_type"].split(".")[-1]}\n'
-                                  f'Причина: {items["payload"]["reason"]} Время: {items["payload"]["duration"]}\n',
+                                  f'Причина: {items["payload"]["reason"]} Время: {items["payload"]["duration"]} Сообщение: {items["payload"]["jump_url"] if items["payload"]["jump_url"] else None}\n',
                             inline=False)
 
         await interaction.send(embed=embed)

@@ -5,9 +5,8 @@ import nextcord
 from datetime import timedelta
 
 from utils.classes.actions import ActionType
-from utils.neccessary import remove_role, send_embed, add_role, add_ban, user_visual, user_text, mute_name
+from utils.neccessary import remove_role, send_embed, add_role, user_visual, user_text, mute_name
 from utils.punishments.punishments_database import PunishmentsDatabase
-from utils.roles.roles import RolesHandler
 
 
 class MuteHandler:
@@ -29,11 +28,11 @@ class MuteHandler:
     async def user_muted(self, user_id, guild_id):
         return await self.database.get_mutes(user_id, guild_id)
 
-    async def give_mute(self, role_name, *, user, guild, moderator, reason, duration):
+    async def give_mute(self, role_name, *, user, guild, moderator, reason, duration, jump_url):
         get, give, remove = self.mute_info(role_name)
         user_id = user.id
         action_id = await give(user_id=user_id, guild_id=guild.id, moderator_id=moderator.id, reason=reason,
-                               duration=duration)
+                               duration=duration, jump_url=jump_url)
         if not action_id:
             return
         if role_name == 'Mute » Full':
@@ -44,7 +43,7 @@ class MuteHandler:
 
         embed = nextcord.Embed(
             title=f'Вам выдан {mute_name(role_name)} мут.',
-            description=f'Причина: {reason}\nВремя истечения: <t:{int((datetime.datetime.now() + datetime.timedelta(seconds=duration)).timestamp())}:R>',
+            description=f'Причина: {reason}\nВремя истечения: <t:{int((datetime.datetime.now() + datetime.timedelta(seconds=duration)).timestamp())}:R>\nВыдал модератор: <@{moderator.id}>',
             color=0xFF0000
         )
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
@@ -59,6 +58,7 @@ class MuteHandler:
         log_embed.add_field(name='Время истечения',
                             value=f'<t:{int((datetime.datetime.now() + datetime.timedelta(seconds=duration)).timestamp())}:R>')
         log_embed.add_field(name='Длительность мута', value=str(int(duration / 60)) + "м")
+        log_embed.add_field(name='Ссылка на сообщение', value=jump_url)
         log_embed.set_footer(text=f'ID: {member.id}')
         await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
 
@@ -139,15 +139,15 @@ class WarnHandler:
 
         await send_embed(await self.client.fetch_user(warn['user_id']), embed)
 
-    async def give_warn(self, type_warn, *, user, guild, moderator, reason):
+    async def give_warn(self, type_warn, *, user, guild, moderator, reason, jump_url):
         action_id = await self.database.give_warn(user_id=user.id, guild_id=guild.id, moderator_id=moderator.id,
-                                                  reason=reason, warn_type=type_warn)
+                                                  reason=reason, warn_type=type_warn, jump_url=jump_url)
         if not action_id:
             return
 
         embed = nextcord.Embed(
             title=f'Вам выдано предупреждение на сервере {guild.name}.',
-            description=f'Причина: {reason}\nВремя истечения: <t:{round(((datetime.datetime.now() + datetime.timedelta(days=10)).timestamp()))}:R>',
+            description=f'Причина: {reason}\nВремя истечения: <t:{round(((datetime.datetime.now() + datetime.timedelta(days=10)).timestamp()))}:R>\nВыдал модератор: <@{moderator.id}>',
             color=0xFF0000
         )
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
@@ -161,6 +161,7 @@ class WarnHandler:
         log_embed.add_field(name='Причина', value=reason)
         log_embed.add_field(name='Время истечения',
                             value=f'<t:{round(((datetime.datetime.now() + datetime.timedelta(days=10)).timestamp()))}:R>')
+        log_embed.add_field(name='Ссылка на сообщение', value=jump_url)
         log_embed.set_footer(text=f'ID: {user.id}')
         await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
 
@@ -173,13 +174,13 @@ class BanHandler:
         self.client = handler.client
         self.database = handler.database
 
-    async def give_ban(self, type_ban, *, user, guild, moderator, reason, duration):
-        await guild.ban(user)
+    async def give_ban(self, type_ban, *, user, guild, moderator, reason, duration, jump_url):
         action_id = await self.database.give_ban(user_id=user.id, guild_id=guild.id, moderator_id=moderator.id,
                                                  reason=reason,
-                                                 duration=duration, ban_type=type_ban)
+                                                 duration=duration, ban_type=type_ban, jump_url=jump_url)
         if not action_id:
             return
+        await guild.ban(user)
 
         embed = nextcord.Embed(
             title=f'Вам выдана блокировка на сервере {guild.name}.',
@@ -199,6 +200,7 @@ class BanHandler:
                             value=f'{"Никогда" if duration == -1 else f"<t:{int((datetime.datetime.now() + datetime.timedelta(days=int(duration))).timestamp())}:R>"}')
         log_embed.add_field(name='Длительность блокировки',
                             value=f'{"Навсегда" if duration == -1 else str(duration) + " дней"}')
+        log_embed.add_field(name='Ссылка на сообщение', value=jump_url)
         log_embed.set_footer(text=f'ID: {user.id}')
         await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
 
@@ -206,6 +208,7 @@ class BanHandler:
             self.client.loop.create_task(self.wait_ban(action_id, duration))
 
     async def wait_ban(self, action_id, days):
+        days = int(days) * 86400
         await asyncio.sleep(days)  # * 86400)
         ban = await self.database.get_ban(action_id=action_id)
         if not ban:
