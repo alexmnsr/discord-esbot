@@ -3,7 +3,7 @@ from nextcord.ext import commands
 
 from utils.classes.actions import ActionType
 from utils.classes.bot import EsBot
-from utils.neccessary import string_to_seconds, nick_without_tag
+from utils.neccessary import string_to_seconds, nick_without_tag, restricted_command
 from utils.roles.role_info import role_info, RoleRequest
 
 
@@ -86,8 +86,34 @@ class Roles(commands.Cog):
 
         if role := request.in_organization:
             if (wo_tag := nick_without_tag(request.user.display_name)) != request.user.display_name:
-                await interaction.user.edit(nick=wo_tag)
+                try:
+                    await interaction.user.edit(nick=wo_tag)
+                except:
+                    pass
             await interaction.user.remove_roles(role, reason=f'Заявление на роль.')
+
+    @nextcord.user_command('снять-гос-роли', default_member_permissions=nextcord.Permissions(mute_members=True))
+    @restricted_command(2)
+    async def remove_roles_moder(self, interaction: nextcord.Interaction, member: nextcord.Member):
+        roles = []
+        for key, value in role_info.items():
+            if role := value.find(member.roles):
+                roles.append(role)
+        if not roles:
+            return await interaction.send('У пользователя нету гос.ролей.', ephemeral=True)
+
+        action_id = await self.handler.actions.add_action(
+            user_id=member.id,
+            guild_id=member.guild.id,
+            moderator_id=interaction.user.id,
+            action_type=ActionType.ROLE_REMOVE,
+            payload={
+                'role': roles[0].name
+            }
+        )
+        await member.remove_roles(*roles, reason=f'Action ID: {action_id}')
+
+        await interaction.send(f'Роль {roles[0].mention} была снята.', ephemeral=True)
 
 
 def setup(bot: EsBot) -> None:

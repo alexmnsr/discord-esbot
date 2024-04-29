@@ -1,11 +1,10 @@
-import re
-
 import nextcord
 from nextcord.ext import commands
 
-from utils.classes.actions import ActionType
+from utils.classes.actions import ActionType, human_actions, payload_types
 from utils.classes.bot import EsBot
-from utils.neccessary import string_to_seconds, add_role, checking_presence, restricted_command
+from utils.neccessary import string_to_seconds, add_role, checking_presence, restricted_command, print_user, \
+    beautify_seconds
 
 
 class Punishments(commands.Cog):
@@ -168,7 +167,7 @@ class Punishments(commands.Cog):
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f"Модератор: {interaction.user.id}"))
         message = await interaction.send(embed=embed)
-        jump_url = await message.fetch().jump_url
+        jump_url = (await message.fetch()).jump_url
 
         action_id = await self.handler.warns.give_warn(ActionType.WARN_LOCAL, user=user, guild=interaction.guild,
                                                        moderator=interaction.user, reason=reason, jump_url=jump_url)
@@ -260,22 +259,28 @@ class Punishments(commands.Cog):
     @nextcord.slash_command(name='act', description="Найти событие по ID")
     @restricted_command(3)
     async def act(self, interaction,
-                  action_id: int = nextcord.SlashOption('id', description='Action ID события')):
+                  action_id: int = nextcord.SlashOption('id', min_value=1000, description='Action ID события')):
         data = await self.handler.database.actions.get_action(action_id)
+        if not data:
+            return await interaction.send(f'Такого ID не существует.\n'
+                                          f'Доступные ID: 1000 - {await self.handler.database.actions.max_id}', ephemeral=True)
         user = await self.client.fetch_user(data["moderator_id"])
-        embed = ((nextcord.Embed(title=f'Action ID: {action_id}', color=nextcord.Color.red())
+        embed = ((nextcord.Embed(title=human_actions.get(data['action_type'].split('.')[-1].lower() if data['action_type'].startswith('ActionType.') else data['action_type'], 'Неизвестное событие'), color=nextcord.Color.red())
                   .set_author(name=interaction.user.display_name, icon_url=user.display_avatar.url))
-                 .add_field(name='Нарушитель', value=f'<@{data["user_id"]}>', inline=True)
-                 .add_field(name='Длительность', value=f'{data["payload"]["duration"]}',
-                            inline=True)
-                 .add_field(name='Причина', value=f'{data["payload"]["reason"]}', inline=True)
-                 .add_field(name='Ссылка на сообщение', value=f'{data["payload"].get("jump_url")}', inline=True)
-                 .add_field(name='Тип наказания', value=f'{data["action_type"]}',
-                            inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
-                 .set_footer(text=f'Модератор: {data["moderator_id"]}'))
-        return await interaction.send(embed=embed)
+                 .set_footer(text=f'Action ID: {data["_id"]}'))
+        embed.add_field(name='Модератор', value=print_user(user), inline=True)
+        embed.add_field(name='Пользователь', value=print_user(await self.client.fetch_user(data['user_id'])), inline=True)
 
+        for k, v in payload_types.items():
+            if k in data['payload']:
+                s = data['payload'][k]
+                if k == 'duration':
+                    s = beautify_seconds(data['payload'][k])
+
+                embed.add_field(name=v, value=s, inline=True)
+
+        return await interaction.send(embed=embed)
 
     @nextcord.slash_command(name='alist', description="Проверить /alist пользователя")
     @restricted_command(1)
@@ -284,30 +289,67 @@ class Punishments(commands.Cog):
                                                      description='Пользователь, чей список наказаний вы хотите посмотреть.',
                                                      required=True),
                     type_punishment: str = nextcord.SlashOption('тип', description='Тип наказания',
-                                                                choices=['MUTE_TEXT', 'MUTE_VOICE', 'MUTE_FULL',
-                                                                         'BAN_LOCAL', 'BAN_GLOBAL'], default='FULL'),
+                                                                choices=list(human_actions.values()), default='FULL'),
                     server: str = nextcord.SlashOption('сервер',
                                                        description='Тот на котором запрашиваете (по умолчанию).',
-                                                       default=1)):
+                                                       choices=['Только этот', 'Все'], default='Только этот')):
         if not (user := await self.bot.resolve_user(user)):
             return await interaction.send('Пользователь не найден.')
-        if server == 1:
+        if server == 'Только этот':
             server = interaction.guild.id
         list = await self.handler.database.actions.get_punishments(user_id=user.id, guild_id=server,
                                                                    type_punishment=type_punishment)
-        embed = (
-            nextcord.Embed(title=f'Список наказаний пользователя {user.display_name}', color=nextcord.Color.red())
-            .set_author(name=user.display_name, icon_url=user.display_avatar.url)
-            .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
+        list.reverse()
 
-        for items in list:
-            embed.add_field(name=f'Наказание №{items["_id"]}',
-                            value=f'Модератор: <@{items["moderator_id"]}>\n'
-                                  f'Тип наказания: {items["action_type"].split(".")[-1]}\n'
-                                  f'Причина: {items["payload"]["reason"]} Время: {items["payload"]["duration"]} Сообщение: {items["payload"].get("jump_url")}\n',
-                            inline=False)
+        if len(list) == 0:
+            return await interaction.send('Нарушений не найдено.', ephemeral=True)
 
-        await interaction.send(embed=embed)
+        pages = [list[i:i + 10] for i in range(0, len(list), 10)]
+        current_page = 1
+
+        async def show_page(page_interaction: nextcord.Interaction, page_num: int, is_create: bool = True):
+            embed = nextcord.Embed(title=f'📘 Информация о нарушениях пользователя {user.display_name}', color=nextcord.Colour.dark_blue())
+
+            for items in pages[page_num - 1]:
+                embed.add_field(
+                    name=f'№{items["_id"]}: {human_actions.get(items["action_type"].split(".")[-1].lower() if items["action_type"].startswith("ActionType.") else items["action_type"], "Неизвестное событие")}',
+                    value=f'Время: {items["time"].strftime("%d.%m.%Y %H:%M:%S")}.',
+                    inline=False)
+
+            embed.set_footer(text=f'Страница: {page_num} из {len(pages)}')
+
+            view = nextcord.ui.View()
+            if page_num > 1:
+                button = nextcord.ui.Button(emoji="⬅️")
+
+                async def callback(change_page_interaction):
+                    nonlocal page_num
+                    await change_page_interaction.response.defer(with_message=False)
+                    await show_page(change_page_interaction, page_num - 1)
+
+                button.callback = callback
+                view.add_item(button)
+            else:
+                view.add_item(nextcord.ui.Button(emoji='⬅️', disabled=True))
+            if page_num < len(pages):
+                button = nextcord.ui.Button(emoji="➡️")
+
+                async def callback(start_page_interaction):
+                    nonlocal page_num
+                    await start_page_interaction.response.defer(with_message=False)
+                    await show_page(start_page_interaction, page_num + 1)
+
+                button.callback = callback
+                view.add_item(button)
+            else:
+                view.add_item(nextcord.ui.Button(emoji='➡️', disabled=True))
+
+            if not is_create:
+                await page_interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            else:
+                await page_interaction.edit_original_message(embed=embed, view=view)
+
+        await show_page(interaction, current_page, is_create=False)
 
 
 def setup(bot: EsBot) -> None:

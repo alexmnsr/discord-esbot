@@ -13,7 +13,39 @@ class ActionType(enum.Enum):
     MUTE_TEXT = 'mute_text'
     MUTE_VOICE = 'mute_voice'
     MUTE_FULL = 'mute_full'
-    ROLES = 'roles_action'
+    ROLE_APPROVE = 'role_approve'
+    ROLE_REJECT = 'role_reject'
+    ROLE_REMOVE = 'role_remove'
+
+
+human_actions = {
+    ActionType.BAN_LOCAL.value: "Блокировка",
+    ActionType.BAN_GLOBAL.value: "Глобальная блокировка",
+    ActionType.UNBAN_LOCAL.value: "Снятие блокировки",
+    ActionType.WARN_LOCAL.value: "Предупреждение",
+    ActionType.TIME_WARN.value: "Временное предупреждение",
+    ActionType.MUTE_TEXT.value: "Блокировка текстовых каналов",
+    ActionType.MUTE_VOICE.value: "Блокировка голосовых каналов",
+    ActionType.MUTE_FULL.value: "Полная блокировка каналов",
+    ActionType.ROLE_APPROVE.value: "Одобрение роли",
+    ActionType.ROLE_REJECT.value: "Отклонение роли",
+    ActionType.ROLE_REMOVE.value: "Снятие роли"
+}
+
+payload_types = {
+    'duration': "Длительность",
+    'reason': "Причина",
+    'jump_url': "Ссылка на сообщение",
+    'nick': "Никнейм",
+    'rang': "Ранг",
+    'role': "Роль"
+}
+
+
+def from_humanise(action_type):
+    for k, v in human_actions.items():
+        if v == action_type:
+            return k
 
 
 class Actions:
@@ -21,13 +53,13 @@ class Actions:
         self.db = db
         self.actions = self.db['list']
 
-    async def add_action(self, *, user_id, guild_id, moderator_id, action_type, payload):
+    async def add_action(self, *, user_id, guild_id, moderator_id, action_type: ActionType, payload):
         action_id = await self.actions.count_documents({}) + 1000
         await self.actions.insert_one({
             'user_id': user_id,
             'guild_id': guild_id,
             'moderator_id': moderator_id,
-            'action_type': str(action_type),
+            'action_type': action_type.value,
             'payload': payload,
             '_id': action_id,
             'time': datetime.datetime.now()
@@ -39,7 +71,7 @@ class Actions:
         if guild_id:
             query['guild_id'] = guild_id
         if type_punishment != 'FULL':
-            query['action_type'] = 'ActionType.' + type_punishment
+            query['action_type'] = from_humanise(type_punishment)
 
         punishments = await self.actions.find(query).to_list(length=None)
         return punishments
@@ -52,3 +84,7 @@ class Actions:
         embed.set_footer(text=f'ID: {action_id}')
         log_channel = [channel for channel in guild.channels if "наказани" in channel.name][0]
         await log_channel.send(embed=embed)
+
+    @property
+    async def max_id(self):
+        return await self.actions.count_documents({}) + 1000 - 1

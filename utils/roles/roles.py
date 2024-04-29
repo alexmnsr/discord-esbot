@@ -29,19 +29,7 @@ class RolesHandler:
 
         return True
 
-    async def accept_request(self, user, guild, moderator_id):
-        action_id = await self.actions.add_action(
-            user_id=user.id,
-            guild_id=guild.id,
-            moderator_id=None,
-            action_type=ActionType.ROLES,
-            payload={
-
-            }
-        )
-        return action_id
-
-    async def remove_request(self, user, guild, moderator_id, approve):
+    async def remove_request(self, user, guild, moderator_id, approve, *, role=None, rang=None, nick=None):
         info = {"user": user.id, "guild": guild.id}
         if not await self.mongo.count_documents(info):
             return False
@@ -55,14 +43,16 @@ class RolesHandler:
                 upsert=True
             )
 
-        await self.actions.add_action(
-            user_id=user.id,
-            guild_id=guild.id,
-            moderator_id=moderator_id,
-            action_type=ActionType.ROLES,
-            payload={
-
-            }
-        )
+            await self.actions.add_action(
+                user_id=user.id,
+                guild_id=guild.id,
+                moderator_id=moderator_id,
+                action_type=ActionType.ROLE_APPROVE if approve else ActionType.ROLE_REJECT,
+                payload={
+                    'role': role,
+                    'rang': rang,
+                    'nick': nick
+                }
+            )
 
         return True

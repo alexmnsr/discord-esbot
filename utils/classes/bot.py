@@ -10,7 +10,7 @@ from utils.roles.role_info import StartView, ReviewView
 
 class EsBot(commands.Bot):
     def __init__(self) -> None:
-        super().__init__(command_prefix='!', intents=Intents.all())
+        super().__init__(command_prefix='MANSORY', intents=Intents.all())
         self.db = Database(self)
         self.is_view_initialised = False
 

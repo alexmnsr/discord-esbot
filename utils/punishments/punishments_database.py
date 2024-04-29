@@ -54,7 +54,7 @@ class PunishmentsDatabase:
             user_id=user_id,
             guild_id=guild_id,
             moderator_id=moderator_id,
-            action_type=str(mute_type),
+            action_type=mute_type,
             payload={
                 'reason': reason,
                 'duration': duration,
@@ -105,7 +105,7 @@ class PunishmentsDatabase:
             user_id=user_id,
             guild_id=guild_id,
             moderator_id=moderator_id,
-            action_type=str(warn_type),
+            action_type=warn_type,
             payload={
                 'reason': reason,
                 'jump_url': jump_url
@@ -141,7 +141,7 @@ class PunishmentsDatabase:
             user_id=user_id,
             guild_id=guild_id,
             moderator_id=moderator_id,
-            action_type=str(ban_type),
+            action_type=ban_type,
             payload={
                 'reason': reason,
                 'duration': duration,

@@ -139,7 +139,7 @@ class ReviewView(nextcord.ui.View):
         await interaction.edit_original_message(embed=embed, view=None)
         if request:
             await request.approve(user_text(interaction.user))
-        await self.roles_handler.remove_request(user, guild, moderator_id, True)
+        await self.roles_handler.remove_request(user, guild, moderator_id, True, role=request.role_info.role_names[0], rang=request.rang, nick=request.nickname)
 
 
 class StartView(nextcord.ui.View):
@@ -232,8 +232,10 @@ class RoleRequest:
 
     async def approve(self, moderator):
         await self.user.add_roles(self.role_info.find(self.guild.roles))
-        await self.user.edit(nick=self.must_nick)
-
+        try:
+            await self.user.edit(nick=self.must_nick)
+        except:
+            pass
         embed = nextcord.Embed(title="📗 Ваше заявление на роль одобрено.", colour=nextcord.Colour.dark_red())
         embed.set_author(name=self.guild.name, icon_url=self.guild.icon.url)
         embed.add_field(name='🧑‍💼 Модератор', value=moderator, inline=False)
