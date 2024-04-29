@@ -20,7 +20,6 @@ class OnlineHandler:
                         await self.join(member, channel)
                     elif prev_channel != channel.id:
                         prev_channel_obj = AbstractChannel(id=prev_channel[0], name=prev_channel[1])
-
                         await self.leave(member, prev_channel_obj)
                         await self.join(member, channel)
                 for user in current_info.get_channel_users(channel.id):
@@ -35,4 +34,5 @@ class OnlineHandler:
         await self.database.add_leave_info(member, channel)
 
     async def get_info(self, is_open, *, user_id, guild_id, date: str = None):
-        return await self.database.get_info(is_open, user_id, guild_id, date if date else datetime.datetime.now().strftime('%d.%m.%Y'))
+        return await self.database.get_info(is_open, user_id, guild_id,
+                                            date if date else datetime.datetime.now().strftime('%d.%m.%Y'))

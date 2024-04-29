@@ -167,10 +167,11 @@ class Punishments(commands.Cog):
                  .add_field(name='Причина', value=reason, inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f"Модератор: {interaction.user.id}"))
-        await interaction.send(embed=embed)
+        message = await interaction.send(embed=embed)
+        jump_url = await message.fetch().jump_url
 
         action_id = await self.handler.warns.give_warn(ActionType.WARN_LOCAL, user=user, guild=interaction.guild,
-                                                       moderator=interaction.user, reason=reason)
+                                                       moderator=interaction.user, reason=reason, jump_url=jump_url)
         await interaction.guild.kick(user.id, reason=f"Warn\nAction ID: {action_id}")
 
     @nextcord.slash_command(name='ban', description="Заблокировать пользователя на сервере")
@@ -277,7 +278,7 @@ class Punishments(commands.Cog):
 
 
     @nextcord.slash_command(name='alist', description="Проверить /alist пользователя")
-    @restricted_command(3)
+    @restricted_command(1)
     async def alist(self, interaction,
                     user: str = nextcord.SlashOption('пользователь',
                                                      description='Пользователь, чей список наказаний вы хотите посмотреть.',

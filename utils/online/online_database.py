@@ -87,7 +87,6 @@ class OnlineDatabase:
     async def add_leave_info(self, member: nextcord.Member,
                              channel):
         now = datetime.datetime.now()
-
         current_info = await self.pop_current_info(member.id, channel.id)
         if not current_info:
             return
@@ -107,7 +106,8 @@ class OnlineDatabase:
 
     async def get_info(self, is_open: bool, user_id: int, guild_id: int, date: str = None):
         all_online = await self.all_online.find({
-            "user_id": user_id, "guild_id": guild_id, "date": date, "is_counting": is_open if is_open else {"$exists": True}
+            "user_id": user_id, "guild_id": guild_id, "date": date,
+            "is_counting": is_open if is_open else {"$exists": True}
         }).to_list(length=None)
         current_online = await self.current_online.find_one({
             "user_id": user_id, "guild_id": guild_id, "is_counting": is_open if is_open else {"$exists": True}
