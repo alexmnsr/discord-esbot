@@ -63,7 +63,7 @@ class Punishments(commands.Cog):
         if not mute_seconds:
             return await interaction.send('Неверный формат длительности мута.')
         get, give, remove = self.handler.mutes.mute_info(role_name)
-        if await get(user_id=user.id, guild_id=interaction.guild.id):
+        if await get(user_id=user.id, guild_id=interaction.guild.id) and ['Mute »' in pun.name for pun in user.roles]:
             return await interaction.send('У пользователя уже есть мут.')
         embed = ((nextcord.Embed(title='Выдача наказания', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
