@@ -97,10 +97,12 @@ class Roles(commands.Cog):
     async def remove_roles_moder(self, interaction: nextcord.Interaction, member: nextcord.Member):
         roles = []
         for key, value in role_info.items():
-            if role := value.find(member.roles):
-                roles.append(role)
+            for roles_member in member.roles:
+                if value.role_names[0] in roles_member.name:
+                    role = roles_member
+                    roles.append(role)
         if not roles:
-            return await interaction.send('У пользователя нету гос.ролей.', ephemeral=True)
+            return await interaction.send('У пользователя нет гос.ролей.', ephemeral=True)
 
         action_id = await self.handler.actions.add_action(
             user_id=member.id,
