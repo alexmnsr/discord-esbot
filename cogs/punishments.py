@@ -7,30 +7,30 @@ from utils.neccessary import string_to_seconds, add_role, checking_presence, res
     beautify_seconds
 
 
-class MutesModals(nextcord.ui.Modal):
-    def __init__(self, bot: EsBot, user: nextcord.Member):
+class MuteModal(nextcord.ui.Modal):
+    def __init__(self, punishments: 'Punishments', user: nextcord.Member):
         super().__init__(title='Параметры наказания', timeout=300)
         self.user = user
-        self.bot = bot
-        print(user)
+        self.punishments = punishments
+
         self.duration = nextcord.ui.TextInput(
             label='Длительность',
             placeholder='Введите длительность наказания',
-            custom_id='duration',
-            max_length=8
+            max_length=8,
+            required=True
         )
+        self.add_item(self.duration)
+
         self.reason = nextcord.ui.TextInput(
             label='Причина',
             placeholder='Введите причину',
-            custom_id='reason'
+            required=True
         )
-        self.add_item(self.duration)
         self.add_item(self.reason)
 
     async def callback(self, interaction: nextcord.Interaction):
-        if self.duration.value is not None and self.reason.value is not None:
-            await Punishments.give_mute(self.bot, interaction, self.user, self.duration.value, self.reason.value,
-                                        'Mute » Text')
+        await self.punishments.give_mute(interaction, self.user, self.duration.value, self.reason.value,
+                                         'Mute » Text')
 
 
 class Punishments(commands.Cog):
@@ -82,7 +82,7 @@ class Punishments(commands.Cog):
         ...
 
     async def give_mute(self, interaction, user, duration, reason, role_name):
-        if not (user := await self.bot.resolve_user(user)):
+        if isinstance(user, str) and not (user := await self.bot.resolve_user(user)):
             return await interaction.send('Пользователь не найден.')
 
         mute_seconds = string_to_seconds(duration)
@@ -95,7 +95,7 @@ class Punishments(commands.Cog):
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
                  .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
-                 .add_field(name='Время', value=f"{duration} мин.", inline=True)
+                 .add_field(name='Время', value=beautify_seconds(mute_seconds), inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f"Модератор: {interaction.user.id}"))
         mess = await interaction.send(embed=embed)
@@ -119,7 +119,7 @@ class Punishments(commands.Cog):
     @nextcord.message_command(name='Выдать текстовый мут')
     @restricted_command(1)
     async def mute_text_on_message(self, interaction: nextcord.Interaction, message: nextcord.Message):
-        modal = MutesModals(self, message.author)
+        modal = MuteModal(self, message.author)
         await interaction.response.send_modal(modal)
 
     @mute_group.subcommand(name='voice', description="Выдать мут пользователю в голосовых каналах.")
