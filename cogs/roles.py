@@ -92,7 +92,7 @@ class Roles(commands.Cog):
                     pass
             await interaction.user.remove_roles(role, reason=f'Заявление на роль.')
 
-    @nextcord.user_command('снять-гос-роли', default_member_permissions=nextcord.Permissions(mute_members=True))
+    @nextcord.user_command('Снять роль фракции', default_member_permissions=nextcord.Permissions(mute_members=True))
     @restricted_command(2)
     async def remove_roles_moder(self, interaction: nextcord.Interaction, member: nextcord.Member):
         roles = []
