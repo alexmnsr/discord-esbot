@@ -47,6 +47,7 @@ class MuteHandler:
             color=0xFF0000
         )
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
+        embed.set_footer(text=f'Action ID: {action_id}')
 
         await send_embed(member, embed)
 
