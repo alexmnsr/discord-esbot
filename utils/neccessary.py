@@ -41,12 +41,12 @@ def restricted_command(access_level: int):
 
 def beautify_seconds(seconds: int) -> str:
     if seconds < 60:
-        return f"{seconds} секунд"
+        return f"{seconds} сек."
     if seconds < 3600:
-        return f"{seconds // 60} минут"
+        return f"{seconds // 60} мин."
     if seconds < 86400:
-        return f"{seconds // 3600} часов"
-    return f"{seconds // 86400} дней"
+        return f"{seconds // 3600} ч."
+    return f"{seconds // 86400} дн."
 
 
 def is_counting(channel: nextcord
