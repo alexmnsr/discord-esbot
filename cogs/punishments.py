@@ -172,7 +172,7 @@ class Punishments(commands.Cog):
         jump_url = (await message.fetch()).jump_url
         action_id = await self.handler.warns.give_warn(ActionType.WARN_LOCAL, user=user, guild=interaction.guild,
                                                        moderator=interaction.user, reason=reason, jump_url=jump_url)
-        await interaction.guild.kick(user.id, reason=f"Warn\nAction ID: {action_id}")
+        await interaction.guild.kick(user, reason=f"Warn\nAction ID: {action_id}")
 
     @nextcord.slash_command(name='ban', description="Заблокировать пользователя на сервере")
     @restricted_command(3)
