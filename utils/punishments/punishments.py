@@ -120,26 +120,6 @@ class WarnHandler:
         self.client = handler.client
         self.database = handler.database
 
-    async def wait_warn(self, action_id, days):
-        await asyncio.sleep(days)  # * 86400)
-        warn = await self.database.get_warn(action_id=action_id)
-        if not warn:
-            return
-
-        await self.database.remove_warn(action_id=action_id)
-        guild = self.client.get_guild(warn['guild_id'])
-        if not guild:
-            return
-
-        embed = nextcord.Embed(
-            title=f'Срок Вашего предупреждения на сервере {guild.name} истек.',
-            description=f'Постарайтесь более не нарушать.',
-            color=0x00FF00
-        )
-        embed.set_author(name=guild.name, icon_url=guild.icon.url)
-
-        await send_embed(await self.client.fetch_user(warn['user_id']), embed)
-
     async def give_warn(self, type_warn, *, user, guild, moderator, reason, jump_url):
         action_id = await self.database.give_warn(user_id=user.id, guild_id=guild.id, moderator_id=moderator.id,
                                                   reason=reason, warn_type=type_warn, jump_url=jump_url)
@@ -164,9 +144,7 @@ class WarnHandler:
                             value=f'<t:{round(((datetime.datetime.now() + datetime.timedelta(days=10)).timestamp()))}:R>')
         log_embed.add_field(name='Ссылка на сообщение', value=jump_url)
         log_embed.set_footer(text=f'ID: {user.id}')
-        await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
-
-        self.client.loop.create_task(self.wait_warn(action_id, 10))
+        return await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
 
 
 class BanHandler:
@@ -181,7 +159,7 @@ class BanHandler:
                                                  duration=duration, ban_type=type_ban, jump_url=jump_url)
         if not action_id:
             return
-        await guild.ban(user)
+        await guild.ban(user, reason=f'Action ID: {action_id}')
 
         embed = nextcord.Embed(
             title=f'Вам выдана блокировка на сервере {guild.name}.',
@@ -275,7 +253,6 @@ class PunishmentsHandler:
     async def reload(self):
         current_mutes = await self.database.get_mutes()
         current_bans = await self.database.get_bans()
-        current_warns = await self.database.get_warns()
         for mute in current_mutes:
             role_name = 'Mute » Text' if mute['type'] == 'text' else 'Mute » Voice' if mute[
                                                                                            'type'] == 'voice' else 'Mute » Full'
@@ -287,7 +264,3 @@ class PunishmentsHandler:
             self.client.loop.create_task(self.bans.wait_ban(ban['action_id'],
                                                             ((ban['given_at'] + datetime.timedelta(days=ban[
                                                                 'duration'])) - datetime.datetime.now()).total_seconds()))
-        for warn in current_warns:
-            self.client.loop.create_task(self.warns.wait_warn(warn['action_id'],
-                                                              ((warn['given_at'] + datetime.timedelta(days=warn[
-                                                                  'duration'])) - datetime.datetime.now()).total_seconds()))

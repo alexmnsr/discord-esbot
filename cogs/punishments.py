@@ -1,5 +1,3 @@
-import asyncio
-
 import nextcord
 from nextcord.ext import commands
 
@@ -7,6 +5,32 @@ from utils.classes.actions import ActionType, human_actions, payload_types
 from utils.classes.bot import EsBot
 from utils.neccessary import string_to_seconds, add_role, checking_presence, restricted_command, print_user, \
     beautify_seconds
+
+
+class MutesModals(nextcord.ui.Modal):
+    def __init__(self, bot: EsBot, user: nextcord.Member):
+        super().__init__(title='Параметры наказания', timeout=300)
+        self.user = user
+        self.bot = bot
+        print(user)
+        self.duration = nextcord.ui.TextInput(
+            label='Длительность',
+            placeholder='Введите длительность наказания',
+            custom_id='duration',
+            max_length=8
+        )
+        self.reason = nextcord.ui.TextInput(
+            label='Причина',
+            placeholder='Введите причину',
+            custom_id='reason'
+        )
+        self.add_item(self.duration)
+        self.add_item(self.reason)
+
+    async def callback(self, interaction: nextcord.Interaction):
+        if self.duration.value is not None and self.reason.value is not None:
+            await Punishments.give_mute(self.bot, interaction, self.user, self.duration.value, self.reason.value,
+                                        'Mute » Text')
 
 
 class Punishments(commands.Cog):
@@ -65,7 +89,7 @@ class Punishments(commands.Cog):
         if not mute_seconds:
             return await interaction.send('Неверный формат длительности мута.')
         get, give, remove = self.handler.mutes.mute_info(role_name)
-        if await get(user_id=user.id, guild_id=interaction.guild.id) and ['Mute »' in pun.name for pun in user.roles]:
+        if await get(user_id=user.id, guild_id=interaction.guild.id):
             return await interaction.send('У пользователя уже есть мут.')
         embed = ((nextcord.Embed(title='Выдача наказания', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
@@ -91,6 +115,12 @@ class Punishments(commands.Cog):
                                                              required=True),
                         reason: str = nextcord.SlashOption('причина', description='Причина мута.', required=True)):
         await self.give_mute(interaction, user, duration, reason, 'Mute » Text')
+
+    @nextcord.message_command(name='Выдать текстовый мут')
+    @restricted_command(1)
+    async def mute_text_on_message(self, interaction: nextcord.Interaction, message: nextcord.Message):
+        modal = MutesModals(self, message.author)
+        await interaction.response.send_modal(modal)
 
     @mute_group.subcommand(name='voice', description="Выдать мут пользователю в голосовых каналах.")
     async def mute_voice(self, interaction,
@@ -162,14 +192,21 @@ class Punishments(commands.Cog):
                    reason: str = nextcord.SlashOption('причина', description='Причина предупреждения.', required=True)):
         if not (user := await self.bot.resolve_user(user)):
             return await interaction.send('Пользователь не найден.')
+        count_warns = len(await self.handler.database.get_warns(user.id, interaction.guild.id)) + 1
         embed = ((nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
                  .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
+                 .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3", inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f"Модератор: {interaction.user.id}"))
         message = await interaction.send(embed=embed)
         jump_url = (await message.fetch()).jump_url
+        if count_warns == 3:
+            await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user=user, guild=interaction.guild,
+                                             moderator=interaction.user, reason=f'[3/3 WARN] {reason}', duration=10,
+                                             jump_url=jump_url)
+            return await self.handler.database.remove_warns(user_id=user.id, guild_id=interaction.guild.id)
         action_id = await self.handler.warns.give_warn(ActionType.WARN_LOCAL, user=user, guild=interaction.guild,
                                                        moderator=interaction.user, reason=reason, jump_url=jump_url)
         await interaction.guild.kick(user, reason=f"Warn\nAction ID: {action_id}")
@@ -198,7 +235,8 @@ class Punishments(commands.Cog):
         mess = await interaction.send(embed=embed)
         jump_url = (await mess.fetch()).jump_url
         await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user=user, guild=interaction.guild,
-                                         moderator=interaction.user, reason=reason, duration=duration, jump_url=jump_url)
+                                         moderator=interaction.user, reason=reason, duration=duration,
+                                         jump_url=jump_url)
 
     @nextcord.slash_command(name='unban', description="Разблокировать пользователя")
     @restricted_command(3)
@@ -257,7 +295,8 @@ class Punishments(commands.Cog):
         mess = await interaction.send(embed=embed)
         jump_url = (await mess.fetch()).jump_url
         await self.handler.bans.give_ban(ActionType.BAN_GLOBAL, user_id=user, guild=interaction.guild.id,
-                                         moderator=interaction.user.id, reason=reason, duration=duration, jump_url=jump_url)
+                                         moderator=interaction.user.id, reason=reason, duration=duration,
+                                         jump_url=jump_url)
 
     @nextcord.slash_command(name='act', description="Найти событие по ID")
     @restricted_command(3)
