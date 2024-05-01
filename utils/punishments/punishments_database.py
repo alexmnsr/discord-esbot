@@ -14,19 +14,28 @@ class PunishmentsDatabase:
         self.actions = global_db.actions
 
     async def get_mutes(self, user_id=None, guild_id=None):
-        return await self.mutes.find(
-            {'user_id': user_id if user_id else '$exists', 'guild_id': guild_id if guild_id else '$exists'}).to_list(
-            length=None)
+        query = {}
+        if user_id:
+            query['user_id'] = user_id
+        if guild_id:
+            query['guild_id'] = guild_id
+        return await self.mutes.find(query).to_list(length=None)
 
     async def get_bans(self, user_id=None, guild_id=None):
-        return await self.bans.find(
-            {'user_id': user_id if user_id else '$exists', 'guild_id': guild_id if guild_id else '$exists'}).to_list(
-            length=None)
+        query = {}
+        if user_id:
+            query['user_id'] = user_id
+        if guild_id:
+            query['guild_id'] = guild_id
+        return await self.bans.find(query).to_list(length=None)
 
     async def get_warns(self, user_id=None, guild_id=None):
-        return await self.warns.find(
-            {'user_id': user_id if user_id else '$exists', 'guild_id': guild_id if guild_id else '$exists'}).to_list(
-            length=None)
+        query = {}
+        if user_id:
+            query['user_id'] = user_id
+        if guild_id:
+            query['guild_id'] = guild_id
+        return await self.warns.find(query).to_list(length=None)
 
     async def get_text_mute(self, *, user_id=None, guild_id=None, action_id=None):
         return await self.mutes.find_one({
