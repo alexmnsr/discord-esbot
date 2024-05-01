@@ -9,6 +9,7 @@ class ActionType(enum.Enum):
     BAN_GLOBAL = 'ban_global'
     UNBAN_LOCAL = 'unban_local'
     WARN_LOCAL = 'warn_local'
+    UNWARN_LOCAL = 'unwarn_local'
     TIME_WARN = 'warn_time'
     MUTE_TEXT = 'mute_text'
     MUTE_VOICE = 'mute_voice'
@@ -23,6 +24,7 @@ human_actions = {
     ActionType.BAN_GLOBAL.value: "Глобальная блокировка",
     ActionType.UNBAN_LOCAL.value: "Снятие блокировки",
     ActionType.WARN_LOCAL.value: "Предупреждение",
+    ActionType.UNWARN_LOCAL.value: "Снятие предупреждения",
     ActionType.TIME_WARN.value: "Временное предупреждение",
     ActionType.MUTE_TEXT.value: "Блокировка текстовых каналов",
     ActionType.MUTE_VOICE.value: "Блокировка голосовых каналов",

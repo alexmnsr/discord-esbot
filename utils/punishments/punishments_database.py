@@ -125,18 +125,16 @@ class PunishmentsDatabase:
         })
         return action_id
 
-    async def get_warn(self, *, user_id=None, guild_id=None, action_id=None, type_warn=None):
+    async def get_warn(self, *, user_id=None, guild_id=None, action_id=None):
         return await self.warns.find_one({
                                              'user_id': user_id,
-                                             'guild_id': guild_id,
-                                             'type': type_warn
+                                             'guild_id': guild_id
                                          } if not action_id else {'action_id': action_id})
 
-    async def remove_warn(self, *, user_id=None, guild_id=None, action_id=None, type_warn=None):
+    async def remove_warn(self, *, user_id=None, guild_id=None, action_id=None):
         return await self.warns.delete_one({
                                                'user_id': user_id,
-                                               'guild_id': guild_id,
-                                               'type': type_warn
+                                               'guild_id': guild_id
                                            } if not action_id else {'action_id': action_id})
 
     async def remove_warns(self, *, user_id=None, guild_id=None):

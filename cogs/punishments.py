@@ -211,6 +211,27 @@ class Punishments(commands.Cog):
                                                        moderator=interaction.user, reason=reason, jump_url=jump_url)
         await interaction.guild.kick(user, reason=f"Warn\nAction ID: {action_id}")
 
+    @nextcord.slash_command(name='unwarn', description="Снять предупреждение пользователя")
+    @restricted_command(2)
+    async def unwarn(self, interaction,
+                   user: str = nextcord.SlashOption('пользователь',
+                                                    description='Пользователь, которому вы хотите выдать предупреждение.',
+                                                    required=True),
+                   action_id: int = nextcord.SlashOption('action_id', description='Action ID наказания', required=True)):
+        if not (user := await self.bot.resolve_user(user)):
+            return await interaction.send('Пользователь не найден.')
+        if not (warn_data := await self.handler.database.get_warn(user_id=user.id, guild_id=interaction.guild.id, action_id=action_id)):
+            return await interaction.send('Предупреждение не найдено.')
+        embed = ((nextcord.Embed(title='Снятие предупреждения', color=nextcord.Color.red())
+                  .set_author(name=user.display_name, icon_url=user.display_avatar.url))
+                 .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
+                 .add_field(name='Выдавал', value=f'<@{warn_data["moderator_id"]}>', inline=True)
+                 .add_field(name='Причина', value=f'{warn_data["reason"]}', inline=True)
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
+                 .set_footer(text=f"Модератор: {interaction.user.id}"))
+        await interaction.send(embed=embed)
+        await self.handler.database.remove_warn(user_id=user.id, guild_id=interaction.guild.id, action_id=action_id)
+
     @nextcord.slash_command(name='ban', description="Заблокировать пользователя на сервере")
     @restricted_command(3)
     async def ban(self, interaction,
