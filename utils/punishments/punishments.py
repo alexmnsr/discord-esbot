@@ -128,10 +128,11 @@ class WarnHandler:
 
         embed = nextcord.Embed(
             title=f'Вам выдано предупреждение на сервере {guild.name}.',
-            description=f'Причина: {reason}\nВремя истечения: <t:{round(((datetime.datetime.now() + datetime.timedelta(days=10)).timestamp()))}:R>\nВыдал модератор: <@{moderator.id}>',
+            description=f'Причина: {reason}\nВыдал модератор: <@{moderator.id}>',
             color=0xFF0000
         )
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
+        embed.set_footer(text=f'Action ID: {action_id}')
 
         await send_embed(user.id, embed)
 
@@ -140,8 +141,6 @@ class WarnHandler:
             color=0xFF0000)
         log_embed.add_field(name='Модератор', value=moderator.mention)
         log_embed.add_field(name='Причина', value=reason)
-        log_embed.add_field(name='Время истечения',
-                            value=f'<t:{round(((datetime.datetime.now() + datetime.timedelta(days=10)).timestamp()))}:R>')
         log_embed.add_field(name='Ссылка на сообщение', value=jump_url)
         log_embed.set_footer(text=f'ID: {user.id}')
         return await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
