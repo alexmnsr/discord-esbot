@@ -252,6 +252,7 @@ class PunishmentsHandler:
     async def reload(self):
         current_mutes = await self.database.get_mutes()
         current_bans = await self.database.get_bans()
+        print(current_mutes)
         for mute in current_mutes:
             role_name = 'Mute » Text' if mute['type'] == 'text' else 'Mute » Voice' if mute[
                                                                                            'type'] == 'voice' else 'Mute » Full'

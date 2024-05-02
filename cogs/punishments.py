@@ -320,7 +320,7 @@ class Punishments(commands.Cog):
                                          jump_url=jump_url)
 
     @nextcord.slash_command(name='act', description="Найти событие по ID")
-    @restricted_command(3)
+    @restricted_command(1)
     async def act(self, interaction,
                   action_id: int = nextcord.SlashOption('id', min_value=1000, description='Action ID события')):
         data = await self.handler.database.actions.get_action(action_id)
@@ -379,9 +379,12 @@ class Punishments(commands.Cog):
                                    color=nextcord.Colour.dark_blue())
 
             for items in pages[page_num - 1]:
+                reason = items['payload'].get('reason', None)
+                duration = items['payload'].get('duration', None)
                 embed.add_field(
                     name=f'№{items["_id"]}: {human_actions.get(items["action_type"].split(".")[-1].lower() if items["action_type"].startswith("ActionType.") else items["action_type"], "Неизвестное событие")}',
-                    value=f'Время: {items["time"].strftime("%d.%m.%Y %H:%M:%S")}.',
+                    value=f'Время: {items["time"].strftime("%d.%m.%Y %H:%M:%S")}.\n'
+                          f'Выдал: <@{items["moderator_id"]}>\n{f"Причина: {reason}" if reason else ""}\n{f"Длительность: {beautify_seconds(duration)}" if duration else ""}',
                     inline=False)
 
             embed.set_footer(text=f'Страница: {page_num} из {len(pages)}')
