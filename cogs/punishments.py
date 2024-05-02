@@ -61,21 +61,6 @@ class Punishments(commands.Cog):
             elif mute['type'] == 'voice':
                 await give_role('Mute » Voice', mute['action_id'])
 
-    @commands.Cog.listener()
-    async def on_member_join(self, member):
-        mutes = await self.handler.database.get_mutes()
-
-        if not mutes or member.guild.id != mutes[0]['guild_id']:
-            return
-
-        role_type = mutes[0]['type']
-        role_name = f'Mute » {role_type.capitalize()}' if role_type in ['voice', 'text'] else 'Mute » Full'
-
-        if role_name == 'Mute » Full':
-            role_name = ['Mute » Text', 'Mute » Voice']
-        await add_role(self.client, member.id, member.guild.id, mutes[0]['action_id'], role_name)
-        await self.handler.mutes.wait_mute(mutes[0]['action_id'], mutes[0]['duration'], role_name)
-
     @nextcord.slash_command(name='mute')
     @restricted_command(1)
     async def mute_group(self, interaction):
