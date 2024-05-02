@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import re
 
@@ -37,6 +38,36 @@ def restricted_command(access_level: int):
 
     wrapper.predicate = predicate
     return wrapper
+
+
+async def copy_message(moderator: nextcord.Member, user: nextcord.Member, message: nextcord.Message, channel: nextcord.TextChannel, thread: nextcord.Thread):
+    webhooks = await channel.webhooks()
+    if webhooks:
+        webhook = webhooks[0]
+    else:
+        webhook = await channel.create_webhook(name="Saved messages")
+
+    files = []
+
+    messages = await message.channel.history(around=message, limit=20).flatten()
+
+    async def message_copied(message_to_copy):
+        if message_to_copy.attachments:
+            for attachment in message_to_copy.attachments:
+                files.append(await attachment.to_file())
+        return dict(
+            content=message_to_copy.content,
+            files=files,
+            username=('📸 ' if message_to_copy.id == message.id else '') + message_to_copy.author.display_name,
+            avatar_url=message_to_copy.author.display_avatar.url,
+            allowed_mentions=nextcord.AllowedMentions.none(),
+            embeds=message_to_copy.embeds
+        )
+    tasks = [message_copied(to_message) for to_message in messages]
+    messages = await asyncio.gather(*tasks)
+    for copied_message in messages:
+        await webhook.send(**copied_message, thread=thread)
+    await message.delete()
 
 
 def beautify_seconds(seconds: int) -> str:

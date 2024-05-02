@@ -143,7 +143,8 @@ class WarnHandler:
         log_embed.add_field(name='Причина', value=reason)
         log_embed.add_field(name='Ссылка на сообщение', value=jump_url)
         log_embed.set_footer(text=f'ID: {user.id}')
-        return await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
+
+        return action_id
 
 
 class BanHandler:

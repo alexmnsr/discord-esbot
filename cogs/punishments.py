@@ -4,13 +4,14 @@ from nextcord.ext import commands
 from utils.classes.actions import ActionType, human_actions, payload_types
 from utils.classes.bot import EsBot
 from utils.neccessary import string_to_seconds, add_role, checking_presence, restricted_command, print_user, \
-    beautify_seconds
+    beautify_seconds, copy_message
 
 
 class MuteModal(nextcord.ui.Modal):
-    def __init__(self, punishments: 'Punishments', user: nextcord.Member):
+    def __init__(self, punishments: 'Punishments', user: nextcord.Member, message):
         super().__init__(title='Параметры наказания', timeout=300)
         self.user = user
+        self.message = message
         self.punishments = punishments
 
         self.duration = nextcord.ui.TextInput(
@@ -30,7 +31,7 @@ class MuteModal(nextcord.ui.Modal):
 
     async def callback(self, interaction: nextcord.Interaction):
         await self.punishments.give_mute(interaction, self.user, self.duration.value, self.reason.value,
-                                         'Mute » Text')
+                                         'Mute » Text', message=self.message)
 
 
 class Punishments(commands.Cog):
@@ -66,7 +67,7 @@ class Punishments(commands.Cog):
     async def mute_group(self, interaction):
         ...
 
-    async def give_mute(self, interaction, user, duration, reason, role_name):
+    async def give_mute(self, interaction, user, duration, reason, role_name, *, message: nextcord.Message=None):
         if isinstance(user, str) and not (user := await self.bot.resolve_user(user)):
             return await interaction.send('Пользователь не найден.')
 
@@ -83,12 +84,22 @@ class Punishments(commands.Cog):
                  .add_field(name='Время', value=beautify_seconds(mute_seconds), inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f"Модератор: {interaction.user.id}"))
-        mess = await interaction.send(embed=embed)
-        jump_url = (await mess.fetch()).jump_url
+
+        if message:
+            channel = [c for c in message.guild.text_channels if 'выдача-наказаний' in c.name][0]
+            await interaction.send(embed=embed, ephemeral=True)
+            mess = await channel.send(embed=embed)
+            thread = await mess.create_thread(name='📸 Скриншот чата', auto_archive_duration=60)
+            jump_url = mess.jump_url
+        else:
+            mess = await interaction.send(embed=embed)
+            jump_url = (await mess.fetch()).jump_url
         await self.handler.mutes.give_mute(role_name, user=user, guild=interaction.guild,
                                            moderator=interaction.user,
                                            reason=reason,
                                            duration=mute_seconds, jump_url=jump_url)
+        if message:
+            await copy_message(interaction.user, user, message, channel, thread)
 
     @mute_group.subcommand(name='text', description="Выдать мут пользователю в текстовых каналах.")
     async def mute_text(self, interaction,
@@ -101,11 +112,11 @@ class Punishments(commands.Cog):
                         reason: str = nextcord.SlashOption('причина', description='Причина мута.', required=True)):
         await self.give_mute(interaction, user, duration, reason, 'Mute » Text')
 
-    # @nextcord.message_command(name='Выдать текстовый мут')
-    # @restricted_command(1)
-    # async def mute_text_on_message(self, interaction: nextcord.Interaction, message: nextcord.Message):
-    #     modal = MuteModal(self, message.author)
-    #     await interaction.response.send_modal(modal)
+    @nextcord.message_command(name='Выдать текстовый мут')
+    @restricted_command(1)
+    async def mute_text_on_message(self, interaction: nextcord.Interaction, message: nextcord.Message):
+        modal = MuteModal(self, message.author, message)
+        await interaction.response.send_modal(modal)
 
     @mute_group.subcommand(name='voice', description="Выдать мут пользователю в голосовых каналах.")
     async def mute_voice(self, interaction,
@@ -194,7 +205,7 @@ class Punishments(commands.Cog):
             return await self.handler.database.remove_warns(user_id=user.id, guild_id=interaction.guild.id)
         action_id = await self.handler.warns.give_warn(ActionType.WARN_LOCAL, user=user, guild=interaction.guild,
                                                        moderator=interaction.user, reason=reason, jump_url=jump_url)
-        await interaction.guild.kick(user, reason=f"Warn\nAction ID: {action_id}")
+        await interaction.guild.kick(user, reason=f"Action ID: {action_id}")
 
     @nextcord.slash_command(name='unwarn', description="Снять предупреждение пользователя")
     @restricted_command(2)
