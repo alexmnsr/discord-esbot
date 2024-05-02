@@ -116,11 +116,11 @@ class Punishments(commands.Cog):
                         reason: str = nextcord.SlashOption('причина', description='Причина мута.', required=True)):
         await self.give_mute(interaction, user, duration, reason, 'Mute » Text')
 
-    @nextcord.message_command(name='Выдать текстовый мут')
-    @restricted_command(1)
-    async def mute_text_on_message(self, interaction: nextcord.Interaction, message: nextcord.Message):
-        modal = MuteModal(self, message.author)
-        await interaction.response.send_modal(modal)
+    # @nextcord.message_command(name='Выдать текстовый мут')
+    # @restricted_command(1)
+    # async def mute_text_on_message(self, interaction: nextcord.Interaction, message: nextcord.Message):
+    #     modal = MuteModal(self, message.author)
+    #     await interaction.response.send_modal(modal)
 
     @mute_group.subcommand(name='voice', description="Выдать мут пользователю в голосовых каналах.")
     async def mute_voice(self, interaction,
