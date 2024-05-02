@@ -30,6 +30,10 @@ class MuteModal(nextcord.ui.Modal):
         self.add_item(self.reason)
 
     async def callback(self, interaction: nextcord.Interaction):
+        if self.message.id in self.punishments.bot.deleted_messages:
+            return await interaction.response.send_message('Другой модератор уже выдал наказание за это сообщение', ephemeral=True)
+        self.punishments.bot.deleted_messages.append(self.message.id)
+
         await self.punishments.give_mute(interaction, self.user, self.duration.value, self.reason.value,
                                          'Mute » Text', message=self.message)
 

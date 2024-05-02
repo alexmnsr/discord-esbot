@@ -13,6 +13,7 @@ class EsBot(commands.Bot):
         super().__init__(command_prefix='MANSORY', intents=Intents.all())
         self.db = Database(self)
         self.is_view_initialised = False
+        self.deleted_messages = []
 
     async def on_ready(self):
         if not self.is_view_initialised:
