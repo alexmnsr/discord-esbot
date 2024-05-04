@@ -5,6 +5,7 @@ from datetime import timedelta
 import nextcord
 
 from utils.classes.actions import ActionType
+from utils.classes.bot import EsBot
 from utils.neccessary import remove_role, send_embed, add_role, user_visual, user_text, mute_name, beautify_seconds
 from utils.punishments.punishments_database import PunishmentsDatabase
 
@@ -150,7 +151,7 @@ class WarnHandler:
 class BanHandler:
     def __init__(self, handler) -> None:
         self.handler = handler
-        self.client = handler.client
+        self.client: EsBot = handler.client
         self.database = handler.database
 
     async def give_ban(self, type_ban, *, user, guild, moderator, reason, duration, jump_url):
@@ -197,7 +198,7 @@ class BanHandler:
         if ban['type'] == 'global':
             for g in self.client.guilds:
                 try:
-                    await g.unban(nextcord.Object(ban['user_id']))
+                    await g.unban(nextcord.Object(ban['user_id']), reason=f'Action ID: {action_id}')
                 except:
                     pass
         else:
@@ -205,7 +206,7 @@ class BanHandler:
             if not guild:
                 return
             try:
-                await guild.unban(nextcord.Object(ban['user_id']))
+                await guild.unban(nextcord.Object(ban['user_id']), reason=f'Action ID: {action_id}')
             except nextcord.NotFound:
                 pass
 
