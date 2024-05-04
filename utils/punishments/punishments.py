@@ -5,7 +5,6 @@ from datetime import timedelta
 import nextcord
 
 from utils.classes.actions import ActionType
-from utils.classes.bot import EsBot
 from utils.neccessary import remove_role, send_embed, add_role, user_visual, user_text, mute_name, beautify_seconds
 from utils.punishments.punishments_database import PunishmentsDatabase
 
@@ -151,7 +150,7 @@ class WarnHandler:
 class BanHandler:
     def __init__(self, handler) -> None:
         self.handler = handler
-        self.client: EsBot = handler.client
+        self.client = handler.client
         self.database = handler.database
 
     async def give_ban(self, type_ban, *, user, guild, moderator, reason, duration, jump_url):
