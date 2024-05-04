@@ -34,6 +34,21 @@ human_actions = {
     ActionType.ROLE_REMOVE.value: "Снятие роли"
 }
 
+moder_actions = {
+    ActionType.BAN_LOCAL.value: "Баны",
+    ActionType.BAN_GLOBAL.value: "Гбаны",
+    ActionType.UNBAN_LOCAL.value: "Анбаны",
+    ActionType.WARN_LOCAL.value: "Варны",
+    ActionType.UNWARN_LOCAL.value: "Анварны",
+    ActionType.TIME_WARN.value: "Врем.преды",
+    ActionType.MUTE_TEXT.value: "Текст-муты",
+    ActionType.MUTE_VOICE.value: "Войс-муты",
+    ActionType.MUTE_FULL.value: "Фулл-муты",
+    ActionType.ROLE_APPROVE.value: "Аппрувы ролей",
+    ActionType.ROLE_REJECT.value: "Дизлайны ролей",
+    ActionType.ROLE_REMOVE.value: "Снятия ролей"
+}
+
 payload_types = {
     'duration': "Длительность",
     'reason': "Причина",
@@ -90,3 +105,8 @@ class Actions:
     @property
     async def max_id(self):
         return await self.actions.count_documents({}) + 1000 - 1
+
+    async def moderator_actions(self, date, moderator_id):
+        return await self.actions.find(
+            {'moderator_id': moderator_id, 'time': {'$gte': date, '$lt': date + datetime.timedelta(days=1)}}).to_list(
+            length=None)

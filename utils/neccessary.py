@@ -40,22 +40,25 @@ def restricted_command(access_level: int):
     return wrapper
 
 
-async def copy_message(moderator: nextcord.Member, user: nextcord.Member, message: nextcord.Message, channel: nextcord.TextChannel, thread: nextcord.Thread):
+async def copy_message(moderator: nextcord.Member, user: nextcord.Member, message: nextcord.Message,
+                       channel: nextcord.TextChannel, thread: nextcord.Thread, mess: nextcord.Message,
+                       message_len: int):
     webhooks = await channel.webhooks()
     if webhooks:
         webhook = webhooks[0]
     else:
         webhook = await channel.create_webhook(name="Saved messages")
 
-    files = []
-
-    messages = await message.channel.history(around=message, limit=20).flatten()
+    messages = await message.channel.history(around=message, limit=message_len).flatten()
 
     async def message_copied(message_to_copy):
+        files = []
+
         if message_to_copy.attachments:
             for attachment in message_to_copy.attachments:
                 files.append(await attachment.to_file())
         return dict(
+            target=message_to_copy.id == message.id,
             content=message_to_copy.content,
             files=files,
             username=('📸 ' if message_to_copy.id == message.id else '') + message_to_copy.author.display_name,
@@ -63,10 +66,19 @@ async def copy_message(moderator: nextcord.Member, user: nextcord.Member, messag
             allowed_mentions=nextcord.AllowedMentions.none(),
             embeds=message_to_copy.embeds
         )
+
     tasks = [message_copied(to_message) for to_message in messages]
     messages = await asyncio.gather(*tasks)
     for copied_message in messages:
-        await webhook.send(**copied_message, thread=thread)
+        target = copied_message['target']
+        del copied_message['target']
+        c_mess = await webhook.send(**copied_message, thread=thread, wait=target)
+        if target:
+            embed = mess.embeds[0]
+            field = embed.fields[1]
+            await mess.edit(embed=mess.embeds[0].set_field_at(1, name=field.name,
+                                                              value=f'[{field.value}]({thread.jump_url + "/" + str(c_mess.id)})',
+                                                              inline=False))
     await message.delete()
 
 
@@ -85,8 +97,8 @@ def is_counting(channel: nextcord
     if "вопрос" in channel.name.lower() or "общение" in channel.name.lower():
         if channel.user_limit > 2 or not channel.user_limit:
             if (
-                channel.overwrites_for(channel.guild.default_role).connect != False and
-                channel.overwrites_for(channel.guild.default_role).view_channel != False
+                    channel.overwrites_for(channel.guild.default_role).connect != False and
+                    channel.overwrites_for(channel.guild.default_role).view_channel != False
             ):
                 return True
     return False
@@ -261,14 +273,18 @@ async def create_role_mutes(role_name, guild: nextcord.Guild):
 time_pattern = re.compile(r'(\d+)([мдmdч])?')
 
 
-def string_to_seconds(string: str) -> int:
+def string_to_seconds(string: str, default_unit='m') -> int:
     if not string:
         return None
+    if string == '-1':
+        return -1
     time = time_pattern.match(string)
     if not time:
         return None
 
     time, unit = time.groups()
+    if not unit:
+        unit = default_unit
     time = int(time)
     time_mult = 60 if unit in ('м', 'm') else 24 * 3600 if unit in ('д', 'd') else 3600 if unit in ('ч', 'h') else 60
     return time * time_mult

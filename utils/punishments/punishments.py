@@ -1,11 +1,11 @@
 import asyncio
 import datetime
-import nextcord
-
 from datetime import timedelta
 
+import nextcord
+
 from utils.classes.actions import ActionType
-from utils.neccessary import remove_role, send_embed, add_role, user_visual, user_text, mute_name
+from utils.neccessary import remove_role, send_embed, add_role, user_visual, user_text, mute_name, beautify_seconds
 from utils.punishments.punishments_database import PunishmentsDatabase
 
 
@@ -163,7 +163,7 @@ class BanHandler:
 
         embed = nextcord.Embed(
             title=f'Вам выдана блокировка на сервере {guild.name}.',
-            description=f'Причина: {reason}\nВремя истечения: <t:{int((datetime.datetime.now() + timedelta(days=int(duration))).timestamp())}:R>',
+            description=f'Причина: {reason}\nВремя истечения: <t:{int((datetime.datetime.now() + timedelta(seconds=int(duration))).timestamp())}:R>',
             color=0xFF0000
         )
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
@@ -176,9 +176,9 @@ class BanHandler:
         log_embed.add_field(name='Модератор', value=moderator.mention)
         log_embed.add_field(name='Причина', value=reason)
         log_embed.add_field(name='Время истечения',
-                            value=f'{"Никогда" if duration == -1 else f"<t:{int((datetime.datetime.now() + datetime.timedelta(days=int(duration))).timestamp())}:R>"}')
+                            value=f'{"Никогда" if duration == -1 else f"<t:{int((datetime.datetime.now() + datetime.timedelta(seconds=int(duration))).timestamp())}:R>"}')
         log_embed.add_field(name='Длительность блокировки',
-                            value=f'{"Навсегда" if duration == -1 else str(duration) + " дней"}')
+                            value=beautify_seconds(duration) if duration != -1 else 'Никогда')
         log_embed.add_field(name='Ссылка на сообщение', value=jump_url)
         log_embed.set_footer(text=f'ID: {user.id}')
         await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
@@ -186,9 +186,9 @@ class BanHandler:
         if duration != -1:
             self.client.loop.create_task(self.wait_ban(action_id, duration))
 
-    async def wait_ban(self, action_id, days):
-        days = int(days) * 86400
-        await asyncio.sleep(days)  # * 86400)
+    async def wait_ban(self, action_id, seconds):
+        seconds = int(seconds)
+        await asyncio.sleep(seconds)
         ban = await self.database.get_ban(action_id=action_id)
         if not ban:
             return
@@ -262,5 +262,5 @@ class PunishmentsHandler:
                                                               role_name))
         for ban in current_bans:
             self.client.loop.create_task(self.bans.wait_ban(ban['action_id'],
-                                                            ((ban['given_at'] + datetime.timedelta(days=ban[
+                                                            ((ban['given_at'] + datetime.timedelta(seconds=ban[
                                                                 'duration'])) - datetime.datetime.now()).total_seconds()))

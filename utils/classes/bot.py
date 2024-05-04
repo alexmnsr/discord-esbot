@@ -24,12 +24,21 @@ class EsBot(commands.Bot):
         print(f'Logged in as {self.user} ({self.user.id})')
         print('------')
 
-    async def resolve_user(self, user_str):
+        # user = await self.fetch_user(479244541858152449)
+        # dm = await user.create_dm()
+        # async for message in dm.history(limit=None):
+        #     if message.author.id == self.user.id:
+        #         print('удалено')
+        #         await message.delete()
+
+    async def resolve_user(self, user_str, guild=None):
         try:
             if user_id := re.findall(r'<?@?!?(\d{18,20})>?', user_str):
-                if user := self.get_user(user_id[0]):
+                if guild and (user := guild.get_member(int(user_id[0]))):
                     return user
-                elif user := await self.fetch_user(user_id[0]):
+                if user := self.get_user(int(user_id[0])):
+                    return user
+                elif user := await self.fetch_user(int(user_id[0])):
                     return user
             elif username := re.findall(r'(.*)#(\d{4}|0)', user_str):
                 if user := nextcord.utils.get(self.get_all_members(), name=username[0][0],
