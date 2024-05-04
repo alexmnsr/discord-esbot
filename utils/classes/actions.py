@@ -44,8 +44,8 @@ moder_actions = {
     ActionType.MUTE_TEXT.value: "Текст-муты",
     ActionType.MUTE_VOICE.value: "Войс-муты",
     ActionType.MUTE_FULL.value: "Фулл-муты",
-    ActionType.ROLE_APPROVE.value: "Аппрувы ролей",
-    ActionType.ROLE_REJECT.value: "Дизлайны ролей",
+    ActionType.ROLE_APPROVE.value: "Одобренных ролей",
+    ActionType.ROLE_REJECT.value: "Отказанных ролей",
     ActionType.ROLE_REMOVE.value: "Снятия ролей"
 }
 
