@@ -332,7 +332,7 @@ class Punishments(commands.Cog):
             view = nextcord.ui.View()
             approve = nextcord.ui.Button(label='Подтвердить', style=nextcord.ButtonStyle.green)
             view.add_item(approve)
-            # .
+
             async def approve_callback(interaction: nextcord.Interaction):
                 if grant_level(interaction.user.roles, interaction.user) < 4:
                     return await interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)

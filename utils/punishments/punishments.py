@@ -197,7 +197,7 @@ class BanHandler:
         if ban['type'] == 'global':
             for g in self.client.guilds:
                 try:
-                    await g.unban(nextcord.Object(ban['user_id']))
+                    await g.unban(nextcord.Object(ban['user_id']), reason=f'Action ID: {action_id}')
                 except:
                     pass
         else:
@@ -205,7 +205,7 @@ class BanHandler:
             if not guild:
                 return
             try:
-                await guild.unban(nextcord.Object(ban['user_id']))
+                await guild.unban(nextcord.Object(ban['user_id']), reason=f'Action ID: {action_id}')
             except nextcord.NotFound:
                 pass
 
