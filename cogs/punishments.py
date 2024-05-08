@@ -240,28 +240,29 @@ class Punishments(commands.Cog):
             approve = nextcord.ui.Button(label='Подтвердить', style=nextcord.ButtonStyle.green)
             view.add_item(approve)
 
-            async def approve_callback(interaction: nextcord.Interaction):
-                if grant_level(interaction.user.roles, interaction.user) < 4:
-                    return await interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
+            async def approve_callback(approve_interaction: nextcord.Interaction):
+                if grant_level(approve_interaction.user.roles, approve_interaction.user) < 4:
+                    return await approve_interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
                 view.stop()
 
                 approve.disabled = True
                 approve.label = 'Подтверждено'
-                embed.add_field(name='Подтвердил', value=interaction.user.mention, inline=False)
-                await interaction.response.edit_message(embed=embed, view=view)
+                embed.add_field(name='Подтвердил', value=approve_interaction.user.mention, inline=False)
+                await approve_interaction.response.edit_message(embed=embed, view=view)
 
                 if count_warns == 3:
-                    await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user=user, guild=interaction.guild,
+                    await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user=user, guild=approve_interaction.guild,
                                                      moderator=interaction.user, reason=f'[3/3 WARN] {reason}',
                                                      duration=10,
-                                                     jump_url=interaction.message.jump_url)
-                    return await self.handler.database.remove_warns(user_id=user.id, guild_id=interaction.guild.id)
+                                                     jump_url=approve_interaction.message.jump_url)
+                    return await self.handler.database.remove_warns(user_id=user.id,
+                                                                    guild_id=approve_interaction.guild.id)
 
                 action_id = await self.handler.warns.give_warn(ActionType.WARN_LOCAL, user=user,
-                                                               guild=interaction.guild,
+                                                               guild=approve_interaction.guild,
                                                                moderator=interaction.user, reason=reason,
-                                                               jump_url=interaction.message.jump_url)
-                await interaction.guild.kick(user, reason=f"Action ID: {action_id}")
+                                                               jump_url=approve_interaction.message.jump_url)
+                await approve_interaction.guild.kick(user, reason=f"Action ID: {action_id}")
 
             approve.callback = approve_callback
             await interaction.send(embed=embed, view=view)
@@ -333,15 +334,15 @@ class Punishments(commands.Cog):
             approve = nextcord.ui.Button(label='Подтвердить', style=nextcord.ButtonStyle.green)
             view.add_item(approve)
 
-            async def approve_callback(interaction: nextcord.Interaction):
-                if grant_level(interaction.user.roles, interaction.user) < 4:
-                    return await interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
+            async def approve_callback(approve_interaction: nextcord.Interaction):
+                if grant_level(approve_interaction.user.roles, approve_interaction.user) < 4:
+                    return await approve_interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
                 view.stop()
 
                 approve.disabled = True
                 approve.label = 'Подтверждено'
-                embed.add_field(name='Подтвердил', value=interaction.user.mention, inline=False)
-                await interaction.response.edit_message(embed=embed, view=view)
+                embed.add_field(name='Подтвердил', value=approve_interaction.user.mention, inline=False)
+                await approve_interaction.response.edit_message(embed=embed, view=view)
 
                 await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user=user, guild=interaction.guild,
                                                  moderator=interaction.user, reason=reason, duration=duration,
