@@ -88,7 +88,7 @@ class Punishments(commands.Cog):
 
     async def give_mute(self, interaction, user, duration, reason, role_name, *, message: nextcord.Message = None,
                         message_len: int = None):
-        if not (user := await self.bot.resolve_user(user, interaction.guild)):
+        if isinstance(user, str) and not (user := await self.bot.resolve_user(user, interaction.guild)):
             return await interaction.send('Пользователь не найден.')
 
         if isinstance(user, nextcord.Member) and interaction.user.top_role <= user.top_role:
@@ -140,7 +140,7 @@ class Punishments(commands.Cog):
                         reason: str = nextcord.SlashOption('причина', description='Причина мута.', required=True)):
         await self.give_mute(interaction, user, duration, reason, 'Mute » Text')
 
-    @nextcord.message_command(name='Выдать текстовый мут')
+    @nextcord.message_command(name='Выдать текстовый мут', force_global=True)
     @restricted_command(1)
     async def mute_text_on_message(self, interaction: nextcord.Interaction, message: nextcord.Message):
         modal = MuteModal(self, message.author, message)
@@ -148,7 +148,7 @@ class Punishments(commands.Cog):
 
     @nextcord.user_command(name='Выдать голосовой мут')
     @restricted_command(1)
-    async def mute_text_on_message(self, interaction: nextcord.Interaction, user: nextcord.Member):
+    async def mute_voice_on_message(self, interaction: nextcord.Interaction, user: nextcord.Member):
         modal = MuteModal(self, user, None)
         await interaction.response.send_modal(modal)
 
