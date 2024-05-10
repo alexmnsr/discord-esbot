@@ -16,4 +16,4 @@ start = os.getenv('LOCAL_TOKEN') if os.getenv('DEBUG') == 'True' else os.getenv(
 
 bot.run(start)
 
-# 12
+# 123
