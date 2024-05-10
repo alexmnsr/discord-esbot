@@ -15,3 +15,5 @@ for filename in os.listdir('cogs'):
 start = os.getenv('LOCAL_TOKEN') if os.getenv('DEBUG') == 'True' else os.getenv('TOKEN_BOT')
 
 bot.run(start)
+
+# 1
