@@ -240,6 +240,7 @@ class Punishments(commands.Cog):
             approve = nextcord.ui.Button(label='Подтвердить', style=nextcord.ButtonStyle.green)
             view.add_item(approve)
 
+            # .
             async def approve_callback(approve_interaction: nextcord.Interaction):
                 if grant_level(approve_interaction.user.roles, approve_interaction.user) < 4:
                     return await approve_interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
@@ -426,6 +427,7 @@ class Punishments(commands.Cog):
                     embed.add_field(name='Отказал', value=reject_interaction.user.mention, inline=False)
                     embed.add_field(name='Причина отказа', value=reason.value)
                     await modal_interaction.response.edit_message(embed=embed, view=view)
+
                 modal.callback = modal_callback
                 await reject_interaction.response.send_modal(modal)
 

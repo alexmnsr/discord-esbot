@@ -8,7 +8,7 @@ load_dotenv()
 
 bot = EsBot()
 
-for filename in os.listdir('cogs'):
+for filename in os.listdir('/bots/discord-esbot/cogs'):
     if filename.endswith('.py'):
         bot.load_extension(f'cogs.{filename[:-3]}')
 
