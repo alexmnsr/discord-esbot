@@ -38,4 +38,4 @@ jobs:
             docker pull alexmnsr/discord-esbot:latest
             docker stop discord-esbot || true
             docker rm discord-esbot || true
-            docker run -d --name telegram-esbot --env-file /.env alexmnsr/discord-esbot:latest
+            docker run -d --name discord-esbot --env-file /.env alexmnsr/discord-esbot:latest
