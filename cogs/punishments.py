@@ -103,10 +103,10 @@ class Punishments(commands.Cog):
         embed = ((nextcord.Embed(title='Выдача наказания', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
                  .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
+                 .add_field(name='Модератор', value=f'{interaction.user.id}', inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
                  .add_field(name='Время', value=beautify_seconds(mute_seconds), inline=True)
-                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
-                 .set_footer(text=f"Модератор: {interaction.user.id}"))
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
 
         if message:
             channel = [c for c in message.guild.text_channels if 'выдача-наказаний' in c.name][0]
