@@ -376,7 +376,6 @@ class Punishments(commands.Cog):
                                                  jump_url=approve_interaction.message.jump_url)
 
             approve.callback = approve_callback
-            view.add_item(approve)
 
             reject = nextcord.ui.Button(label='Отказать', style=nextcord.ButtonStyle.red)
 
