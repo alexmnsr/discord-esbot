@@ -135,7 +135,8 @@ class Punishments(commands.Cog):
                                                          description='Пользователь, которому вы хотите выдать мут.',
                                                          required=True),
                         duration: str = nextcord.SlashOption('длительность',
-                                                             description='Длительность мута. Пример: 10м - 10 минут, 5д - 5 дней. Просто 10 - 10 минут.',
+                                                             description='Длительность мута. Пример: 10м - 10 минут, '
+                                                                         '5д - 5 дней. Просто 10 - 10 минут.',
                                                              required=True),
                         reason: str = nextcord.SlashOption('причина', description='Причина мута.', required=True)):
         await self.give_mute(interaction, user, duration, reason, 'Mute » Text')
@@ -223,8 +224,8 @@ class Punishments(commands.Cog):
         if not (user := await self.bot.resolve_user(user, interaction.guild)):
             return await interaction.send('Пользователь не найден.')
 
-        if isinstance(user, nextcord.Member) and interaction.user.top_role <= user.top_role:
-            return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
+        # if isinstance(user, nextcord.Member) and interaction.user.top_role <= user.top_role:
+        #     return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
         count_warns = len(await self.handler.database.get_warns(user.id, interaction.guild.id)) + 1
         embed = ((nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
@@ -239,36 +240,6 @@ class Punishments(commands.Cog):
             view = nextcord.ui.View()
             approve = nextcord.ui.Button(label='Подтвердить', style=nextcord.ButtonStyle.green)
             view.add_item(approve)
-
-            # .
-            async def approve_callback(approve_interaction: nextcord.Interaction):
-                if grant_level(approve_interaction.user.roles, approve_interaction.user) < 4:
-                    return await approve_interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
-                view.stop()
-
-                approve.disabled = True
-                approve.label = 'Подтверждено'
-                view.remove_item(reject)
-                embed.add_field(name='Подтвердил', value=approve_interaction.user.mention, inline=False)
-                await approve_interaction.response.edit_message(embed=embed, view=view)
-
-                if count_warns == 3:
-                    await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user=user, guild=approve_interaction.guild,
-                                                     moderator=interaction.user, reason=f'[3/3 WARN] {reason}',
-                                                     duration=10,
-                                                     jump_url=approve_interaction.message.jump_url)
-                    return await self.handler.database.remove_warns(user_id=user.id,
-                                                                    guild_id=approve_interaction.guild.id)
-
-                action_id = await self.handler.warns.give_warn(ActionType.WARN_LOCAL, user=user,
-                                                               guild=approve_interaction.guild,
-                                                               moderator=interaction.user, reason=reason,
-                                                               jump_url=approve_interaction.message.jump_url)
-                await approve_interaction.guild.kick(user, reason=f"Action ID: {action_id}")
-
-            approve.callback = approve_callback
-
-            approve = nextcord.ui.Button(label='Подтвердить', style=nextcord.ButtonStyle.green)
 
             async def approve_callback(approve_interaction: nextcord.Interaction):
                 if grant_level(approve_interaction.user.roles, approve_interaction.user) < 4:
@@ -294,7 +265,6 @@ class Punishments(commands.Cog):
                 await interaction.guild.kick(user, reason=f"Action ID: {action_id}")
 
             approve.callback = approve_callback
-            view.add_item(approve)
 
             reject = nextcord.ui.Button(label='Отказать', style=nextcord.ButtonStyle.red)
 

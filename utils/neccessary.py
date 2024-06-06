@@ -15,8 +15,8 @@ grant_levels = {
 
 
 def grant_level(user_roles, member):
-    if member.guild_permissions.administrator:
-        return max(grant_levels.keys())
+    # if member.guild_permissions.administrator:
+    #     return max(grant_levels.keys())
 
     max_level = 0
     for level, roles in grant_levels.items():
