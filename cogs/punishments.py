@@ -103,7 +103,7 @@ class Punishments(commands.Cog):
         embed = ((nextcord.Embed(title='Выдача наказания', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
                  .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
-                 .add_field(name='Модератор', value=f'{interaction.user.id}', inline=True)
+                 .add_field(name='Модератор', value=f'<@{interaction.user.id}>', inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
                  .add_field(name='Время', value=beautify_seconds(mute_seconds), inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
@@ -232,9 +232,9 @@ class Punishments(commands.Cog):
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
                  .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
+                 .add_field(name='Модератор', value=f'<@{interaction.user.id}>', inline=True)
                  .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3", inline=True)
-                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
-                 .set_footer(text=f"Модератор: {interaction.user.id}"))
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
 
         if grant_level(interaction.user.roles, interaction.user) < 2:
             view = nextcord.ui.View()
@@ -329,7 +329,7 @@ class Punishments(commands.Cog):
         await self.handler.database.remove_warn(user_id=user.id, guild_id=interaction.guild.id, action_id=action_id)
 
     @nextcord.slash_command(name='ban', description="Заблокировать пользователя на сервере")
-    @restricted_command(1)
+    @restricted_command(3)
     async def ban(self, interaction,
                   user: str = nextcord.SlashOption('пользователь',
                                                    description='Пользователь, которому вы хотите выдать блокировку.',
