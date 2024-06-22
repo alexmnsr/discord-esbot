@@ -277,7 +277,7 @@ def string_to_seconds(string: str, default_unit='m') -> int:
     if not string:
         return None
     if string == '-1':
-        return -1
+        return '-1'
     time = time_pattern.match(string)
     if not time:
         return None
