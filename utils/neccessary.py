@@ -83,6 +83,8 @@ async def copy_message(moderator: nextcord.Member, user: nextcord.Member, messag
 
 
 def beautify_seconds(seconds: int) -> str:
+    if seconds == -1:
+        return "Навсегда"
     if seconds < 60:
         return f"{seconds} сек."
     if seconds < 3600:
