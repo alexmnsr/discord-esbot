@@ -534,7 +534,7 @@ class Punishments(commands.Cog):
                 embed.add_field(
                     name=f'№{items["_id"]}: {human_actions.get(items["action_type"].split(".")[-1].lower() if items["action_type"].startswith("ActionType.") else items["action_type"], "Неизвестное событие")}',
                     value=f'Время: {items["time"].strftime("%d.%m.%Y %H:%M:%S")}.\n'
-                          f'Выдал: <@{items["moderator_id"]}>\n{f"Причина: **[{reason}]({jump_url})**" if reason else "Не указана"}\n{f"Длительность: {beautify_seconds(duration)}" if duration else "Не указано"}',
+                          f'Выдал: <@{items["moderator_id"]}>\n{f"Причина: **[{reason}]({jump_url})**" if reason else "Не указана"}\n{f"Длительность: {beautify_seconds(int(duration))}" if duration else "Не указано"}',
                     inline=False)
 
             embed.set_footer(text=f'Страница: {page_num} из {len(pages)}')
