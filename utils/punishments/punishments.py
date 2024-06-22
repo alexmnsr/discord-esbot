@@ -261,6 +261,8 @@ class PunishmentsHandler:
                                                                   'duration'])) - datetime.datetime.now()).total_seconds(),
                                                               role_name))
         for ban in current_bans:
+            if ban['duration'] == '-1':
+                continue
             self.client.loop.create_task(self.bans.wait_ban(ban['action_id'],
                                                             ((ban['given_at'] + datetime.timedelta(seconds=ban[
                                                                 'duration'])) - datetime.datetime.now()).total_seconds()))
