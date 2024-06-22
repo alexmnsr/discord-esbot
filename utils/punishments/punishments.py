@@ -178,7 +178,7 @@ class BanHandler:
         log_embed.add_field(name='Время истечения',
                             value=f'{"Никогда" if duration == "-1" else f"<t:{int((datetime.datetime.now() + datetime.timedelta(seconds=int(duration))).timestamp())}:R>"}')
         log_embed.add_field(name='Длительность блокировки',
-                            value=beautify_seconds(duration) if duration != -1 else 'Никогда')
+                            value=beautify_seconds(duration) if duration != '-1' else 'Никогда')
         log_embed.add_field(name='Ссылка на сообщение', value=jump_url)
         log_embed.set_footer(text=f'ID: {user.id}')
         await self.client.db.actions.send_log(action_id, guild, embed=log_embed)

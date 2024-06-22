@@ -492,7 +492,7 @@ class Punishments(commands.Cog):
             if k in data['payload']:
                 s = data['payload'][k]
                 if k == 'duration':
-                    s = beautify_seconds(data['payload'][k])
+                    s = beautify_seconds(data['payload'][k]) if data['payload'][k] == '-1' else 'Навсегда'
 
                 embed.add_field(name=v, value=s, inline=True)
 

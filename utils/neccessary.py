@@ -89,8 +89,6 @@ def beautify_seconds(seconds: int) -> str:
         return f"{seconds // 60} мин."
     if seconds < 86400:
         return f"{seconds // 3600} ч."
-    if seconds == -1:
-        return f"Навсегда"
     return f"{seconds // 86400} дн."
 
 
