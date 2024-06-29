@@ -2,7 +2,7 @@
 FROM python:3.10-slim
 
 # Устанавливаем рабочую директорию
-WORKDIR bots/discord-esbot
+WORKDIR /bots/discord-esbot
 
 # Копируем файл зависимостей
 COPY requirements.txt .
@@ -13,8 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копируем весь проект
 COPY . .
 
-# Открываем порт (если требуется для внешних подключений)
-EXPOSE 2356
+# Копируем entrypoint.sh в контейнер
+COPY entrypoint.sh .
 
-# Указываем команду для запуска приложения
-CMD ["python", "main.py"]
+# Устанавливаем точку входа
+ENTRYPOINT ["./entrypoint.sh"]
