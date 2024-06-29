@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 
-from utils.classes.bot import EsBot
+from utils.classes.bot import EsBo1t
 
 load_dotenv()
 
