@@ -1,5 +1,6 @@
 import nextcord
 from nextcord.ext import commands
+from nextcord.ui import Modal, TextInput, Button, View
 
 from utils.classes.actions import ActionType, human_actions, payload_types
 from utils.classes.bot import EsBot
@@ -216,93 +217,104 @@ class Punishments(commands.Cog):
 
     @nextcord.slash_command(name='warn', description="Предупредить пользователя")
     @restricted_command(1)
-    async def warn(self, interaction,
+    async def warn(self, interaction: nextcord.Interaction,
                    user: str = nextcord.SlashOption('пользователь',
-                                                    description='Пользователь, которому вы хотите выдать предупреждение.',
+                                                    description='Пользователь',
                                                     required=True),
-                   reason: str = nextcord.SlashOption('причина', description='Причина предупреждения.', required=True)):
-        if not (user := await self.bot.resolve_user(user, interaction.guild)):
+                   reason: str = nextcord.SlashOption('причина',
+                                                      description='Причина',
+                                                      required=True)):
+        resolved_user = await self.bot.resolve_user(user, interaction.guild)
+        if not resolved_user:
             return await interaction.send('Пользователь не найден.')
 
-        if isinstance(user, nextcord.Member) and interaction.user.top_role <= user.top_role:
+        if isinstance(resolved_user, nextcord.Member) and interaction.user.top_role <= resolved_user.top_role:
             return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
-        count_warns = len(await self.handler.database.get_warns(user.id, interaction.guild.id)) + 1
-        embed = ((nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
-                  .set_author(name=user.display_name, icon_url=user.display_avatar.url))
+        count_warns = len(await self.handler.database.get_warns(resolved_user.id, interaction.guild.id)) + 1
+        embed = self.create_warn_embed(interaction, resolved_user, count_warns, reason)
+
+        if grant_level(interaction.user.roles, interaction.user) < 2:
+            view = self.create_confirmation_view(interaction, resolved_user, count_warns, reason, embed)
+            await interaction.send(embed=embed, view=view)
+        else:
+            await self.apply_warn(interaction, resolved_user, count_warns, reason, embed)
+
+    def create_warn_embed(self, interaction, user, count_warns, reason):
+        embed = (nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
+                 .set_author(name=user.display_name, icon_url=user.display_avatar.url)
                  .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
                  .add_field(name='Модератор', value=f'<@{interaction.user.id}>', inline=True)
                  .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3", inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
+        return embed
 
-        if grant_level(interaction.user.roles, interaction.user) < 2:
-            view = nextcord.ui.View()
-            approve = nextcord.ui.Button(label='Подтвердить', style=nextcord.ButtonStyle.green)
-            view.add_item(approve)
+    def create_confirmation_view(self, interaction, user, count_warns, reason, embed):
+        view = View()
+        approve = Button(label='Подтвердить', style=nextcord.ButtonStyle.green)
+        reject = Button(label='Отказать', style=nextcord.ButtonStyle.red)
 
-            async def approve_callback(approve_interaction: nextcord.Interaction):
-                if grant_level(approve_interaction.user.roles, approve_interaction.user) < 4:
-                    return await approve_interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
+        async def approve_callback(approve_interaction: nextcord.Interaction):
+            if grant_level(approve_interaction.user.roles, approve_interaction.user) < 4:
+                return await approve_interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
+            view.stop()
+            approve.disabled = True
+            approve.label = 'Подтверждено'
+            view.remove_item(reject)
+            embed.add_field(name='Подтвердил', value=approve_interaction.user.mention, inline=False)
+            await approve_interaction.response.edit_message(embed=embed, view=view)
+            await self.apply_warn(interaction, user, count_warns, reason, embed, approve_interaction.message.jump_url)
+
+        async def reject_callback(reject_interaction: nextcord.Interaction):
+            if grant_level(reject_interaction.user.roles, reject_interaction.user) < 4:
+                return await reject_interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
+            modal = Modal(title='Ввод причины')
+            modal_reason = TextInput(label='Причина', style=nextcord.TextInputStyle.paragraph)
+            modal.add_item(modal_reason)
+
+            async def modal_callback(modal_interaction):
                 view.stop()
+                reject.disabled = True
+                reject.label = 'Отказано'
+                view.remove_item(approve)
+                embed.add_field(name='Отказал', value=reject_interaction.user.mention, inline=False)
+                embed.add_field(name='Причина отказа', value=modal_reason.value)
+                await modal_interaction.response.edit_message(embed=embed, view=view)
 
-                approve.disabled = True
-                approve.label = 'Подтверждено'
-                embed.add_field(name='Подтвердил', value=approve_interaction.user.mention, inline=False)
-                await approve_interaction.response.edit_message(embed=embed, view=view)
+            modal.callback = modal_callback
+            await reject_interaction.response.send_modal(modal)
 
-                if count_warns == 3:
-                    await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user=user, guild=interaction.guild,
-                                                     moderator=interaction.user, reason=f'[3/3 WARN] {reason}',
-                                                     duration=10,
-                                                     jump_url=approve_interaction.message.jump_url)
-                    return await self.handler.database.remove_warns(user_id=user.id, guild_id=interaction.guild.id)
+        approve.callback = approve_callback
+        reject.callback = reject_callback
+        view.add_item(approve)
+        view.add_item(reject)
+        return view
 
-                action_id = await self.handler.warns.give_warn(ActionType.WARN_LOCAL, user=user,
-                                                               guild=interaction.guild,
-                                                               moderator=interaction.user, reason=reason,
-                                                               jump_url=approve_interaction.message.jump_url)
-                await interaction.guild.kick(user, reason=f"Action ID: {action_id}")
-
-            approve.callback = approve_callback
-
-            reject = nextcord.ui.Button(label='Отказать', style=nextcord.ButtonStyle.red)
-
-            async def reject_callback(reject_interaction: nextcord.Interaction):
-                if grant_level(reject_interaction.user.roles, reject_interaction.user) < 4:
-                    return await reject_interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
-
-                modal = nextcord.ui.Modal(title='Ввод причины')
-                reason = nextcord.ui.TextInput(label='Причина', style=nextcord.TextInputStyle.paragraph)
-                modal.add_item(reason)
-
-                async def modal_callback(modal_interaction):
-                    view.stop()
-
-                    reject.disabled = True
-                    reject.label = 'Отказано'
-                    view.remove_item(approve)
-                    embed.add_field(name='Отказал', value=reject_interaction.user.mention, inline=False)
-                    embed.add_field(name='Причина отказа', value=reason.value)
-                    await modal_interaction.response.edit_message(embed=embed, view=view)
-
-                modal.callback = modal_callback
-                await reject_interaction.response.send_modal(modal)
-
-            reject.callback = reject_callback
-            view.add_item(reject)
-
-            await interaction.send(embed=embed, view=view)
+    async def apply_warn(self, interaction, user, count_warns, reason, embed, jump_url=None):
+        if not jump_url:
+            message = await interaction.send(embed=embed)
+            jump_url = (await message.fetch()).jump_url
+        if count_warns == 3:
+            await self.handler.bans.give_ban(
+                ActionType.BAN_LOCAL,
+                user=user,
+                guild=interaction.guild,
+                moderator=interaction.user,
+                reason=f'[3/3 WARN] {reason}',
+                duration=10,
+                jump_url=jump_url
+            )
+            await self.handler.database.remove_warns(user_id=user.id, guild_id=interaction.guild.id)
         else:
-            mess = await interaction.send(embed=embed)
-            jump_url = (await mess.fetch()).jump_url
-            if count_warns == 3:
-                await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user=user, guild=interaction.guild,
-                                                 moderator=interaction.user, reason=f'[3/3 WARN] {reason}', duration=10,
-                                                 jump_url=jump_url)
-                return await self.handler.database.remove_warns(user_id=user.id, guild_id=interaction.guild.id)
-            action_id = await self.handler.warns.give_warn(ActionType.WARN_LOCAL, user=user, guild=interaction.guild,
-                                                           moderator=interaction.user, reason=reason, jump_url=jump_url)
+            action_id = await self.handler.warns.give_warn(
+                ActionType.WARN_LOCAL,
+                user=user,
+                guild=interaction.guild,
+                moderator=interaction.user,
+                reason=reason,
+                jump_url=jump_url
+            )
             await interaction.guild.kick(user, reason=f"Action ID: {action_id}")
 
     @nextcord.slash_command(name='unwarn', description="Снять предупреждение пользователя")
@@ -330,87 +342,99 @@ class Punishments(commands.Cog):
 
     @nextcord.slash_command(name='ban', description="Заблокировать пользователя на сервере")
     @restricted_command(1)
-    async def ban(self, interaction,
+    async def ban(self, interaction: nextcord.Interaction,
                   user: str = nextcord.SlashOption('пользователь',
-                                                   description='Пользователь, которому вы хотите выдать блокировку.',
+                                                   description='Пользователь',
                                                    required=True),
                   duration: str = nextcord.SlashOption('длительность',
-                                                       description='Длительность блокировки. Пример: 5 = 5 дней. 5м = 5 минут. -1 = навсегда.',
+                                                       description='Длительность блокировки. 5 = 5 дней',
                                                        required=True),
-                  reason: str = nextcord.SlashOption('причина', description='Причина блокировки.', required=True)):
-        if not (user := await self.bot.resolve_user(user, interaction.guild)):
+                  reason: str = nextcord.SlashOption('причина',
+                                                     description='Причина',
+                                                     required=True)):
+        resolved_user = await self.bot.resolve_user(user, interaction.guild)
+        if not resolved_user:
             return await interaction.send('Пользователь не найден.')
 
-        if isinstance(user, nextcord.Member) and interaction.user.top_role <= user.top_role:
+        if isinstance(resolved_user, nextcord.Member) and interaction.user.top_role <= resolved_user.top_role:
             return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
-        if (duration := string_to_seconds(duration, 'd')) is None:
+        duration_in_seconds = string_to_seconds(duration, 'd')
+        if duration_in_seconds is None:
             return await interaction.send('Неверная длительность блокировки.')
 
-        embed = ((nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
-                  .set_author(name=user.display_name, icon_url=user.display_avatar.url))
+        embed = self.create_ban_embed(interaction, resolved_user, duration_in_seconds, reason)
+        if grant_level(interaction.user.roles, interaction.user) < 3:
+            view = self.create_confirmation_view(interaction, resolved_user, duration_in_seconds, reason, embed)
+            await interaction.send(embed=embed, view=view)
+        else:
+            await self.apply_ban(interaction, resolved_user, duration_in_seconds, reason, embed)
+
+    def create_ban_embed(self, interaction, user, duration, reason):
+        embed = (nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
+                 .set_author(name=user.display_name, icon_url=user.display_avatar.url)
                  .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
                  .add_field(name='Длительность',
-                            value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда',
-                            inline=True)
+                            value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда', inline=True)
                  .add_field(name='Причина', value=reason, inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f"Модератор: {interaction.user.id}"))
-        if grant_level(interaction.user.roles, interaction.user) < 3:
-            view = nextcord.ui.View()
-            approve = nextcord.ui.Button(label='Подтвердить', style=nextcord.ButtonStyle.green)
-            view.add_item(approve)
+        return embed
 
-            async def approve_callback(approve_interaction: nextcord.Interaction):
-                if grant_level(approve_interaction.user.roles, approve_interaction.user) < 4:
-                    return await approve_interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
+    def create_confirmation_view(self, interaction, user, duration, reason, embed):
+        view = View()
+        approve = Button(label='Подтвердить', style=nextcord.ButtonStyle.green)
+        reject = Button(label='Отказать', style=nextcord.ButtonStyle.red)
+
+        async def approve_callback(approve_interaction: nextcord.Interaction):
+            if grant_level(approve_interaction.user.roles, approve_interaction.user) < 4:
+                return await approve_interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
+            view.stop()
+            approve.disabled = True
+            approve.label = 'Подтверждено'
+            view.remove_item(reject)
+            embed.add_field(name='Подтвердил', value=approve_interaction.user.mention, inline=False)
+            await approve_interaction.response.edit_message(embed=embed, view=view)
+            await self.apply_ban(interaction, user, duration, reason, embed, approve_interaction.message.jump_url)
+
+        async def reject_callback(reject_interaction: nextcord.Interaction):
+            if grant_level(reject_interaction.user.roles, reject_interaction.user) < 4:
+                return await reject_interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
+            modal = Modal(title='Ввод причины')
+            modal_reason = TextInput(label='Причина', style=nextcord.TextInputStyle.paragraph)
+            modal.add_item(modal_reason)
+
+            async def modal_callback(modal_interaction):
                 view.stop()
+                reject.disabled = True
+                reject.label = 'Отказано'
+                view.remove_item(approve)
+                embed.add_field(name='Отказал', value=reject_interaction.user.mention, inline=False)
+                embed.add_field(name='Причина отказа', value=modal_reason.value)
+                await modal_interaction.response.edit_message(embed=embed, view=view)
 
-                approve.disabled = True
-                approve.label = 'Подтверждено'
-                view.remove_item(reject)
-                embed.add_field(name='Подтвердил', value=approve_interaction.user.mention, inline=False)
-                await approve_interaction.response.edit_message(embed=embed, view=view)
+            modal.callback = modal_callback
+            await reject_interaction.response.send_modal(modal)
 
-                await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user=user, guild=interaction.guild,
-                                                 moderator=interaction.user, reason=reason, duration=duration,
-                                                 jump_url=approve_interaction.message.jump_url)
+        approve.callback = approve_callback
+        reject.callback = reject_callback
+        view.add_item(approve)
+        view.add_item(reject)
+        return view
 
-            approve.callback = approve_callback
-
-            reject = nextcord.ui.Button(label='Отказать', style=nextcord.ButtonStyle.red)
-
-            async def reject_callback(reject_interaction: nextcord.Interaction):
-                if grant_level(reject_interaction.user.roles, reject_interaction.user) < 4:
-                    return await reject_interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
-
-                modal = nextcord.ui.Modal(title='Ввод причины')
-                reason = nextcord.ui.TextInput(label='Причина', style=nextcord.TextInputStyle.paragraph)
-                modal.add_item(reason)
-
-                async def modal_callback(modal_interaction):
-                    view.stop()
-
-                    reject.disabled = True
-                    reject.label = 'Отказано'
-                    view.remove_item(approve)
-                    embed.add_field(name='Отказал', value=reject_interaction.user.mention, inline=False)
-                    embed.add_field(name='Причина отказа', value=reason.value)
-                    await modal_interaction.response.edit_message(embed=embed, view=view)
-
-                modal.callback = modal_callback
-                await reject_interaction.response.send_modal(modal)
-
-            reject.callback = reject_callback
-            view.add_item(reject)
-
-            await interaction.send(embed=embed, view=view)
-        else:
-            mess = await interaction.send(embed=embed)
-            jump_url = (await mess.fetch()).jump_url
-            await self.handler.bans.give_ban(ActionType.BAN_LOCAL, user=user, guild=interaction.guild,
-                                             moderator=interaction.user, reason=reason, duration=duration,
-                                             jump_url=jump_url)
+    async def apply_ban(self, interaction, user, duration, reason, embed, jump_url=None):
+        if not jump_url:
+            message = await interaction.send(embed=embed)
+            jump_url = (await message.fetch()).jump_url
+        await self.handler.bans.give_ban(
+            ActionType.BAN_LOCAL,
+            user=user,
+            guild=interaction.guild,
+            moderator=interaction.user,
+            reason=reason,
+            duration=duration,
+            jump_url=jump_url
+        )
 
     @nextcord.slash_command(name='unban', description="Разблокировать пользователя")
     @restricted_command(3)
