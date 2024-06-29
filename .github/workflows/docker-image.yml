@@ -41,7 +41,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
-            cd /path/to/your/project/on/server
+            cd /bots/discord-esbot
             docker-compose down
             docker-compose pull
             docker-compose up -d
