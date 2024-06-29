@@ -2,7 +2,7 @@
 FROM python:3.10-slim
 
 # Устанавливаем рабочую директорию
-WORKDIR /discord-esbot
+WORKDIR bots/discord-esbot
 
 # Копируем файл зависимостей
 COPY requirements.txt .
