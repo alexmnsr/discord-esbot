@@ -49,6 +49,7 @@ jobs:
             echo "$PROJECT_DIR"
             git pull origin main
             docker-compose down
-            docker-compose rm -f  # Удаляем существующие контейнеры
+            docker rm -f discord-esbot  # Принудительно удаляем существующий контейнер
+            docker-compose rm -f  # Удаляем все остановленные контейнеры
             docker-compose pull
             docker-compose up -d
