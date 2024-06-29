@@ -6,6 +6,7 @@ WORKDIR /bots/discord-esbot
 
 # Копируем файл зависимостей
 COPY requirements.txt .
+COPY cogs ./cogs
 
 # Устанавливаем зависимости
 RUN pip install --no-cache-dir -r requirements.txt
