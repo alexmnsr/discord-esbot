@@ -224,8 +224,8 @@ class Punishments(commands.Cog):
         if not (user := await self.bot.resolve_user(user, interaction.guild)):
             return await interaction.send('Пользователь не найден.')
 
-        # if isinstance(user, nextcord.Member) and interaction.user.top_role <= user.top_role:
-        #     return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
+        if isinstance(user, nextcord.Member) and interaction.user.top_role <= user.top_role:
+            return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
         count_warns = len(await self.handler.database.get_warns(user.id, interaction.guild.id)) + 1
         embed = ((nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
@@ -329,7 +329,7 @@ class Punishments(commands.Cog):
         await self.handler.database.remove_warn(user_id=user.id, guild_id=interaction.guild.id, action_id=action_id)
 
     @nextcord.slash_command(name='ban', description="Заблокировать пользователя на сервере")
-    @restricted_command(3)
+    @restricted_command(1)
     async def ban(self, interaction,
                   user: str = nextcord.SlashOption('пользователь',
                                                    description='Пользователь, которому вы хотите выдать блокировку.',
@@ -356,9 +356,10 @@ class Punishments(commands.Cog):
                  .add_field(name='Причина', value=reason, inline=True)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f"Модератор: {interaction.user.id}"))
-        if grant_level(interaction.user.roles, interaction.user) < 4:
+        if grant_level(interaction.user.roles, interaction.user) < 3:
             view = nextcord.ui.View()
             approve = nextcord.ui.Button(label='Подтвердить', style=nextcord.ButtonStyle.green)
+            view.add_item(approve)
 
             async def approve_callback(approve_interaction: nextcord.Interaction):
                 if grant_level(approve_interaction.user.roles, approve_interaction.user) < 4:
