@@ -329,7 +329,7 @@ class Punishments(commands.Cog):
         await self.handler.database.remove_warn(user_id=user.id, guild_id=interaction.guild.id, action_id=action_id)
 
     @nextcord.slash_command(name='ban', description="Заблокировать пользователя на сервере")
-    @restricted_command(3)
+    @restricted_command(1)
     async def ban(self, interaction,
                   user: str = nextcord.SlashOption('пользователь',
                                                    description='Пользователь, которому вы хотите выдать блокировку.',
