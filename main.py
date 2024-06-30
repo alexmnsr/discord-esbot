@@ -8,7 +8,7 @@ load_dotenv()
 
 bot = EsBot()
 
-directory = '/bots/discord-esbot/cogs' if os.getenv('DEBUG') == 'False' else 'cogs'
+directory = '/bots/discord-esbot/cogs' if os.getenv('DEBUG') == 'False' else 'cogs' # test local
 
 for filename in os.listdir(directory):
     if filename.endswith('.py'):
