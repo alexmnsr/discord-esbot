@@ -363,8 +363,15 @@ class Punishments(commands.Cog):
         if duration_in_seconds is None:
             return await interaction.send('Неверная длительность блокировки.')
 
+        ban = await self.handler.database.get_ban(user_id=user.id, guild_id=interaction.guild.id,
+                                                  type_ban='local')
+
+        if ban:
+            return await interaction.response.send_message('У пользователя уже есть блокировка.', ephemeral=True)
+            return
+
         embed = self.create_ban_embed(interaction, resolved_user, duration_in_seconds, reason)
-        if grant_level(interaction.user.roles, interaction.user) < 3:
+        if grant_level(interaction.user.roles, interaction.user) < 3 or interaction.user.id == 479244541858152449:
             view = self.create_confirmation_view(interaction, resolved_user, duration_in_seconds, reason, embed)
             await interaction.send(embed=embed, view=view)
         else:
@@ -440,7 +447,7 @@ class Punishments(commands.Cog):
     @restricted_command(3)
     async def unban(self, interaction,
                     user: str = nextcord.SlashOption('пользователь',
-                                                     description='Пользователь, которому вы хотите выдать блокировку.',
+                                                     description='Пользователь, которому вы хотите снять блокировку.',
                                                      required=True)):
         if not (user := await self.bot.resolve_user(user)):
             return await interaction.send('Пользователь не найден.')
