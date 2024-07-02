@@ -564,7 +564,7 @@ class Punishments(commands.Cog):
                     guild = await self.bot.fetch_guild(items['guild_id'])
                     server_info = f'Сервер: {guild.name}\n'
                 else:
-                    server_info = 'Сервер: Неизвестный\n'
+                    server_info = ''
                 embed.add_field(
                     name=f'№{items["_id"]}: {human_actions.get(items["action_type"].split(".")[-1].lower() if items["action_type"].startswith("ActionType.") else items["action_type"], "Неизвестное событие")}',
                     value=f'{server_info}Время: {items["time"].strftime("%d.%m.%Y %H:%M:%S")}.\n'
