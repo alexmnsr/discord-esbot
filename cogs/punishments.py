@@ -558,9 +558,13 @@ class Punishments(commands.Cog):
                 reason = items['payload'].get('reason', None)
                 duration = items['payload'].get('duration', None)
                 jump_url = items['payload'].get('jump_url', None)
+                if server == 'Все':
+                    server_punishment_id = items['payload'].get('server_id', None)
+                    guild = await self.bot.fetch_guild(server_punishment_id)
+                    server_info = f'Сервер: {guild.name}\n'
                 embed.add_field(
                     name=f'№{items["_id"]}: {human_actions.get(items["action_type"].split(".")[-1].lower() if items["action_type"].startswith("ActionType.") else items["action_type"], "Неизвестное событие")}',
-                    value=f'Время: {items["time"].strftime("%d.%m.%Y %H:%M:%S")}.\n'
+                    value=f'{server_info}Время: {items["time"].strftime("%d.%m.%Y %H:%M:%S")}.\n'
                           f'Выдал: <@{items["moderator_id"]}>\n{f"Причина: **[{reason}]({jump_url})**" if reason else "Не указана"}\n{f"Длительность: {beautify_seconds(int(duration))}" if duration else "Не указано"}',
                     inline=False)
 
