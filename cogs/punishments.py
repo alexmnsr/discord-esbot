@@ -559,7 +559,7 @@ class Punishments(commands.Cog):
                 duration = items['payload'].get('duration', None)
                 jump_url = items['payload'].get('jump_url', None)
                 if server == 'Все':
-                    server_punishment_id = items['payload'].get('server_id', None)
+                    server_punishment_id = items['payload'].get('guild_id', None)
                     guild = await self.bot.fetch_guild(server_punishment_id)
                     server_info = f'Сервер: {guild.name}\n'
                 embed.add_field(
