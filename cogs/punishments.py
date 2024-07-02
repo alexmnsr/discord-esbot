@@ -367,7 +367,7 @@ class Punishments(commands.Cog):
                                                   type_ban='local')
 
         if ban:
-            return await interaction.response.send_message('У пользователя уже есть блокировка.', ephemeral=True)
+            return await interaction.send('У пользователя уже есть блокировка.', ephemeral=True)
             return
 
         embed = self.create_ban_embed(interaction, resolved_user, duration_in_seconds, reason)
