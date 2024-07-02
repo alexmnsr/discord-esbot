@@ -363,7 +363,7 @@ class Punishments(commands.Cog):
         if duration_in_seconds is None:
             return await interaction.send('Неверная длительность блокировки.')
 
-        ban = await self.handler.database.get_ban(user_id=user.id, guild_id=interaction.guild.id,
+        ban = await self.handler.database.get_ban(user_id=user, guild_id=interaction.guild.id,
                                                   type_ban='local')
 
         if ban:
