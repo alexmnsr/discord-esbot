@@ -538,8 +538,10 @@ class Punishments(commands.Cog):
             return await interaction.send('Пользователь не найден.')
         if server == 'Только этот':
             server = interaction.guild.id
-        list = await self.handler.database.actions.get_punishments(user_id=user.id, guild_id=server,
-                                                                   type_punishment=type_punishment)
+            list = await self.handler.database.actions.get_punishments(user_id=user.id, guild_id=server,
+                                                                       type_punishment=type_punishment)
+        else:
+            list = await self.handler.database.actions.get_punishments(user_id=user.id, type_punishment=type_punishment)
         list.reverse()
 
         if len(list) == 0:
