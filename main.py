@@ -6,7 +6,7 @@ from utils.classes.bot import EsBot
 
 load_dotenv()
 
-bot = EsBot()
+bot = EsBot() # 1
 
 for filename in os.listdir('cogs'):
     if filename.endswith('.py'):
