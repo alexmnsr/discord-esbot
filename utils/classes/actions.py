@@ -99,7 +99,7 @@ class Actions:
     @staticmethod
     async def send_log(action_id, guild, embed):
         embed.set_footer(text=f'ID: {action_id}')
-        log_channel = [channel for channel in guild.channels if "наказани" in channel.name][0]
+        log_channel = [channel for channel in guild.channels if "логи-наказаний" in channel.name][0]
         await log_channel.send(embed=embed)
 
     @property
