@@ -284,9 +284,9 @@ class Punishments(commands.Cog):
         embed = self.create_warn_embed(interaction, resolved_user, count_warns, reason)
 
         if grant_level(interaction.user.roles, interaction.user) < 2:
-            approve_id = await self.handler.approves.add({{'user_id': resolved_user.id,
+            approve_id = await self.handler.approves.add({'user_id': resolved_user.id,
                                                            'moderator_id': interaction.user.id, 'action': "warn",
-                                                           'guild_id': resolved_user.guild.id, 'reason': reason}})
+                                                           'guild_id': resolved_user.guild.id, 'reason': reason})
             view = self.create_confirmation_view(interaction, approve_id, embed)
             await interaction.send(embed=embed, view=view)
         else:
@@ -391,7 +391,7 @@ class Punishments(commands.Cog):
 
         embed = self.create_ban_embed(interaction, resolved_user, duration_in_seconds, reason)
         if grant_level(interaction.user.roles, interaction.user) < 3 or interaction.user.id == 479244541858152449:
-            approve_id = await self.handler.approves.add({{'user_id': resolved_user.id, 'moderator_id': interaction.user.id, 'action': "ban", 'duration': duration_in_seconds, 'guild_id': resolved_user.guild.id, 'reason': reason}})
+            approve_id = await self.handler.approves.add({'user_id': resolved_user.id, 'moderator_id': interaction.user.id, 'action': "ban", 'duration': duration_in_seconds, 'guild_id': resolved_user.guild.id, 'reason': reason})
             view = self.create_confirmation_view(interaction, approve_id, embed)
             await interaction.send(embed=embed, view=view)
         else:
