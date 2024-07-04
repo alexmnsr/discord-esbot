@@ -303,7 +303,7 @@ class Punishments(commands.Cog):
         return embed
 
     def create_confirmation_view(self, interaction, approve_id, embed):
-        view = View()
+        view = View(auto_defer=False)
         approve = Button(label='Подтвердить', style=nextcord.ButtonStyle.green, custom_id=f'punish_approve_{approve_id}')
         reject = Button(label='Отказать', style=nextcord.ButtonStyle.red, custom_id=f'punish_reject_{approve_id}')
 
