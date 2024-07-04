@@ -242,6 +242,21 @@ class BanHandler:
         return True
 
 
+class ApproveHandler:
+    def __init__(self, handler: "PunishmentsHandler") -> None:
+        self.handler = handler
+        self.client = handler.client
+        self.database = handler.database
+
+    async def add(self, info: dict) -> int:
+        return await self.database.add_approve(info)
+
+    async def pop(self, approve_id: int) -> dict:
+        data = await self.database.get_approve(approve_id)
+        await self.database.remove_approve(approve_id)
+        return data
+
+
 class PunishmentsHandler:
     def __init__(self, client, global_db, mongodb) -> None:
         self.database = PunishmentsDatabase(client, global_db, mongodb)
@@ -249,6 +264,7 @@ class PunishmentsHandler:
         self.mutes = MuteHandler(self)
         self.bans = BanHandler(self)
         self.warns = WarnHandler(self)
+        self.approves = ApproveHandler(self)
 
     async def reload(self):
         current_mutes = await self.database.get_mutes()

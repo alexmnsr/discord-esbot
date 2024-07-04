@@ -11,7 +11,11 @@ class PunishmentsDatabase:
         self.mutes = self.db['mutes']
         self.bans = self.db['bans']
         self.warns = self.db['warns']
+        self.approves = self.db['approves']
         self.actions = global_db.actions
+
+    async def get_approve(self, approve_id: int) -> dict:
+        return await self.approves.find_one({'_id': approve_id})
 
     async def get_mutes(self, user_id=None, guild_id=None):
         query = {}
@@ -57,6 +61,15 @@ class PunishmentsDatabase:
                                              'guild_id': guild_id,
                                              'type': 'full'
                                          } if not action_id else {'action_id': action_id})
+
+    async def add_approve(self, info: dict) -> int:
+        approve_id = await self.approves.count_documents({}) + 1000
+        info.update({'_id': approve_id})
+        await self.approves.insert_one(info)
+        return approve_id
+
+    async def remove_approve(self, approve_id: int) -> None:
+        await self.approves.delete_one({'_id': approve_id})
 
     async def give_mute(self, user_id, guild_id, moderator_id, reason, duration, mute_type, *, jump_url):
         action_id = await self.actions.add_action(
