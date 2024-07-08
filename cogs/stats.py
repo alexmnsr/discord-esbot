@@ -55,9 +55,9 @@ class Stats(commands.Cog):
                                     value=(f'▫️ Онлайн: {info.total_time}\n' +
                                            (f'▫️ Действия:\n' +
                                             '\n'.join([
-                                                          f'⠀⠀⠀ {moder_actions.get(k.split(".")[-1].lower() if k.startswith("ActionType.") else k, "Неизвестное событие")}: {v}'
-                                                          for k, v in
-                                                          acts.items()]) if acts else '◈ Никаких действий')),
+                                                f'⠀⠀⠀ {moder_actions.get(k.split(".")[-1].lower() if k.startswith("ActionType.") else k, "Неизвестное событие")}: {v}'
+                                                for k, v in
+                                                acts.items()]) if acts else '▫️ Никаких действий')),
                                     inline=False)
                 await interaction.send(embed=embed)
 
