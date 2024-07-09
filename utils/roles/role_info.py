@@ -12,7 +12,7 @@ class RoleInfo:
 
     def find(self, guild_roles):
         for role in guild_roles:
-            if [r.lower() for r in self.role_names] in role.name.lower():
+            if role.name.lower() in [r.lower() for r in self.role_names]:
                 return role
         return None
 
