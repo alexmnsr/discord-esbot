@@ -206,7 +206,7 @@ class RoleRequest:
 
     @property
     def roles_channel(self):
-        return [c for c in self.guild.channels if c.name in 'заявки-на-роли'][0]
+        return [c for c in self.guild.channels if 'заявки-на-роли' in c.name][0]
 
     @property
     def check_embed(self):
