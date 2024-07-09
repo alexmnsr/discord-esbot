@@ -216,7 +216,7 @@ class RoleRequest:
             color=nextcord.Color.dark_blue(),
         )
         embed.add_field(name='Никнейм', value=self.nickname, inline=True)
-        embed.add_field(name='Роль', value=self.role_info.find(self.guild.roles), inline=True)
+        embed.add_field(name='Роль', value=self.role_info.find(self.guild.roles).mention, inline=True)
         embed.add_field(name='Ранг', value=f'{self.rang} [{self.role_info.rang_name(self.rang)}]', inline=True)
         embed.add_field(name='Пользователь', value=user_visual(self.user), inline=True)
         embed.set_thumbnail(self.user.display_avatar.url)
