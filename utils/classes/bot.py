@@ -1,3 +1,4 @@
+import os
 import re
 
 import nextcord
@@ -6,7 +7,6 @@ from nextcord.ext import commands
 
 from database import Database
 from utils.roles.role_info import StartView, ReviewView
-
 
 class EsBot(commands.Bot):
     def __init__(self) -> None:
@@ -30,6 +30,11 @@ class EsBot(commands.Bot):
         #     if message.author.id == self.user.id:
         #         print('удалено')
         #         await message.delete()
+
+    async def on_application_command_error(self, interaction: nextcord.Interaction, error: nextcord.ApplicationError):
+        if isinstance(error, nextcord.ApplicationCheckFailure):
+            return
+        raise error
 
     async def resolve_user(self, user_str, guild=None):
         try:
