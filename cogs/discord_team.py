@@ -28,7 +28,7 @@ class DiscordTeam(commands.Cog):
                        user_removed_roles)
 
         async def give_roles(user: nextcord.Member, other_guild: nextcord.Guild):
-            add_roles = [r for r in other_guild.roles if "Discord™" in r.name.lower()]
+            add_roles = [r for r in other_guild.roles if "・Discord™" in r.name]
             if not add_roles:
                 return
             member = other_guild.get_member(user.id)
@@ -43,7 +43,7 @@ class DiscordTeam(commands.Cog):
                 ...
 
         async def remove_roles(user: nextcord.Member, other_guild: nextcord.Guild):
-            remove_roles = [r for r in other_guild.roles if "Discord™" in r.name.lower()]
+            remove_roles = [r for r in other_guild.roles if "・Discord™" in r.name]
             if not remove_roles:
                 return
             member = other_guild.get_member(user.id)
