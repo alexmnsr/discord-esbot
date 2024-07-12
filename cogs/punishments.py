@@ -67,23 +67,35 @@ class Punishments(commands.Cog):
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: nextcord.Interaction):
+        if interaction.message is None:
+            return
+
+        if interaction.data is None:
+            return
+
+        if not isinstance(interaction.user, nextcord.Member):
+            return
+
+        custom_id = interaction.data.get('custom_id')
+        if custom_id is None:
+            return
+
         if interaction.type == nextcord.InteractionType.component:
-            if interaction.data["custom_id"].startswith("punish_approve_"):
+            if custom_id.startswith("punish_approve_"):
                 if grant_level(interaction.user.roles, interaction.user) < 4:
                     return await interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
 
-                approve_id = int(interaction.data["custom_id"].split("_")[2])
+                approve_id = int(custom_id.split("_")[2])
                 data = await self.handler.approves.pop(approve_id)
 
                 embed = interaction.message.embeds[0]
                 embed.add_field(name='Подтвердил', value=interaction.user.mention, inline=False)
 
                 view = nextcord.ui.View()
-                view.add_item(nextcord.ui.Button(label="Подтверждено", style=nextcord.ButtonStyle.green, disabled=True,
-                                                 emoji='✅'))
+                view.add_item(nextcord.ui.Button(label="Подтверждено", style=nextcord.ButtonStyle.green, disabled=True, emoji='✅'))
                 await interaction.response.edit_message(embed=embed, view=view)
 
-                user = nextcord.Object(id=data.get('user_id'))
+                user = nextcord.Object(id=data.get('user_id', 0))
 
                 action = data.get('action')
                 jump_url = interaction.message.jump_url
@@ -92,7 +104,7 @@ class Punishments(commands.Cog):
                     await self.apply_warn(interaction, user, count_warns, data.get('reason'), embed, jump_url)
                 elif action == 'ban':
                     await self.apply_ban(interaction, user, data.get('duration'), data.get('reason'), embed, jump_url)
-            elif interaction.data["custom_id"].startswith("punish_reject_"):
+            elif custom_id.startswith("punish_reject_"):
                 if grant_level(interaction.user.roles, interaction.user) < 4:
                     return await interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
 
@@ -101,12 +113,13 @@ class Punishments(commands.Cog):
                 modal.add_item(modal_reason)
 
                 async def modal_callback(modal_interaction):
-                    await self.handler.approves.pop(interaction.data["custom_id"].split("_")[2])
+                    await self.handler.approves.pop(custom_id.split("_")[2])
 
                     modal_view = nextcord.ui.View()
                     modal_view.add_item(
-                        nextcord.ui.Button(label="Отказано", style=nextcord.ButtonStyle.green, disabled=True,
+                        nextcord.ui.Button(label="Отказано", style=nextcord.ButtonStyle.red, disabled=True,
                                            emoji='❌'))
+                    embed = interaction.message.embeds[0]
                     embed.add_field(name='Отказал', value=interaction.user.mention, inline=False)
                     embed.add_field(name='Причина отказа', value=modal_reason.value)
                     await modal_interaction.response.edit_message(embed=embed, view=modal_view)
@@ -159,7 +172,7 @@ class Punishments(commands.Cog):
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
 
         if message:
-            channel = [c for c in interaction.guild.text_channels if 'выдача-наказаний' in c.name][0]
+            channel = [c for c in message.guild.text_channels if 'выдача-наказаний' in c.name][0]
             await interaction.send(embed=embed, ephemeral=True)
             if isinstance(message, nextcord.Message):
                 mess = await channel.send(embed=embed)
@@ -285,8 +298,8 @@ class Punishments(commands.Cog):
 
         if grant_level(interaction.user.roles, interaction.user) < 2:
             approve_id = await self.handler.approves.add({'user_id': resolved_user.id,
-                                                          'moderator_id': interaction.user.id, 'action': "warn",
-                                                          'guild_id': resolved_user.guild.id, 'reason': reason})
+                                                           'moderator_id': interaction.user.id, 'action': "warn",
+                                                           'guild_id': resolved_user.guild.id, 'reason': reason})
             view = self.create_confirmation_view(interaction, approve_id, embed)
             await interaction.send(embed=embed, view=view)
         else:
@@ -304,8 +317,7 @@ class Punishments(commands.Cog):
 
     def create_confirmation_view(self, interaction, approve_id, embed):
         view = View(auto_defer=False)
-        approve = Button(label='Подтвердить', style=nextcord.ButtonStyle.green,
-                         custom_id=f'punish_approve_{approve_id}')
+        approve = Button(label='Подтвердить', style=nextcord.ButtonStyle.green, custom_id=f'punish_approve_{approve_id}')
         reject = Button(label='Отказать', style=nextcord.ButtonStyle.red, custom_id=f'punish_reject_{approve_id}')
 
         view.add_item(approve)
@@ -391,10 +403,8 @@ class Punishments(commands.Cog):
             return await interaction.send('У пользователя уже есть блокировка.', ephemeral=True)
 
         embed = self.create_ban_embed(interaction, resolved_user, duration_in_seconds, reason)
-        if grant_level(interaction.user.roles, interaction.user) <= 3 or interaction.user.id == 479244541858152449:
-            approve_id = await self.handler.approves.add(
-                {'user_id': resolved_user.id, 'moderator_id': interaction.user.id, 'action': "ban",
-                 'duration': duration_in_seconds, 'guild_id': interaction.guild.id, 'reason': reason})
+        if grant_level(interaction.user.roles, interaction.user) < 3 or interaction.user.id == 479244541858152449:
+            approve_id = await self.handler.approves.add({'user_id': resolved_user.id, 'moderator_id': interaction.user.id, 'action': "ban", 'duration': duration_in_seconds, 'guild_id': resolved_user.guild.id, 'reason': reason})
             view = self.create_confirmation_view(interaction, approve_id, embed)
             await interaction.send(embed=embed, view=view)
         else:
@@ -528,10 +538,9 @@ class Punishments(commands.Cog):
         if server == 'Только этот':
             server = interaction.guild.id
             punishments_list = await self.handler.database.actions.get_punishments(user_id=user.id, guild_id=server,
-                                                                                   type_punishment=type_punishment)
+                                                                       type_punishment=type_punishment)
         else:
-            punishments_list = await self.handler.database.actions.get_punishments(user_id=user.id,
-                                                                                   type_punishment=type_punishment)
+            punishments_list = await self.handler.database.actions.get_punishments(user_id=user.id, type_punishment=type_punishment)
         punishments_list.reverse()
 
         if len(punishments_list) == 0:
