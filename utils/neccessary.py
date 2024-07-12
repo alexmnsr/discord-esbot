@@ -8,7 +8,7 @@ from nextcord.ext.application_checks.core import CheckWrapper
 grant_levels = {
     1: ["Модератор"],
     2: ["Ст. Модератор"],
-    3: ["Assistant Discord"],
+    3: ["Ассистент Discord"],
     4: ["Главный Модератор"],
     5: ["Следящий за Discord"]
 }

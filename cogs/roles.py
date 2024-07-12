@@ -110,7 +110,7 @@ class Roles(commands.Cog):
         roles = []
         for key, value in role_info.items():
             for roles_member in member.roles:
-                if value.role_names[0] in roles_member.name:
+                if value.role_names[0] in roles_member.name or value.role_names[1] in roles_member.name:
                     role = roles_member
                     roles.append(role)
         if not roles:
