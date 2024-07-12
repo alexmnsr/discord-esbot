@@ -67,12 +67,25 @@ class Punishments(commands.Cog):
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: nextcord.Interaction):
+        if interaction.message is None:
+            return
+
+        if interaction.data is None:
+            return
+
+        if not isinstance(interaction.user, nextcord.Member):
+            return
+
+        custom_id = interaction.data.get('custom_id')
+        if custom_id is None:
+            return
+
         if interaction.type == nextcord.InteractionType.component:
-            if interaction.data["custom_id"].startswith("punish_approve_"):
+            if custom_id.startswith("punish_approve_"):
                 if grant_level(interaction.user.roles, interaction.user) < 4:
                     return await interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
 
-                approve_id = int(interaction.data["custom_id"].split("_")[2])
+                approve_id = int(custom_id.split("_")[2])
                 data = await self.handler.approves.pop(approve_id)
 
                 embed = interaction.message.embeds[0]
@@ -82,7 +95,7 @@ class Punishments(commands.Cog):
                 view.add_item(nextcord.ui.Button(label="Подтверждено", style=nextcord.ButtonStyle.green, disabled=True, emoji='✅'))
                 await interaction.response.edit_message(embed=embed, view=view)
 
-                user = nextcord.Object(id=data.get('user_id'))
+                user = nextcord.Object(id=data.get('user_id', 0))
 
                 action = data.get('action')
                 jump_url = interaction.message.jump_url
@@ -91,7 +104,7 @@ class Punishments(commands.Cog):
                     await self.apply_warn(interaction, user, count_warns, data.get('reason'), embed, jump_url)
                 elif action == 'ban':
                     await self.apply_ban(interaction, user, data.get('duration'), data.get('reason'), embed, jump_url)
-            elif interaction.data["custom_id"].startswith("punish_reject_"):
+            elif custom_id.startswith("punish_reject_"):
                 if grant_level(interaction.user.roles, interaction.user) < 4:
                     return await interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
 
@@ -100,13 +113,13 @@ class Punishments(commands.Cog):
                 modal.add_item(modal_reason)
 
                 async def modal_callback(modal_interaction):
-                    await self.handler.approves.pop(modal_interaction.data["custom_id"].split("_")[2])
+                    await self.handler.approves.pop(custom_id.split("_")[2])
 
                     modal_view = nextcord.ui.View()
                     modal_view.add_item(
-                        nextcord.ui.Button(label="Отказано", style=nextcord.ButtonStyle.green, disabled=True,
+                        nextcord.ui.Button(label="Отказано", style=nextcord.ButtonStyle.red, disabled=True,
                                            emoji='❌'))
-                    modal_view.remove_item(approve)
+                    embed = interaction.message.embeds[0]
                     embed.add_field(name='Отказал', value=interaction.user.mention, inline=False)
                     embed.add_field(name='Причина отказа', value=modal_reason.value)
                     await modal_interaction.response.edit_message(embed=embed, view=modal_view)
