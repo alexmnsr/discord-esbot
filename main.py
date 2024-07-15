@@ -8,9 +8,13 @@ load_dotenv()
 
 bot = EsBot()
 
-for filename in os.listdir('cogs'):
-    if filename.endswith('.py'):
-        bot.load_extension(f'cogs.{filename[:-3]}')
+for root, _, files in os.walk('cogs'):
+    for filename in files:
+        if filename.endswith('.py'):
+            # Получаем относительный путь и преобразуем его в формат cogs.subdir.module
+            relative_path = os.path.relpath(os.path.join(root, filename), 'cogs')
+            module = relative_path.replace(os.path.sep, '.').replace('.py', '')
+            bot.load_extension(f'cogs.{module}')
 
 start = os.getenv('LOCAL_TOKEN') if os.getenv('DEBUG') == 'True' else os.getenv('TOKEN_BOT')
 

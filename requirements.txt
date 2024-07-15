@@ -1,3 +1,4 @@
 motor==3.3.2
 nextcord==2.6.0
 python-dotenv==1.0.1
+vk_api==11.9.9

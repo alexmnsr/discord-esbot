@@ -3,9 +3,17 @@ import datetime
 import nextcord
 from nextcord.ext import commands
 
+from cogs.vk_bot.vk import Vkontakte
 from utils.classes.actions import human_actions, moder_actions
 from utils.classes.bot import EsBot
 from utils.neccessary import restricted_command, is_date_valid, date_autocomplete
+
+
+def embed_to_string(embed: nextcord.Embed) -> str:
+    result = [f"{embed.title}\n"]
+    for field in embed.fields:
+        result.append(f"{field.name}\n{field.value}\n")
+    return "\n".join(result)
 
 
 class Stats(commands.Cog):
@@ -13,6 +21,7 @@ class Stats(commands.Cog):
         self.bot = bot
         self.handler = bot.db.online_handler
         self.acts_handler = bot.db.actions
+        self.vk = Vkontakte(bot)
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
@@ -59,6 +68,7 @@ class Stats(commands.Cog):
                                                 for k, v in
                                                 acts.items()]) if acts else '▫️ Никаких действий')),
                                     inline=False)
+                await self.vk.send_message(id=239759093, message=embed_to_string(embed))
                 await interaction.send(embed=embed)
 
     @nextcord.slash_command(name='activity', description='Показать активность модераторов',
