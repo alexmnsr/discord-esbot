@@ -9,7 +9,7 @@ vk_bot = vk_api.VkApi(token=os.getenv('VK_TOKEN'))
 session_api = vk_bot.get_api()
 
 
-class Vkontakte(commands.Cog):
+class Vkontakte(commands.Cog): # VK API
     def __init__(self, bot: EsBot) -> None:
         self.bot = bot
 
