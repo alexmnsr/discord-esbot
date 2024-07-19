@@ -91,7 +91,7 @@ class MuteHandler:
     async def remove_mute(self, user_id, guild_id, role_name, moderator):
         get, give, remove = self.mute_info(role_name)
 
-        if not (mute := await get(user_id=user_id, guild_id=guild_id)) or not await remove(user_id, guild_id):
+        if not (mute := await get(user_id=user_id, guild_id=guild_id)) or not await remove(user_id, guild_id, moderator_id=moderator.id):
             return False
         if role_name == 'Mute » Full':
             role_name = ['Mute » Text', 'Mute » Voice']
@@ -159,7 +159,6 @@ class BanHandler:
                                                  duration=duration, ban_type=type_ban, jump_url=jump_url)
         if not action_id:
             return
-        await guild.ban(user, reason=f'Action ID: {action_id}')
 
         embed = nextcord.Embed(
             title=f'Вам выдана блокировка на сервере {guild.name}.',
@@ -169,6 +168,7 @@ class BanHandler:
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
 
         await send_embed(user.id, embed)
+        await guild.ban(user, reason=f'Action ID: {action_id}')
 
         log_embed = nextcord.Embed(
             title=f'Выдача {f"блокировки на сервере {guild.name}" if type_ban != ActionType.BAN_GLOBAL else "глобальной блокировки."}',

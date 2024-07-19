@@ -90,7 +90,9 @@ def beautify_seconds(seconds: int) -> str:
     if seconds < 3600:
         return f"{seconds // 60} мин."
     if seconds < 86400:
-        return f"{seconds // 3600} ч."
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        return f"{hours} ч. {minutes} мин."
     return f"{seconds // 86400} дн."
 
 

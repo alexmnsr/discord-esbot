@@ -101,9 +101,9 @@ class Punishments(commands.Cog):
                 jump_url = interaction.message.jump_url
                 if action == 'warn':
                     count_warns = len(await self.handler.database.get_warns(user.id, interaction.guild.id)) + 1
-                    await self.apply_warn(interaction, user, count_warns, data.get('reason'), embed, jump_url)
+                    await self.apply_warn(interaction, user, count_warns, data.get('reason'), embed, data.get('moderator_id'), jump_url)
                 elif action == 'ban':
-                    await self.apply_ban(interaction, user, data.get('duration'), data.get('reason'), embed, jump_url)
+                    await self.apply_ban(interaction, user, data.get('duration'), data.get('reason'), embed, data.get('moderator_id'), jump_url)
             elif custom_id.startswith("punish_reject_"):
                 if grant_level(interaction.user.roles, interaction.user) < 4:
                     return await interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
@@ -248,7 +248,7 @@ class Punishments(commands.Cog):
         if not (user := await self.bot.resolve_user(user)):
             return await interaction.send('Пользователь не найден.')
 
-        if not await self.handler.mutes.remove_mute(user.id, interaction.guild.id, role_name, interaction.user):
+        if not await self.handler.mutes.remove_mute(user.id, interaction.guild.id, role_name, moderator=interaction.user):
             return await interaction.send('У пользователя нет мута.')
 
         embed = nextcord.Embed(
@@ -297,9 +297,9 @@ class Punishments(commands.Cog):
         embed = self.create_warn_embed(interaction, resolved_user, count_warns, reason)
 
         if grant_level(interaction.user.roles, interaction.user) < 2:
-            approve_id = await self.handler.approves.add({'user_id': resolved_user.id,
+            approve_id = await self.handler.approves.add({'user_id': user,
                                                            'moderator_id': interaction.user.id, 'action': "warn",
-                                                           'guild_id': resolved_user.guild.id, 'reason': reason})
+                                                           'guild_id': interaction.guild.id, 'reason': reason})
             view = self.create_confirmation_view(interaction, approve_id, embed)
             await interaction.send(embed=embed, view=view)
         else:
@@ -324,7 +324,7 @@ class Punishments(commands.Cog):
         view.add_item(reject)
         return view
 
-    async def apply_warn(self, interaction, user, count_warns, reason, embed, jump_url=None):
+    async def apply_warn(self, interaction, user, count_warns, reason, embed, moderator_id, jump_url=None):
         if not jump_url:
             message = await interaction.send(embed=embed)
             jump_url = (await message.fetch()).jump_url
@@ -333,7 +333,7 @@ class Punishments(commands.Cog):
                 ActionType.BAN_LOCAL,
                 user=user,
                 guild=interaction.guild,
-                moderator=interaction.user,
+                moderator=moderator_id,
                 reason=f'[3/3 WARN] {reason}',
                 duration=10,
                 jump_url=jump_url
@@ -344,7 +344,7 @@ class Punishments(commands.Cog):
                 ActionType.WARN_LOCAL,
                 user=user,
                 guild=interaction.guild,
-                moderator=interaction.user,
+                moderator=moderator_id,
                 reason=reason,
                 jump_url=jump_url
             )
@@ -371,7 +371,7 @@ class Punishments(commands.Cog):
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f"Модератор: {interaction.user.id}"))
         await interaction.send(embed=embed)
-        await self.handler.database.remove_warn(user_id=user.id, guild_id=interaction.guild.id, action_id=action_id)
+        await self.handler.database.remove_warn(user_id=user.id, guild_id=interaction.guild.id, moderator_id=interaction.user.id, action_id=action_id)
 
     @nextcord.slash_command(name='ban', description="Заблокировать пользователя на сервере")
     @restricted_command(1)
@@ -404,11 +404,11 @@ class Punishments(commands.Cog):
 
         embed = self.create_ban_embed(interaction, resolved_user, duration_in_seconds, reason)
         if grant_level(interaction.user.roles, interaction.user) <= 3 or interaction.user.id == 479244541858152449:
-            approve_id = await self.handler.approves.add({'user_id': resolved_user.id, 'moderator_id': interaction.user.id, 'action': "ban", 'duration': duration_in_seconds, 'guild_id': resolved_user.guild.id, 'reason': reason})
+            approve_id = await self.handler.approves.add({'user_id': user, 'moderator_id': interaction.user.id, 'action': "ban", 'duration': duration_in_seconds, 'guild_id': interaction.guild.id, 'reason': reason})
             view = self.create_confirmation_view(interaction, approve_id, embed)
             await interaction.send(embed=embed, view=view)
         else:
-            await self.apply_ban(interaction, resolved_user, duration_in_seconds, reason, embed)
+            await self.apply_ban(interaction, resolved_user, duration_in_seconds, reason, embed, moderator_id=interaction.user.id)
 
     def create_ban_embed(self, interaction, user, duration, reason):
         embed = (nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
@@ -421,7 +421,7 @@ class Punishments(commands.Cog):
                  .set_footer(text=f"Модератор: {interaction.user.id}"))
         return embed
 
-    async def apply_ban(self, interaction, user, duration, reason, embed, jump_url=None):
+    async def apply_ban(self, interaction, user, duration, reason, embed, moderator_id, jump_url=None):
         if not jump_url:
             message = await interaction.send(embed=embed)
             jump_url = (await message.fetch()).jump_url
@@ -429,7 +429,7 @@ class Punishments(commands.Cog):
             ActionType.BAN_LOCAL,
             user=user,
             guild=interaction.guild,
-            moderator=interaction.user,
+            moderator=moderator_id,
             reason=reason,
             duration=duration,
             jump_url=jump_url
@@ -447,7 +447,7 @@ class Punishments(commands.Cog):
         ban = await self.handler.database.get_ban(user_id=user.id, guild_id=interaction.guild.id,
                                                   type_ban='local')
         if ban:
-            await self.handler.database.remove_ban(user_id=user.id, guild_id=interaction.guild.id,
+            await self.handler.database.remove_ban(user_id=user.id, guild_id=interaction.guild.id, moderator_id=interaction.user.id,
                                                    type_ban='local')
         else:
             return await interaction.send('Блокировка не найдена', ephemeral=True)
@@ -544,7 +544,7 @@ class Punishments(commands.Cog):
         punishments_list.reverse()
 
         if len(punishments_list) == 0:
-            return await interaction.send('Нарушений не найдено.', ephemeral=True)
+            return await interaction.send(f'Нарушений у <@{user.id}> не найдено.', ephemeral=True)
 
         pages = [punishments_list[i:i + 5] for i in range(0, len(punishments_list), 5)]
         current_page = 1

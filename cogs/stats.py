@@ -6,7 +6,7 @@ from nextcord.ext import commands
 from cogs.vk_bot.vk import Vkontakte
 from utils.classes.actions import human_actions, moder_actions
 from utils.classes.bot import EsBot
-from utils.neccessary import restricted_command, is_date_valid, date_autocomplete
+from utils.neccessary import restricted_command, is_date_valid, date_autocomplete, grant_level
 
 
 def embed_to_string(embed: nextcord.Embed) -> str:
@@ -29,7 +29,7 @@ class Stats(commands.Cog):
 
     @nextcord.slash_command(name='stats', description='Показать онлайн модераторов',
                             dm_permission=False)
-    @restricted_command(3)
+    @restricted_command(1)
     async def stats(self, interaction: nextcord.Interaction,
                     date: str = nextcord.SlashOption('дата', description="Дата в формате dd.mm.YYYY", required=False,
                                                      autocomplete_callback=date_autocomplete)):
@@ -45,12 +45,17 @@ class Stats(commands.Cog):
 
             if moderator_roles:
                 moderator_users = []
-                embed = nextcord.Embed(title=f'💎 Действия модераторов за {date}', color=nextcord.Color.dark_purple())
-                for member in guild.members:
-                    for role in member.roles:
-                        if role in moderator_roles:
-                            moderator_users.append(member.id)
-                            break
+                if grant_level(interaction.user.roles, interaction.user) < 3:
+                    moderator_users.append(interaction.user.id)
+                    embed = nextcord.Embed(title=f'💎 Действия за {date}',
+                                           color=nextcord.Color.dark_purple())
+                else:
+                    embed = nextcord.Embed(title=f'💎 Действия модераторов за {date}', color=nextcord.Color.dark_purple())
+                    for member in guild.members:
+                        for role in member.roles:
+                            if role in moderator_roles:
+                                moderator_users.append(member.id)
+                                break
                 for id_moderator in moderator_users:
                     info = await self.handler.get_info(True, user_id=id_moderator, guild_id=interaction.guild.id,
                                                        date=date)

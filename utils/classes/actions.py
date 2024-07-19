@@ -5,6 +5,7 @@ from motor import motor_asyncio
 
 
 class ActionType(enum.Enum):
+    UNMUTE_LOCAL = 'unmute_local'
     BAN_LOCAL = 'ban_local'
     BAN_GLOBAL = 'ban_global'
     UNBAN_LOCAL = 'unban_local'
@@ -28,6 +29,7 @@ human_actions = {
     ActionType.TIME_WARN.value: "Временное предупреждение",
     ActionType.MUTE_TEXT.value: "Блокировка текстовых каналов",
     ActionType.MUTE_VOICE.value: "Блокировка голосовых каналов",
+    ActionType.UNMUTE_LOCAL.value: "Снятие мута",
     ActionType.MUTE_FULL.value: "Полная блокировка каналов",
     ActionType.ROLE_APPROVE.value: "Одобрение роли",
     ActionType.ROLE_REJECT.value: "Отклонение роли",
@@ -35,15 +37,16 @@ human_actions = {
 }
 
 moder_actions = {
-    ActionType.BAN_LOCAL.value: "Баны",
-    ActionType.BAN_GLOBAL.value: "Гбаны",
-    ActionType.UNBAN_LOCAL.value: "Анбаны",
+    ActionType.BAN_LOCAL.value: "Блокировки",
+    ActionType.BAN_GLOBAL.value: "G-блокировки",
+    ActionType.UNBAN_LOCAL.value: "Снятие блокировки",
     ActionType.WARN_LOCAL.value: "Варны",
-    ActionType.UNWARN_LOCAL.value: "Анварны",
+    ActionType.UNWARN_LOCAL.value: "Снятие варна",
     ActionType.TIME_WARN.value: "Врем.преды",
     ActionType.MUTE_TEXT.value: "Текст-муты",
     ActionType.MUTE_VOICE.value: "Войс-муты",
     ActionType.MUTE_FULL.value: "Фулл-муты",
+    ActionType.UNMUTE_LOCAL.value: "Снятие мута",
     ActionType.ROLE_APPROVE.value: "Одобренных ролей",
     ActionType.ROLE_REJECT.value: "Отказанных ролей",
     ActionType.ROLE_REMOVE.value: "Снятия ролей"
