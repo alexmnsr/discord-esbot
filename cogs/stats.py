@@ -68,7 +68,6 @@ class Stats(commands.Cog):
                                                 for k, v in
                                                 acts.items()]) if acts else '▫️ Никаких действий')),
                                     inline=False)
-                # await self.vk.send_message(id=239759093, message=embed_to_string(embed))
                 await interaction.send(embed=embed)
 
     @nextcord.slash_command(name='activity', description='Показать активность модераторов',
