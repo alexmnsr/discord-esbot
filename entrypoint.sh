@@ -1,8 +1,10 @@
 #!/bin/bash
 
 # Устанавливаем временную зону
-ln -sf /usr/share/zoneinfo/Europe/Moscow /etc/localtime
-echo "Europe/Moscow" > /etc/timezone
+RUN apt-get update && apt-get install -y tzdata
+
+ENV TZ=Europe/Moscow
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Переходим в рабочую директорию вашего проекта внутри контейнера
 cd /bots/discord-esbot
