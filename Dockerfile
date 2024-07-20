@@ -4,6 +4,16 @@ FROM python:3.10-slim
 # Устанавливаем рабочую директорию
 WORKDIR /bots/discord-esbot
 
+# Устанавливаем переменную окружения TZ для временной зоны
+ENV TZ=Europe/Moscow
+
+# Устанавливаем временную зону
+RUN apt-get update && \
+    apt-get install -y tzdata && \
+    ln -sf /usr/share/zoneinfo/Europe/Moscow /etc/localtime && \
+    echo "Europe/Moscow" > /etc/timezone && \
+    apt-get clean
+
 # Копируем файл зависимостей
 COPY requirements.txt .
 
