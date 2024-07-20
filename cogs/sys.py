@@ -37,7 +37,7 @@ class SysCommand(commands.Cog):
         )
         embed.add_field(name="Информация о памяти", value=memory_info, inline=False)
 
-        embed.add_field(name="Текущее время", value=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), inline=False)
+        embed.add_field(name="Текущее время", value=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), inline=False) # now time
 
         await interaction.send(embed=embed, ephemeral=True)
 
