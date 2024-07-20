@@ -51,5 +51,6 @@ jobs:
             docker-compose down
             docker rm -f discord-esbot  # Принудительно удаляем существующий контейнер
             docker-compose rm -f  # Удаляем все остановленные контейнеры
+            docker rmi -f discord-esbot
             docker-compose pull
             docker-compose up -d
