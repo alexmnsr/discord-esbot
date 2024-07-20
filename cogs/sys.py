@@ -26,7 +26,6 @@ class SysCommand(commands.Cog):
         embed.add_field(name="Система", value=uname.system, inline=False)
         embed.add_field(name="Версия", value=uname.version, inline=False)
         embed.add_field(name="Архитектура", value=uname.machine, inline=False)
-        embed.add_field(name="Процессор", value=uname.processor, inline=False)
         embed.add_field(name="Время загрузки", value=boot_time.strftime('%Y-%m-%d %H:%M:%S'), inline=False)
         embed.add_field(name="Использование CPU", value=f"{cpu_usage}%", inline=False)
 
@@ -37,8 +36,6 @@ class SysCommand(commands.Cog):
             f"Процент использования: {memory.percent}%"
         )
         embed.add_field(name="Информация о памяти", value=memory_info, inline=False)
-
-        embed.add_field(name="Текущее время", value=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), inline=False)
 
         await interaction.send(embed=embed, ephemeral=True)
 
