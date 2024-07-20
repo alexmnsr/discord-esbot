@@ -43,7 +43,7 @@ class Stats(commands.Cog):
 
             if moderator_roles:
                 moderator_users = []
-                if grant_level(interaction.user.roles, interaction.user) < 3:
+                if grant_level(interaction.user.roles, interaction.user) < 4:
                     moderator_users.append(interaction.user.id)
                     embed = nextcord.Embed(title=f'💎 Действия за {date}',
                                            color=nextcord.Color.dark_purple())
