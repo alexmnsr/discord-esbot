@@ -37,6 +37,8 @@ class SysCommand(commands.Cog):
         )
         embed.add_field(name="Информация о памяти", value=memory_info, inline=False)
 
+        embed.add_field(name="Текущее время", value=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), inline=False)
+
         await interaction.send(embed=embed, ephemeral=True)
 
     def get_size(self, bytes: int, suffix="B") -> str:
