@@ -25,7 +25,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: kusehsup/discord-esbot:latest
+          tags: alexmnsr/discord-esbot:latest
           build-args: --no-cache
 
   deploy:
