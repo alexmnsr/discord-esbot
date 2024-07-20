@@ -7,12 +7,12 @@ WORKDIR /bots/discord-esbot
 # Устанавливаем переменную окружения TZ для временной зоны
 ENV TZ=Europe/Moscow
 
-# Обновляем систему и устанавливаем tzdata для установки временной зоны
-RUN apt-get update && \
-    apt-get install -y tzdata
-
 # Устанавливаем временную зону
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+RUN apt-get update && \
+    apt-get install -y tzdata && \
+    cp /usr/share/zoneinfo/Europe/Moscow /etc/localtime && \
+    echo "Europe/Moscow" > /etc/timezone && \
+    apt-get clean
 
 # Копируем файл зависимостей
 COPY requirements.txt .
