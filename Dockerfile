@@ -11,11 +11,9 @@ ENV TZ=Europe/Moscow
 COPY requirements.txt .
 
 # Устанавливаем зависимости
-RUN pip install --no-cache-dir -r requirements.txt
-
 RUN apt-get update && \
     apt-get install -y tzdata && \
-    cp /usr/share/zoneinfo/Europe/Moscow /etc/localtime && \
+    ln -snf /usr/share/zoneinfo/Europe/Moscow /etc/localtime && \
     echo "Europe/Moscow" > /etc/timezone && \
     apt-get clean
 
