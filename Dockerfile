@@ -13,7 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копируем весь проект
 COPY . .
 
-# Устанавливаем точку входа
+# Копируем entrypoint.sh в контейнер и устанавливаем права на выполнение
 COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
 
+# Устанавливаем точку входа
 ENTRYPOINT ["./entrypoint.sh"]
