@@ -10,13 +10,10 @@ COPY requirements.txt .
 # Устанавливаем зависимости
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY cogs ./bots/discord-esbot/cogs
-
 # Копируем весь проект
 COPY . .
 
-# Копируем entrypoint.sh в контейнер
+# Устанавливаем точку входа
 COPY entrypoint.sh .
 
-# Устанавливаем точку входа
 ENTRYPOINT ["./entrypoint.sh"]
