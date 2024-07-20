@@ -1,11 +1,11 @@
-version: '3.8'
-
 services:
   app:
-    image: alexmnsr/discord-esbot:latest
+    build: .
     container_name: discord-esbot
+    volumes:
+      - .:/discord-esbot
     ports:
-      - "8000:8000"
+      - "8000:8000"  # Обновите порт, если ваше приложение использует другой порт
     depends_on:
       - mongo
 
@@ -15,7 +15,7 @@ services:
     volumes:
       - mongo_data:/data/db
     ports:
-      - "27017:27017"
+      - "27017:27017"  # Порт MongoDB по умолчанию
 
 volumes:
   mongo_data:
