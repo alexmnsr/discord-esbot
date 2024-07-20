@@ -1,10 +1,12 @@
 import os
 
+from loguru import logger
 from dotenv import load_dotenv
 
 from utils.classes.bot import EsBot
 
 load_dotenv()
+logger.disable("vkbottle")
 
 bot = EsBot()
 

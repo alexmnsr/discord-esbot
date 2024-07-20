@@ -165,7 +165,10 @@ class StartView(nextcord.ui.View):
         embed = interaction.message.embeds[0]
         embed.title = '📙 Заявление на роль на проверке'
         embed.colour = nextcord.Colour.orange()
-        check_time = datetime.now() - interaction.message.created_at
+        now = datetime.utcnow().replace(tzinfo=None)
+        created_at = interaction.message.created_at.replace(tzinfo=None)
+
+        check_time = now - created_at
         if check_time.total_seconds() > 2 * 60 * 60:
             _ = asyncio.create_task(self.announce_role(interaction, check_time))
         embed.set_footer(text=f'Взято за {int(check_time.total_seconds() * 1000)} мс.')
@@ -176,7 +179,7 @@ class StartView(nextcord.ui.View):
     async def announce_role(self, interaction: nextcord.Interaction, check_time):
         bot = interaction.client
         await bot.vk.send_message(
-            -1,
+            interaction.guild.id,
             f"Заявление на роль было проверено за {round(check_time.total_seconds() / 60)} минут.\n"
             f"Модератор - {interaction.user.display_name}"
         )

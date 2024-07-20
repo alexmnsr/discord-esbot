@@ -2,3 +2,4 @@ motor==3.3.2
 nextcord==2.6.0
 python-dotenv==1.0.1
 vkbottle~=4.3.12
+loguru~=0.7.2
