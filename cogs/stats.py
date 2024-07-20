@@ -3,7 +3,6 @@ import datetime
 import nextcord
 from nextcord.ext import commands
 
-from cogs.vk_bot.vk import Vkontakte
 from utils.classes.actions import human_actions, moder_actions
 from utils.classes.bot import EsBot
 from utils.neccessary import restricted_command, is_date_valid, date_autocomplete, grant_level
@@ -21,7 +20,6 @@ class Stats(commands.Cog):
         self.bot = bot
         self.handler = bot.db.online_handler
         self.acts_handler = bot.db.actions
-        self.vk = Vkontakte(bot)
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
@@ -50,7 +48,8 @@ class Stats(commands.Cog):
                     embed = nextcord.Embed(title=f'💎 Действия за {date}',
                                            color=nextcord.Color.dark_purple())
                 else:
-                    embed = nextcord.Embed(title=f'💎 Действия модераторов за {date}', color=nextcord.Color.dark_purple())
+                    embed = nextcord.Embed(title=f'💎 Действия модераторов за {date}',
+                                           color=nextcord.Color.dark_purple())
                     for member in guild.members:
                         for role in member.roles:
                             if role in moderator_roles:
@@ -89,7 +88,6 @@ class Stats(commands.Cog):
             return await interaction.send('Неверный формат даты. Формат: dd.mm.YYYY.\n'
                                           'Пример: 07.07.2077', ephemeral=True)
         date = datetime.datetime.strptime(date, '%d.%m.%Y')
-        guild = interaction.guild
         embed = nextcord.Embed(title=f'💎 Активность {moderator.display_name} за {date.strftime("%d.%m.%Y")}',
                                color=nextcord.Color.dark_purple())
 

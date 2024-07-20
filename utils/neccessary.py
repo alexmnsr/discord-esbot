@@ -40,7 +40,7 @@ def restricted_command(access_level: int):
     return wrapper
 
 
-async def copy_message(moderator: nextcord.Member, user: nextcord.Member, message: nextcord.Message,
+async def copy_message(message: nextcord.Message,
                        channel: nextcord.TextChannel, thread: nextcord.Thread, mess: nextcord.Message,
                        message_len: int):
     webhooks = await channel.webhooks()
@@ -101,8 +101,8 @@ def is_counting(channel: nextcord
     if "вопрос" in channel.name.lower() or "общение" in channel.name.lower():
         if channel.user_limit > 2 or not channel.user_limit:
             if (
-                    channel.overwrites_for(channel.guild.default_role).connect != False and
-                    channel.overwrites_for(channel.guild.default_role).view_channel != False
+                    channel.overwrites_for(channel.guild.default_role).connect is not False and
+                    channel.overwrites_for(channel.guild.default_role).view_channel is not False
             ):
                 return True
     return False
@@ -181,7 +181,7 @@ def seconds_to_time(seconds: int) -> str:
     return f"{hours}:{minutes:02d}:{seconds:02d}"
 
 
-async def date_autocomplete(cog, interaction, string):
+async def date_autocomplete(interaction, string):
     date_list = date_range(datetime.datetime.now() - datetime.timedelta(days=365), datetime.datetime.now())
 
     if string:
@@ -277,11 +277,13 @@ async def create_role_mutes(role_name, guild: nextcord.Guild):
 time_pattern = re.compile(r'(\d+)([мдmdч])?')
 
 
-def string_to_seconds(string: str, default_unit='m') -> int:
+def string_to_seconds(string: str, default_unit='m') -> int | None | str:
     if not string:
         return None
+
     if string == '-1':
         return '-1'
+
     time = time_pattern.match(string)
     if not time:
         return None

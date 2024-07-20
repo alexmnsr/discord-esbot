@@ -1,3 +1,6 @@
+import asyncio
+from datetime import datetime
+
 import nextcord
 from nextcord import SelectOption
 
@@ -38,8 +41,9 @@ role_info = {
                                             ["Рядовой", "Сержант", "Старшина", "Прапорщик", "Лейтенант", "Капитан",
                                              "Майор", "Подполковник"]),
     'Министерство Чрезвычайных Ситуаций': RoleInfo(['・Министерство Чрезвычайных Ситуаций', '・МЧС'], 'МЧС | {}',
-                                                   ["Рядовой", "Сержант", "Старшина", "Прапорщик", "Лейтенант", "Капитан",
-                                                   "Майор", "Подполковник"]),
+                                                   ["Рядовой", "Сержант", "Старшина", "Прапорщик", "Лейтенант",
+                                                    "Капитан",
+                                                    "Майор", "Подполковник"]),
     'Федеральная Служба Исполнения Наказаний': RoleInfo(['・Федеральная Служба Исполнения Наказаний', '・ФСИН'],
                                                         'ФСИН | {}',
                                                         ["Охранник", "Конвоир", "Надзиратель", "Инспектор"])
@@ -47,7 +51,7 @@ role_info = {
 
 reasons_dict = {
     "/c 60": ('⏱️', "На скриншоте не видно точного времени."),
-    "12 часов": ('⌛', "Скриншоту больше 12 часов."),
+    "24 часа": ('⌛', "Скриншоту больше 24 часов."),
     "Номер сервера": ('🔢', "На скриншоте не видно номера сервера."),
     "Не в организации": ('👓', "На скриншоте не видно док-в пребывания в указанной организации."),
     "Никнейм": ('📛', "На скриншоте не совпадает никнейм с указанным."),
@@ -157,12 +161,25 @@ class StartView(nextcord.ui.View):
     )
     async def take_request(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         self.stop()
+
         embed = interaction.message.embeds[0]
         embed.title = '📙 Заявление на роль на проверке'
         embed.colour = nextcord.Colour.orange()
-        embed.add_field(name="Модератор", value=user_visual(interaction.user), inline=True)
+        check_time = datetime.now() - interaction.message.created_at
+        if check_time.total_seconds() > 2 * 60 * 60:
+            _ = asyncio.create_task(self.announce_role(interaction, check_time))
+        embed.set_footer(text=f'Взято за {int(check_time.total_seconds() * 1000)} мс.')
+        embed.add_field(name="Модератор", value=user_visual(interaction.user))
         await interaction.message.edit(view=ReviewView(self.roles_handler), embed=embed)
         await interaction.response.defer()
+
+    async def announce_role(self, interaction: nextcord.Interaction, check_time):
+        bot = interaction.client
+        await bot.vk.send_message(
+            -1,
+            f"Заявление на роль было проверено за {round(check_time.total_seconds() / 60)} минут.\n"
+            f"Модератор - {interaction.user.display_name}"
+        )
 
 
 class RoleRequest:
@@ -215,10 +232,10 @@ class RoleRequest:
             title='📘 Заявление на роль',
             color=nextcord.Color.dark_blue(),
         )
-        embed.add_field(name='Никнейм', value=self.nickname, inline=True)
-        embed.add_field(name='Роль', value=self.role_info.find(self.guild.roles).mention, inline=True)
-        embed.add_field(name='Ранг', value=f'{self.rang} [{self.role_info.rang_name(self.rang)}]', inline=True)
-        embed.add_field(name='Пользователь', value=user_visual(self.user), inline=True)
+        embed.add_field(name='Никнейм', value=self.nickname)
+        embed.add_field(name='Роль', value=self.role_info.find(self.guild.roles).mention)
+        embed.add_field(name='Ранг', value=f'{self.rang} [{self.role_info.rang_name(self.rang)}]')
+        embed.add_field(name='Пользователь', value=user_visual(self.user))
         embed.set_thumbnail(self.user.display_avatar.url)
         return embed
 

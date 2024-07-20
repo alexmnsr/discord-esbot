@@ -92,7 +92,8 @@ class Punishments(commands.Cog):
                 embed.add_field(name='Подтвердил', value=interaction.user.mention, inline=False)
 
                 view = nextcord.ui.View()
-                view.add_item(nextcord.ui.Button(label="Подтверждено", style=nextcord.ButtonStyle.green, disabled=True, emoji='✅'))
+                view.add_item(nextcord.ui.Button(label="Подтверждено", style=nextcord.ButtonStyle.green, disabled=True,
+                                                 emoji='✅'))
                 await interaction.response.edit_message(embed=embed, view=view)
 
                 user = nextcord.Object(id=data.get('user_id', 0))
@@ -101,9 +102,11 @@ class Punishments(commands.Cog):
                 jump_url = interaction.message.jump_url
                 if action == 'warn':
                     count_warns = len(await self.handler.database.get_warns(user.id, interaction.guild.id)) + 1
-                    await self.apply_warn(interaction, user, count_warns, data.get('reason'), embed, data.get('moderator_id'), jump_url)
+                    await self.apply_warn(interaction, user, count_warns, data.get('reason'), embed,
+                                          data.get('moderator_id'), jump_url)
                 elif action == 'ban':
-                    await self.apply_ban(interaction, user, data.get('duration'), data.get('reason'), embed, data.get('moderator_id'), jump_url)
+                    await self.apply_ban(interaction, user, data.get('duration'), data.get('reason'), embed,
+                                         data.get('moderator_id'), jump_url)
             elif custom_id.startswith("punish_reject_"):
                 if grant_level(interaction.user.roles, interaction.user) < 4:
                     return await interaction.response.send_message('У вас недостаточно прав.', ephemeral=True)
@@ -165,10 +168,10 @@ class Punishments(commands.Cog):
             return await interaction.send('У пользователя уже есть мут.')
         embed = ((nextcord.Embed(title='Выдача наказания', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
-                 .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
-                 .add_field(name='Модератор', value=interaction.user.display_name, inline=True)
-                 .add_field(name='Причина', value=reason, inline=True)
-                 .add_field(name='Время', value=beautify_seconds(mute_seconds), inline=True)
+                 .add_field(name='Нарушитель', value=f'<@{user.id}>')
+                 .add_field(name='Модератор', value=interaction.user.display_name)
+                 .add_field(name='Причина', value=reason)
+                 .add_field(name='Время', value=beautify_seconds(mute_seconds))
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
 
         if message:
@@ -190,7 +193,7 @@ class Punishments(commands.Cog):
                                            reason=reason,
                                            duration=mute_seconds, jump_url=jump_url)
         if isinstance(message, nextcord.Message):
-            await copy_message(interaction.user, user, message, channel, thread, mess, message_len)
+            await copy_message(message, channel, thread, mess, message_len)
 
     @mute_group.subcommand(name='text', description="Выдать мут пользователю в текстовых каналах.")
     async def mute_text(self, interaction,
@@ -229,14 +232,20 @@ class Punishments(commands.Cog):
 
     @mute_group.subcommand(name='full', description="Выдать полный мут пользователю.")
     @restricted_command(1)
-    async def mute_full(self, interaction,
-                        user: str = nextcord.SlashOption('пользователь',
-                                                         description='Пользователь, которому вы хотите выдать мут.',
-                                                         required=True),
-                        duration: str = nextcord.SlashOption('длительность',
-                                                             description='Длительность мута. Пример: 10м - 10 минут, 5д - 5 дней. Просто 10 - 10 минут.',
-                                                             required=True),
-                        reason: str = nextcord.SlashOption('причина', description='Причина мута.', required=True)):
+    async def mute_full(
+            self,
+            interaction,
+            user: str = nextcord.SlashOption(
+                'пользователь',
+                description='Пользователь, которому вы хотите выдать мут.',
+                required=True
+            ),
+            duration: str = nextcord.SlashOption(
+                'длительность',
+                description='Длительность мута. Пример: 10м - 10 минут, 5д - 5 дней. Просто 10 - 10 минут.',
+                required=True
+            ),
+            reason: str = nextcord.SlashOption('причина', description='Причина мута.', required=True)):
         await self.give_mute(interaction, user, duration, reason, 'Mute » Full')
 
     @nextcord.slash_command(name='unmute', description="Снять мут с пользователя.")
@@ -248,7 +257,8 @@ class Punishments(commands.Cog):
         if not (user := await self.bot.resolve_user(user)):
             return await interaction.send('Пользователь не найден.')
 
-        if not await self.handler.mutes.remove_mute(user.id, interaction.guild.id, role_name, moderator=interaction.user):
+        if not await self.handler.mutes.remove_mute(user.id, interaction.guild.id, role_name,
+                                                    moderator=interaction.user):
             return await interaction.send('У пользователя нет мута.')
 
         embed = nextcord.Embed(
@@ -298,26 +308,30 @@ class Punishments(commands.Cog):
 
         if grant_level(interaction.user.roles, interaction.user) < 2:
             approve_id = await self.handler.approves.add({'user_id': user,
-                                                           'moderator_id': interaction.user.id, 'action': "warn",
-                                                           'guild_id': interaction.guild.id, 'reason': reason})
-            view = self.create_confirmation_view(interaction, approve_id, embed)
+                                                          'moderator_id': interaction.user.id, 'action': "warn",
+                                                          'guild_id': interaction.guild.id, 'reason': reason})
+            view = self.create_confirmation_view(approve_id)
             await interaction.send(embed=embed, view=view)
         else:
-            await self.apply_warn(interaction, resolved_user, count_warns, reason, embed)
+            await self.apply_warn(interaction, resolved_user, count_warns, reason, embed,
+                                  moderator_id=interaction.user.id)
 
-    def create_warn_embed(self, interaction, user, count_warns, reason):
+    @staticmethod
+    def create_warn_embed(interaction, user, count_warns, reason):
         embed = (nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
                  .set_author(name=user.display_name, icon_url=user.display_avatar.url)
-                 .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
-                 .add_field(name='Причина', value=reason, inline=True)
-                 .add_field(name='Модератор', value=f'<@{interaction.user.id}>', inline=True)
-                 .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3", inline=True)
+                 .add_field(name='Нарушитель', value=f'<@{user.id}>')
+                 .add_field(name='Причина', value=reason)
+                 .add_field(name='Модератор', value=f'<@{interaction.user.id}>')
+                 .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3")
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
         return embed
 
-    def create_confirmation_view(self, interaction, approve_id, embed):
+    @staticmethod
+    def create_confirmation_view(approve_id):
         view = View(auto_defer=False)
-        approve = Button(label='Подтвердить', style=nextcord.ButtonStyle.green, custom_id=f'punish_approve_{approve_id}')
+        approve = Button(label='Подтвердить', style=nextcord.ButtonStyle.green,
+                         custom_id=f'punish_approve_{approve_id}')
         reject = Button(label='Отказать', style=nextcord.ButtonStyle.red, custom_id=f'punish_reject_{approve_id}')
 
         view.add_item(approve)
@@ -365,13 +379,14 @@ class Punishments(commands.Cog):
             return await interaction.send('Предупреждение не найдено.')
         embed = ((nextcord.Embed(title='Снятие предупреждения', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
-                 .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
-                 .add_field(name='Выдавал', value=f'<@{warn_data["moderator_id"]}>', inline=True)
-                 .add_field(name='Причина', value=f'{warn_data["reason"]}', inline=True)
+                 .add_field(name='Нарушитель', value=f'<@{user.id}>')
+                 .add_field(name='Выдавал', value=f'<@{warn_data["moderator_id"]}>')
+                 .add_field(name='Причина', value=f'{warn_data["reason"]}')
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f"Модератор: {interaction.user.id}"))
         await interaction.send(embed=embed)
-        await self.handler.database.remove_warn(user_id=user.id, guild_id=interaction.guild.id, moderator_id=interaction.user.id, action_id=action_id)
+        await self.handler.database.remove_warn(user_id=user.id, guild_id=interaction.guild.id,
+                                                moderator_id=interaction.user.id, action_id=action_id)
 
     @nextcord.slash_command(name='ban', description="Заблокировать пользователя на сервере")
     @restricted_command(1)
@@ -404,19 +419,23 @@ class Punishments(commands.Cog):
 
         embed = self.create_ban_embed(interaction, resolved_user, duration_in_seconds, reason)
         if grant_level(interaction.user.roles, interaction.user) <= 3 or interaction.user.id == 479244541858152449:
-            approve_id = await self.handler.approves.add({'user_id': user, 'moderator_id': interaction.user.id, 'action': "ban", 'duration': duration_in_seconds, 'guild_id': interaction.guild.id, 'reason': reason})
-            view = self.create_confirmation_view(interaction, approve_id, embed)
+            approve_id = await self.handler.approves.add(
+                {'user_id': user, 'moderator_id': interaction.user.id, 'action': "ban", 'duration': duration_in_seconds,
+                 'guild_id': interaction.guild.id, 'reason': reason})
+            view = self.create_confirmation_view(approve_id)
             await interaction.send(embed=embed, view=view)
         else:
-            await self.apply_ban(interaction, resolved_user, duration_in_seconds, reason, embed, moderator_id=interaction.user.id)
+            await self.apply_ban(interaction, resolved_user, duration_in_seconds, reason, embed,
+                                 moderator_id=interaction.user.id)
 
-    def create_ban_embed(self, interaction, user, duration, reason):
+    @staticmethod
+    def create_ban_embed(interaction, user, duration, reason):
         embed = (nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
                  .set_author(name=user.display_name, icon_url=user.display_avatar.url)
-                 .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
+                 .add_field(name='Нарушитель', value=f'<@{user.id}>')
                  .add_field(name='Длительность',
-                            value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда', inline=True)
-                 .add_field(name='Причина', value=reason, inline=True)
+                            value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда')
+                 .add_field(name='Причина', value=reason)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f"Модератор: {interaction.user.id}"))
         return embed
@@ -447,7 +466,8 @@ class Punishments(commands.Cog):
         ban = await self.handler.database.get_ban(user_id=user.id, guild_id=interaction.guild.id,
                                                   type_ban='local')
         if ban:
-            await self.handler.database.remove_ban(user_id=user.id, guild_id=interaction.guild.id, moderator_id=interaction.user.id,
+            await self.handler.database.remove_ban(user_id=user.id, guild_id=interaction.guild.id,
+                                                   moderator_id=interaction.user.id,
                                                    type_ban='local')
         else:
             return await interaction.send('Блокировка не найдена', ephemeral=True)
@@ -457,8 +477,8 @@ class Punishments(commands.Cog):
         embed = ((nextcord.Embed(title='Разблокировка пользователя', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
                  .add_field(name='Пользователь', value=f'<@{user.id}>', inline=False)
-                 .add_field(name='Блокировал модератор', value=f'<@{ban["moderator_id"]}>', inline=True)
-                 .add_field(name='Разблокировал:', value=f'<@{interaction.user.id}>', inline=True)
+                 .add_field(name='Блокировал модератор', value=f'<@{ban["moderator_id"]}>')
+                 .add_field(name='Разблокировал:', value=f'<@{interaction.user.id}>')
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f"Action ID: {ban['action_id']}"))
         return await interaction.send(embed=embed)
@@ -480,10 +500,9 @@ class Punishments(commands.Cog):
 
         embed = ((nextcord.Embed(title='Выдача бана на всех серверах', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
-                 .add_field(name='Нарушитель', value=f'<@{user.id}>', inline=True)
-                 .add_field(name='Длительность', value=f'{duration} дней' if duration != -1 else 'Навсегда',
-                            inline=True)
-                 .add_field(name='Причина', value=reason, inline=True)
+                 .add_field(name='Нарушитель', value=f'<@{user.id}>')
+                 .add_field(name='Длительность', value=f'{duration} дней' if duration != -1 else 'Навсегда')
+                 .add_field(name='Причина', value=reason)
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f"Модератор: {interaction.user.id}"))
         mess = await interaction.send(embed=embed)
@@ -508,9 +527,8 @@ class Punishments(commands.Cog):
                   .set_author(name=interaction.user.display_name, icon_url=user.display_avatar.url))
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f'Action ID: {data["_id"]}'))
-        embed.add_field(name='Модератор', value=print_user(user), inline=True)
-        embed.add_field(name='Пользователь', value=print_user(await self.client.fetch_user(data['user_id'])),
-                        inline=True)
+        embed.add_field(name='Модератор', value=print_user(user))
+        embed.add_field(name='Пользователь', value=print_user(await self.client.fetch_user(data['user_id'])))
 
         for k, v in payload_types.items():
             if k in data['payload']:
@@ -518,7 +536,7 @@ class Punishments(commands.Cog):
                 if k == 'duration':
                     s = beautify_seconds(data['payload'][k]) if data['payload'][k] != -1 else 'Навсегда'
 
-                embed.add_field(name=v, value=s, inline=True)
+                embed.add_field(name=v, value=s)
 
         return await interaction.send(embed=embed)
 
@@ -538,9 +556,10 @@ class Punishments(commands.Cog):
         if server == 'Только этот':
             server = interaction.guild.id
             punishments_list = await self.handler.database.actions.get_punishments(user_id=user.id, guild_id=server,
-                                                                       type_punishment=type_punishment)
+                                                                                   type_punishment=type_punishment)
         else:
-            punishments_list = await self.handler.database.actions.get_punishments(user_id=user.id, type_punishment=type_punishment)
+            punishments_list = await self.handler.database.actions.get_punishments(user_id=user.id,
+                                                                                   type_punishment=type_punishment)
         punishments_list.reverse()
 
         if len(punishments_list) == 0:

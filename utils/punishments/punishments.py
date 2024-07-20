@@ -91,7 +91,8 @@ class MuteHandler:
     async def remove_mute(self, user_id, guild_id, role_name, moderator):
         get, give, remove = self.mute_info(role_name)
 
-        if not (mute := await get(user_id=user_id, guild_id=guild_id)) or not await remove(user_id, guild_id, moderator_id=moderator.id):
+        if not (mute := await get(user_id=user_id, guild_id=guild_id)) or not await remove(user_id, guild_id,
+                                                                                           moderator_id=moderator.id):
             return False
         if role_name == 'Mute » Full':
             role_name = ['Mute » Text', 'Mute » Voice']

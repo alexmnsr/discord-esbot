@@ -6,7 +6,6 @@ from nextcord.ext import commands
 
 from utils.classes.bot import EsBot
 from utils.neccessary import is_date_valid, date_autocomplete, restricted_command
-from cogs.vk_bot.vk import Vkontakte
 
 
 class Online(commands.Cog):

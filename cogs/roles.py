@@ -37,7 +37,7 @@ class Roles(commands.Cog):
         options = {f'[{v}] {k}': v for v, k in enumerated_rangs}
         await interaction.response.send_autocomplete(options)
 
-    @nextcord.slash_command(name='role', description='Подать заявление на роль.')  #
+    @nextcord.slash_command(name='role', description='Подать заявление на роль.')
     async def request_role(self, interaction: nextcord.Interaction,
                            nickname: str = nextcord.SlashOption(name='никнейм',
                                                                 max_length=32,

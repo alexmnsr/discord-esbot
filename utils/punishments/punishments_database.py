@@ -2,11 +2,12 @@ import datetime
 
 from motor import motor_asyncio
 
-from utils.classes.actions import ActionType, moder_actions
+from utils.classes.actions import ActionType
 
 
 class PunishmentsDatabase:
     def __init__(self, client, global_db, db: motor_asyncio.AsyncIOMotorDatabase):
+        self.client = client
         self.db = db
         self.mutes = self.db['mutes']
         self.bans = self.db['bans']
@@ -125,13 +126,13 @@ class PunishmentsDatabase:
             'type': mute_type.name.split('_')[1].lower()
         })).deleted_count == 1
 
-    async def remove_text_mute(self, user_id, guild_id, moderator_id):
+    async def remove_text_mute(self, user_id, guild_id, moderator_id=0):
         return await self.remove_mute(user_id, guild_id, ActionType.MUTE_TEXT, moderator_id=moderator_id)
 
-    async def remove_voice_mute(self, user_id, guild_id, moderator_id):
+    async def remove_voice_mute(self, user_id, guild_id, moderator_id=0):
         return await self.remove_mute(user_id, guild_id, ActionType.MUTE_VOICE, moderator_id=moderator_id)
 
-    async def remove_full_mute(self, user_id, guild_id, moderator_id):
+    async def remove_full_mute(self, user_id, guild_id, moderator_id=0):
         return await self.remove_mute(user_id, guild_id, ActionType.MUTE_FULL, moderator_id=moderator_id)
 
     async def give_warn(self, user_id, guild_id, moderator_id, reason, warn_type, *, jump_url):

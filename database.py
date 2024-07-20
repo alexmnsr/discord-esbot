@@ -1,13 +1,12 @@
 import os
 
+from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from utils.classes.actions import Actions
 from utils.online.online import OnlineHandler
 from utils.punishments.punishments import PunishmentsHandler
 from utils.roles.roles import RolesHandler
-
-from dotenv import load_dotenv
 
 load_dotenv()
 
