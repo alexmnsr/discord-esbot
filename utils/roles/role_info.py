@@ -180,6 +180,7 @@ class StartView(nextcord.ui.View):
         bot = interaction.client
         await bot.vk.send_message(
             interaction.guild.id,
+            f"#test EsBot \n"
             f"Заявление на роль было проверено за {round(check_time.total_seconds() / 60)} минут.\n"
             f"Модератор - {interaction.user.display_name}"
         )
