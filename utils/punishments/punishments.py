@@ -122,14 +122,14 @@ class WarnHandler:
         self.database = handler.database
 
     async def give_warn(self, type_warn, *, user, guild, moderator, reason, jump_url):
-        action_id = await self.database.give_warn(user_id=user.id, guild_id=guild.id, moderator_id=moderator.id,
+        action_id = await self.database.give_warn(user_id=user.id, guild_id=guild.id, moderator_id=moderator,
                                                   reason=reason, warn_type=type_warn, jump_url=jump_url)
         if not action_id:
             return
 
         embed = nextcord.Embed(
             title=f'Вам выдано предупреждение на сервере {guild.name}.',
-            description=f'Причина: {reason}\nВыдал модератор: <@{moderator.id}>',
+            description=f'Причина: {reason}\nВыдал модератор: <@{moderator}>',
             color=0xFF0000
         )
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
@@ -140,7 +140,7 @@ class WarnHandler:
         log_embed = nextcord.Embed(
             title=f'Выдача предупреждения на сервере {guild.name}',
             color=0xFF0000)
-        log_embed.add_field(name='Модератор', value=moderator.mention)
+        log_embed.add_field(name='Модератор', value=f'<@{moderator}>')
         log_embed.add_field(name='Причина', value=reason)
         log_embed.add_field(name='Ссылка на сообщение', value=jump_url)
         log_embed.set_footer(text=f'ID: {user.id}')
@@ -155,7 +155,7 @@ class BanHandler:
         self.database = handler.database
 
     async def give_ban(self, type_ban, *, user, guild, moderator, reason, duration, jump_url):
-        action_id = await self.database.give_ban(user_id=user.id, guild_id=guild.id, moderator_id=moderator.id,
+        action_id = await self.database.give_ban(user_id=user.id, guild_id=guild.id, moderator_id=moderator,
                                                  reason=reason,
                                                  duration=duration, ban_type=type_ban, jump_url=jump_url)
         if not action_id:
@@ -174,7 +174,7 @@ class BanHandler:
         log_embed = nextcord.Embed(
             title=f'Выдача {f"блокировки на сервере {guild.name}" if type_ban != ActionType.BAN_GLOBAL else "глобальной блокировки."}',
             color=0xFF0000)
-        log_embed.add_field(name='Модератор', value=moderator.mention)
+        log_embed.add_field(name='Модератор', value=f'<@{moderator}>')
         log_embed.add_field(name='Причина', value=reason)
         log_embed.add_field(name='Время истечения',
                             value=f'{"Никогда" if duration == "-1" else f"<t:{int((datetime.datetime.now() + datetime.timedelta(seconds=int(duration))).timestamp())}:R>"}')

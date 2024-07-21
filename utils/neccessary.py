@@ -181,7 +181,7 @@ def seconds_to_time(seconds: int) -> str:
     return f"{hours}:{minutes:02d}:{seconds:02d}"
 
 
-async def date_autocomplete(interaction, string):
+async def date_autocomplete(cog, interaction, string):
     date_list = date_range(datetime.datetime.now() - datetime.timedelta(days=365), datetime.datetime.now())
 
     if string:
