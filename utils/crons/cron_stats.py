@@ -23,7 +23,7 @@ class CRON_Stats:
         msk_tz = pytz.timezone('Europe/Moscow')
         now = datetime.datetime.now(msk_tz)
         reports = [
-            ('день', 20, 56, '*', '*', None),
+            ('день', 23, 59, '*', '*', None),
             ('неделя', 23, 59, 'sun', '*', None),
             ('месяц', 23, 59, '*', f'{(now.replace(day=1) + relativedelta(months=1, days=-1)).day}',
              datetime.datetime.now().month)
