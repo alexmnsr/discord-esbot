@@ -160,6 +160,8 @@ class Punishments(commands.Cog):
         if isinstance(user, nextcord.Member) and interaction.user.top_role <= user.top_role:
             return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
+        await interaction.response.defer()
+
         mute_seconds = string_to_seconds(duration)
         if not mute_seconds:
             return await interaction.send('Неверный формат длительности мута.')
@@ -176,7 +178,7 @@ class Punishments(commands.Cog):
 
         if message:
             channel = [c for c in message.guild.text_channels if 'выдача-наказаний' in c.name][0]
-            await interaction.send(embed=embed, ephemeral=True)
+            await interaction.followup.send(embed=embed, ephemeral=True)
             if isinstance(message, nextcord.Message):
                 mess = await channel.send(embed=embed)
                 thread = await mess.create_thread(name='📸 Скриншот чата', auto_archive_duration=60)
@@ -185,7 +187,7 @@ class Punishments(commands.Cog):
                 mess = await channel.send(embed=embed)
                 jump_url = mess.jump_url
         else:
-            mess = await interaction.send(embed=embed)
+            mess = await interaction.followup.send(embed=embed)
             jump_url = (await mess.fetch()).jump_url
 
         await self.handler.mutes.give_mute(role_name, user=user, guild=interaction.guild,

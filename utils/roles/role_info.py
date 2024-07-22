@@ -62,7 +62,6 @@ reasons_dict = {
 def find_role(role_name):
     for key, info in role_info.items():
         if role_name in info.role_names:
-            print(f'{role_name} in {info.role_names}')
             return info
     return None
 
@@ -72,60 +71,70 @@ class ReviewView(nextcord.ui.View):
         super().__init__(timeout=None)
         self.roles_handler = roles_handler
 
-    async def reject_process(self, interaction, value):
+    async def reject_process(self, interaction, values):
         await interaction.response.defer()
 
-        reason = reasons_dict.get(value, value)
-        if not isinstance(reason, tuple):
-            reason = ('', reason)
+        reasons = []
+        for value in values:
+            if value in reasons_dict:
+                reasons.append(reasons_dict.get(value))
+            else:
+                reasons.append(('❔', value))  # Использовать эмодзи по умолчанию для пользовательских причин
 
-        emoji, reason = reason
+        reasons_text = "\n".join([f"{emoji} {reason}" for emoji, reason in reasons])
 
         embed = interaction.message.embeds[0]
         embed.colour = nextcord.Colour.dark_red()
         embed.title = "📕 Отказанный запрос на роль"
-        embed.add_field(name=f'Причина отказа {emoji}', value=reason, inline=False)
+        embed.add_field(name='Причины отказа', value=reasons_text, inline=False)
 
         request = await RoleRequest.from_message(interaction.message)
         user, guild = RoleRequest.parse_info(interaction.message)
         await interaction.edit_original_message(embed=embed, view=None)
         if request:
-            await request.reject(emoji, reason, user_text(interaction.user))
+            await request.reject(reasons_text, user_text(interaction.user))
         await self.roles_handler.remove_request(user, guild, interaction.user.id, False)
 
     @nextcord.ui.string_select(
-        placeholder="Отказать за...", custom_id="role_request:reject", options=[
-                                                                                   SelectOption(label=key,
-                                                                                                description=value[1],
-                                                                                                emoji=value[0],
-                                                                                                value=key) for
-                                                                                   key, value in reasons_dict.items()
-                                                                               ] + [SelectOption(label="Другая причина",
-                                                                                                 value="own", emoji='❔',
-                                                                                                 description="Откроет меню для ввода вашей причины.")]
+        placeholder="Отказать за...",
+        custom_id="role_request:reject",
+        options=[
+                    SelectOption(
+                        label=key,
+                        description=value[1],
+                        emoji=value[0],
+                        value=key
+                    ) for key, value in reasons_dict.items()
+                ] + [SelectOption(
+            label="Другая причина",
+            value="own",
+            emoji='❔',
+            description="Откроет меню для ввода вашей причины."
+        )],
+        max_values=len(reasons_dict)
     )
     async def reject(self, select: nextcord.ui.Select, interaction: nextcord.Interaction):
         moderator_id = nextcord.utils.parse_raw_mentions(interaction.message.embeds[0].fields[-1].value)[0]
         if moderator_id != interaction.user.id:
             return await interaction.send("Извините, но запросом занимается другой модератор.", ephemeral=True)
-        value = select.values[0]
-        if value != 'own':
-            self.stop()
-            await self.reject_process(interaction, value)
-        else:
+
+        values = select.values
+        if "own" in values:
             modal = nextcord.ui.Modal("Отказ роли")
             reason = nextcord.ui.TextInput("Причина")
 
             async def reject_callback(modal_interaction):
                 nonlocal reason
-                reason = reason.value
-                await self.reject_process(modal_interaction, reason)
+                values.append(reason.value)
+                values.remove('own')
+                await self.reject_process(modal_interaction, values)
 
             modal.add_item(reason)
-
             modal.callback = reject_callback
-
             await interaction.response.send_modal(modal)
+        else:
+            self.stop()
+            await self.reject_process(interaction, values)
 
     @nextcord.ui.button(
         label="Одобрить", style=nextcord.ButtonStyle.green, emoji='✅', custom_id="role_request:approve"
@@ -267,9 +276,9 @@ class RoleRequest:
         embed.add_field(name='🧑‍💼 Модератор', value=moderator, inline=False)
         await send_embed(self.user, embed)
 
-    async def reject(self, emoji, reason, moderator):
+    async def reject(self, reason, moderator):
         embed = nextcord.Embed(title="📕 Ваше заявление на роль отказано.", colour=nextcord.Colour.dark_red())
         embed.set_author(name=self.guild.name, icon_url=self.guild.icon.url)
-        embed.add_field(name=f'{emoji} Причина', value=reason)
+        embed.add_field(name=f'', value=reason)
         embed.add_field(name='🧑‍💼 Модератор', value=moderator, inline=False)
         await send_embed(self.user, embed)
