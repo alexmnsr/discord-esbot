@@ -4,3 +4,6 @@ python-dotenv==1.0.1
 vkbottle~=4.3.12
 loguru~=0.7.2
 psutil~=5.9.8
+pytz~=2024.1
+APScheduler~=3.10.4
+python-dateutil~=2.9.0.post0
