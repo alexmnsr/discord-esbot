@@ -50,10 +50,13 @@ jobs:
               mkdir -p "$PROJECT_DIR"
             fi
             cd "$PROJECT_DIR"
-            echo "$PROJECT_DIR"
             git pull origin main
+
             docker-compose down
-            docker rm -f discord-esbot  # Принудительно удаляем существующий контейнер
-            docker-compose rm -f  # Удаляем все остановленные контейнеры
+            docker rm -f discord-esbot || true
+
+            docker images -q --filter "dangling=true" | xargs -r docker rmi -f
+
             docker-compose pull
-            docker-compose up -d
+            docker-compose up -d --build --force-recreate
+  

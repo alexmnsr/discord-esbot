@@ -1,11 +1,11 @@
 services:
   app:
-    build: .
+    image: alexmnsr/discord-esbot:latest  # Используйте правильный тег
     container_name: discord-esbot
     volumes:
       - .:/discord-esbot
     ports:
-      - "8000:8000"  # Обновите порт, если ваше приложение использует другой порт
+      - "8000:8000"
     depends_on:
       - mongo
 
