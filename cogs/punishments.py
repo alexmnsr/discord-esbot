@@ -168,27 +168,29 @@ class Punishments(commands.Cog):
         get, give, remove = self.handler.mutes.mute_info(role_name)
         if await get(user_id=user.id, guild_id=interaction.guild.id):
             return await interaction.send('У пользователя уже есть мут.')
-        embed = ((nextcord.Embed(title='Выдача наказания', color=nextcord.Color.red())
-                  .set_author(name=user.display_name, icon_url=user.display_avatar.url))
-                 .add_field(name='Нарушитель', value=f'<@{user.id}>')
-                 .add_field(name='Модератор', value=interaction.user.display_name)
-                 .add_field(name='Причина', value=reason)
-                 .add_field(name='Время', value=beautify_seconds(mute_seconds))
-                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
+        embed = (nextcord.Embed(title='Выдача наказания', color=nextcord.Color.red())
+                 .set_author(name=user.display_name, icon_url=user.display_avatar.url))
+        embed.add_field(name='Нарушитель', value=f'<@{user.id}>')
+        embed.add_field(name='Модератор', value=interaction.user.display_name)
+        embed.add_field(name='Причина', value=reason)
+        embed.add_field(name='Время', value=beautify_seconds(mute_seconds))
+        embed.set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
 
         if message:
             channel = [c for c in message.guild.text_channels if 'выдача-наказаний' in c.name][0]
             await interaction.send(embed=embed, ephemeral=True)
-            if isinstance(message, nextcord.Message):
-                mess = await channel.send(embed=embed)
+            mess = await channel.send(embed=embed)
+            if isinstance(mess, nextcord.Message):
+                jump_url = mess.jump_url
                 thread = await mess.create_thread(name='📸 Скриншот чата', auto_archive_duration=60)
-                jump_url = mess.jump_url
             else:
-                mess = await channel.send(embed=embed)
-                jump_url = mess.jump_url
+                jump_url = "No jump URL available"
         else:
             mess = await interaction.send(embed=embed)
-            jump_url = (await mess.fetch()).jump_url
+            if isinstance(mess, nextcord.Message):
+                jump_url = mess.jump_url
+            else:
+                jump_url = "No jump URL available"
 
         await self.handler.mutes.give_mute(role_name, user=user, guild=interaction.guild,
                                            moderator=interaction.user,
