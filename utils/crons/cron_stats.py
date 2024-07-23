@@ -170,8 +170,8 @@ class CRON_Stats:
         max_online = datetime.timedelta()
         max_online_moderator = None
 
-        max_role_approve = 0
-        max_role_approve_moderator = None
+        max_role = 0
+        max_role_moderator = None
 
         for moderator_id, stats in moderator_stats.items():
             total_online_td = stats['total_online']
@@ -187,9 +187,11 @@ class CRON_Stats:
                     max_online_moderator = moderator_id
 
             role_approve = stats['actions'].get('role_approve', 0)
-            if role_approve > max_role_approve:
-                max_role_approve = role_approve
-                max_role_approve_moderator = moderator_id
+            role_reject = stats['actions'].get('role_reject', 0)
+            if role_approve > max_role:
+                max_role = role_approve + role_reject / 2
+                max_role_moderator = moderator_id
+
         def calculate_online_points(online_time):
             if online_time >= datetime.timedelta(hours=20):
                 return 4
@@ -207,12 +209,16 @@ class CRON_Stats:
             points = calculate_online_points(total_online_td)
             if points != 0:
                 embed.add_field(name=f"Онлайн",
-                                value=f"Модератор: {channel.guild.get_member(moderator_id).mention}\nOnline: {total_online_td}\nПоинты: {points} поинтов\n", inline=False)
+                                value=f"Модератор: {channel.guild.get_member(moderator_id).mention}\nOnline: {total_online_td}\nПоинты: {points} поинтов\n",
+                                inline=False)
 
-        embed.add_field(name=f"Самый большой онлайн [SMD]",
-                        value=f"Модератор: {channel.guild.get_member(max_online_st_moderator_id).mention}\nOnline: {max_online_st_moderator}\nПоинты: 1 поинтов", inline=True) if max_online_st_moderator_id is not None else print('Нет модератора')
-        embed.add_field(name=f"Самый большой онлайн [MD]",
-                        value=f"Модератор: {channel.guild.get_member(max_online_moderator).mention}\nOnline: {max_online}\nПоинты: 1 Поинты", inline=True) if max_online_moderator is not None else print('Нет модератора')
-        embed.add_field(name=f"Самое большое кол-во одобренных ролей",
-                        value=f"Модератор: {channel.guild.get_member(max_role_approve_moderator).mention}\nПоинты: 1 поинт", inline=False)
+        embed.add_field(name=f"Лучший по онлайну [SMD]",
+                        value=f"Модератор: {channel.guild.get_member(max_online_st_moderator_id).mention}\nOnline: {max_online_st_moderator}\nПоинты: 1 поинтов",
+                        inline=True) if max_online_st_moderator_id is not None else print('Нет модератора')
+        embed.add_field(name=f"Лучший по онлайну [MD]",
+                        value=f"Модератор: {channel.guild.get_member(max_online_moderator).mention}\nOnline: {max_online}\nПоинты: 1 Поинты",
+                        inline=True) if max_online_moderator is not None else print('Нет модератора')
+        embed.add_field(name=f"Роли",
+                        value=f"Модератор: {channel.guild.get_member(max_role_moderator).mention}\nПоинты: 1 поинт",
+                        inline=False)
         await channel.send(embed=embed)

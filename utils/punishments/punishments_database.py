@@ -98,6 +98,7 @@ class PunishmentsDatabase:
         })
         return action_id
 
+
     async def give_text_mute(self, user_id, guild_id, moderator_id, reason, duration, jump_url):
         return await self.give_mute(user_id, guild_id, moderator_id, reason, duration, ActionType.MUTE_TEXT,
                                     jump_url=jump_url)

@@ -5,7 +5,8 @@ from datetime import timedelta
 import nextcord
 
 from utils.classes.actions import ActionType
-from utils.neccessary import remove_role, send_embed, add_role, user_visual, user_text, mute_name, beautify_seconds
+from utils.neccessary import remove_role, send_embed, add_role, user_visual, user_text, mute_name, beautify_seconds, \
+    remove_temp_role
 from utils.punishments.punishments_database import PunishmentsDatabase
 
 
@@ -28,6 +29,21 @@ class MuteHandler:
     async def user_muted(self, user_id, guild_id):
         return await self.database.get_mutes(user_id, guild_id)
 
+    async def give_temp_mute(self, user, guild, moderator, reason, duration):
+        guild, member = await add_role(self.client, user, guild, 'Temp_Mute » Full')
+
+        if not guild:
+            return
+
+        embed = nextcord.Embed(
+            title=f'Вам выдан временный мут.',
+            description=f'Причина: {reason} (До уточнения информации)\nВремя истечения: <t:{int((datetime.datetime.now() + datetime.timedelta(seconds=duration)).timestamp())}:R>\nВыдал модератор: <@{moderator.id}>',
+            color=0xFF0000
+        )
+        embed.set_author(name=guild.name, icon_url=guild.icon.url)
+        await send_embed(member, embed)
+        self.client.loop.create_task(self.wait_mute(None, duration, 'Temp_Mute » Full', member))
+
     async def give_mute(self, role_name, *, user, guild, moderator, reason, duration, jump_url):
         get, give, remove = self.mute_info(role_name)
         user_id = user.id
@@ -37,7 +53,7 @@ class MuteHandler:
             return
         if role_name == 'Mute » Full':
             role_name = ['Mute » Text', 'Mute » Voice']
-        guild, member = await add_role(self.client, user_id, guild.id, action_id, role_name)
+        guild, member = await add_role(self.client, user_id, guild.id, role_name, action_id)
         if not guild:
             return
 
@@ -63,10 +79,12 @@ class MuteHandler:
         log_embed.set_footer(text=f'ID: {member.id}')
         await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
 
-        self.client.loop.create_task(self.wait_mute(action_id, duration, role_name))
+        self.client.loop.create_task(self.wait_mute(action_id, duration, role_name, member))
 
-    async def wait_mute(self, action_id, seconds, role_name):
+    async def wait_mute(self, action_id, seconds, role_name, member: nextcord.Member):
         await asyncio.sleep(seconds)
+        if action_id is None:
+            await remove_temp_role(member=member)
         get, give, remove = self.mute_info(role_name)
         mute = await get(action_id=action_id)
         if not mute:
@@ -286,7 +304,7 @@ class PunishmentsHandler:
             self.client.loop.create_task(self.mutes.wait_mute(mute['action_id'],
                                                               ((mute['given_at'] + datetime.timedelta(seconds=mute[
                                                                   'duration'])) - datetime.datetime.now()).total_seconds(),
-                                                              role_name))
+                                                              role_name, member=None))
         for ban in current_bans:
             if ban['duration'] == '-1':
                 continue

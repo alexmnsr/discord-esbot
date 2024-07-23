@@ -132,6 +132,15 @@ class Roles(commands.Cog):
 
         await interaction.send(f'Роль {roles[0].mention} была снята.', ephemeral=True)
 
+    @nextcord.user_command('Удалить заявку на выдачу роли')
+    @restricted_command(2)
+    async def remove_role_database(self, interaction: nextcord.Interaction):
+        try:
+            await self.handler.remove_request(interaction.user, interaction.guild, None, None, False)
+            await interaction.send(f'Заявка пользователя на роль была удалена', ephemeral=True)
+        except:
+            await interaction.send(f'Не нашел заявки на роль', ephemeral=True)
+
 
 def setup(bot: EsBot) -> None:
     bot.add_cog(Roles(bot))

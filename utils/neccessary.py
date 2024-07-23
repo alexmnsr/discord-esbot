@@ -194,6 +194,13 @@ async def date_autocomplete(cog, interaction, string):
     await interaction.response.send_autocomplete(date_list)
 
 
+async def remove_temp_role(member: nextcord.Member = None, role_name='Temp_Mute » Full'):
+    member = await member.guild.fetch_member(member.id)
+    for role in member.roles:
+        if role.name == role_name if not isinstance(role_name, list) else role.name in role_name:
+            await member.remove_roles(role, reason=f'Снятие временного наказания (Temp_Mute).')
+
+
 async def remove_role(client, member_id, guild_id, action_id, role_name):
     guild = client.get_guild(guild_id)
     if not guild:
@@ -213,7 +220,7 @@ async def remove_role(client, member_id, guild_id, action_id, role_name):
     return guild, member
 
 
-async def add_role(client, member_id, guild_id, action_id, role_name):
+async def add_role(client, member_id, guild_id, role_name, action_id='Temp_Mute'):
     guild = client.get_guild(guild_id)
     if not guild:
         return False, False
@@ -224,10 +231,10 @@ async def add_role(client, member_id, guild_id, action_id, role_name):
         member = None
     if not member:
         return guild, await client.fetch_user(member_id)
-
     for role in guild.roles:
         if role.name == role_name if not isinstance(role_name, list) else role.name in role_name:
-            await member.add_roles(role, reason=f'Action ID: {action_id}.')
+            await member.add_roles(role,
+                                   reason=f'Action ID: {action_id}.' if action_id is int else 'Временная блокировка (до выяснений)')
 
     return guild, member
 
@@ -254,24 +261,39 @@ async def send_embed(member, embed):
         pass
 
 
-async def checking_presence(bot):
-    for guild in bot.guilds:
-        mute_text_role = nextcord.utils.get(guild.roles, name='Mute » Text')
-        mute_voice_role = nextcord.utils.get(guild.roles, name='Mute » Voice')
-        if not mute_text_role:
-            await create_role_mutes('Mute » Text', guild)
-        if not mute_voice_role:
-            await create_role_mutes('Mute » Voice', guild)
-
-
 async def create_role_mutes(role_name, guild: nextcord.Guild):
-    permissions_kwargs = {'send_messages' if 'Text' in role_name else 'speak': False}
+    if role_name == 'Temp_Mute » Full':
+        permissions_kwargs = {'send_messages': False, 'speak': False}
+    elif 'Mute » Text' in role_name:
+        permissions_kwargs = {'send_messages': False}
+    elif 'Mute » Voice' in role_name:
+        permissions_kwargs = {'speak': False}
+    else:
+        permissions_kwargs = {}
 
     role = await guild.create_role(
         name=role_name, permissions=nextcord.Permissions(**permissions_kwargs), color=nextcord.Color.light_grey()
     )
+
     for channel in guild.channels:
-        await channel.set_permissions(role, reason='Создание ролей Mutes', **permissions_kwargs)
+        if 'правила' in channel.name:
+            await channel.set_permissions(role, reason='Создание ролей Mutes', read_messages=True, send_messages=False)
+        else:
+            await channel.set_permissions(role, reason='Создание ролей Mutes', read_messages=False,
+                                          **permissions_kwargs)
+
+
+async def checking_presence(bot):
+    for guild in bot.guilds:
+        mute_text_role = nextcord.utils.get(guild.roles, name='Mute » Text')
+        mute_voice_role = nextcord.utils.get(guild.roles, name='Mute » Voice')
+        mute_temp_role = nextcord.utils.get(guild.roles, name='Temp_Mute » Full')
+        if not mute_temp_role:
+            await create_role_mutes('Temp_Mute » Full', guild)
+        if not mute_text_role:
+            await create_role_mutes('Mute » Text', guild)
+        if not mute_voice_role:
+            await create_role_mutes('Mute » Voice', guild)
 
 
 time_pattern = re.compile(r'(\d+)([мдmdч])?')
