@@ -138,7 +138,7 @@ class Stats(commands.Cog):
         embed = nextcord.Embed(title=f'💎 Активность {moderator.display_name} за {date.strftime("%d.%m.%Y")}',
                                color=nextcord.Color.dark_purple())
 
-        punishments = await self.acts_handler.moderator_actions(date, moderator.id)
+        punishments = await self.acts_handler.moderator_actions(date, moderator.id, guild=interaction.guild.id)
         acts = {}
         for p in punishments:
             acts[p['action_type']] = acts.get(p['action_type'], 0) + 1
