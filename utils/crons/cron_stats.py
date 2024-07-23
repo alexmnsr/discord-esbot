@@ -31,7 +31,7 @@ class CRON_Stats:
             trigger = CronTrigger(hour=hour, minute=minute, day_of_week=day_of_week, day=day, month=month,
                                   timezone=msk_tz)
             self.scheduler.add_job(self.send_report, trigger, args=[period])
-            # self.scheduler.add_job(self.send_stats_bond, trigger, args=[period])
+            self.scheduler.add_job(self.send_stats_bond, trigger, args=[period])
 
     async def send_report(self, period):
         for guild in self.bot.guilds:
