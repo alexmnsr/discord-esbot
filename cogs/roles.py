@@ -84,7 +84,7 @@ class Roles(commands.Cog):
                               statistics_hassle)
         if request.already_roled:
             await interaction.user.edit(nick=request.must_nick)
-            await self.handler.remove_request(interaction.user, interaction.guild, None, None)
+            await self.handler.remove_request(interaction.user, interaction.guild, None, None, False)
             return await message.edit('Ваш ранг изменён.')
 
         embed = nextcord.Embed(
