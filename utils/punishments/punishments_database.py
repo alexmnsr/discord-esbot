@@ -135,7 +135,18 @@ class PunishmentsDatabase:
     async def remove_full_mute(self, user_id, guild_id, moderator_id=0):
         return await self.remove_mute(user_id, guild_id, ActionType.MUTE_FULL, moderator_id=moderator_id)
 
-    async def give_warn(self, user_id, guild_id, moderator_id, reason, warn_type, *, jump_url):
+    async def give_warn(self, user_id, guild_id, moderator_id, reason, warn_type, approve_moderator=None, *, jump_url):
+        if approve_moderator is not None:
+            await self.actions.add_action(
+                user_id=user_id,
+                guild_id=guild_id,
+                moderator_id=moderator_id,
+                action_type=ActionType.APPROVE_WARN,
+                payload={
+                    'jump_url': jump_url,
+                    'approve_moderator': approve_moderator
+                }
+            )
         action_id = await self.actions.add_action(
             user_id=user_id,
             guild_id=guild_id,
@@ -184,7 +195,19 @@ class PunishmentsDatabase:
             'guild_id': guild_id
         })
 
-    async def give_ban(self, user_id, guild_id, moderator_id, reason, duration, ban_type, *, jump_url):
+    async def give_ban(self, user_id, guild_id, moderator_id, reason, duration, ban_type, *, approve_moderator=None,
+                       jump_url):
+        if approve_moderator is not None:
+            await self.actions.add_action(
+                user_id=user_id,
+                guild_id=guild_id,
+                moderator_id=moderator_id,
+                action_type=ActionType.APPROVE_BAN,
+                payload={
+                    'jump_url': jump_url,
+                    'approve_moderator': approve_moderator
+                }
+            )
         action_id = await self.actions.add_action(
             user_id=user_id,
             guild_id=guild_id,

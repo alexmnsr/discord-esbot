@@ -121,9 +121,14 @@ class WarnHandler:
         self.client = handler.client
         self.database = handler.database
 
-    async def give_warn(self, type_warn, *, user, guild, moderator, reason, jump_url):
-        action_id = await self.database.give_warn(user_id=user.id, guild_id=guild.id, moderator_id=moderator,
-                                                  reason=reason, warn_type=type_warn, jump_url=jump_url)
+    async def give_warn(self, type_warn, *, user, guild, moderator, reason, approve_moderator=None, jump_url):
+        action_id = await self.database.give_warn(user_id=user.id,
+                                                  guild_id=guild.id,
+                                                  moderator_id=moderator,
+                                                  reason=reason,
+                                                  warn_type=type_warn,
+                                                  approve_moderator=approve_moderator,
+                                                  jump_url=jump_url)
         if not action_id:
             return
 
@@ -154,10 +159,15 @@ class BanHandler:
         self.client = handler.client
         self.database = handler.database
 
-    async def give_ban(self, type_ban, *, user, guild, moderator, reason, duration, jump_url):
-        action_id = await self.database.give_ban(user_id=user.id, guild_id=guild.id, moderator_id=moderator,
+    async def give_ban(self, type_ban, *, user, guild, moderator, reason, duration, approve_moderator=None, jump_url):
+        action_id = await self.database.give_ban(user_id=user.id,
+                                                 guild_id=guild.id,
+                                                 moderator_id=moderator,
                                                  reason=reason,
-                                                 duration=duration, ban_type=type_ban, jump_url=jump_url)
+                                                 duration=duration,
+                                                 ban_type=type_ban,
+                                                 approve_moderator=approve_moderator,
+                                                 jump_url=jump_url)
         if not action_id:
             return
 

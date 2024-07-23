@@ -100,7 +100,7 @@ class Stats(commands.Cog):
                                                                minutes=int(info.total_time.split(':')[1]),
                                                                seconds=int(info.total_time.split(':')[2]))
 
-                            punishments = await self.acts_handler.moderator_actions(current_date, id_moderator)
+                            punishments = await self.acts_handler.moderator_actions(current_date, id_moderator, guild.id)
                             for p in punishments:
                                 acts_summary[p['action_type']] = acts_summary.get(p['action_type'], 0) + 1
 

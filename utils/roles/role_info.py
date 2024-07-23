@@ -4,7 +4,7 @@ from datetime import datetime
 import nextcord
 from nextcord import SelectOption
 
-from utils.neccessary import user_visual, send_embed, user_text
+from utils.neccessary import user_visual, send_embed, user_text, grant_level
 
 
 class RoleInfo:
@@ -67,6 +67,47 @@ def find_role(role_name):
     return None
 
 
+class CancelView(nextcord.ui.View):
+    def __init__(self, roles_handler):
+        super().__init__(timeout=None)
+        self.roles_handler = roles_handler
+
+    @nextcord.ui.button(
+        label="Отменить (GMD | DS)", style=nextcord.ButtonStyle.red, emoji='📕', custom_id="role_request:cancel"
+    )
+    async def cancel(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        fields = interaction.message.embeds[0].fields
+        moderator_id = None
+        for field in fields:
+            if field.name == 'Модератор':
+                moderator_id = field.value
+                break
+        moderator_id = moderator_id[moderator_id.find('<@') + 2:moderator_id.find('>', moderator_id.find('<@') + 2)]
+        if grant_level(interaction.user.roles, interaction.user) < 4:
+            return await interaction.send("Вы не можете использовать это", ephemeral=True)
+        self.stop()
+
+        await interaction.response.defer()
+
+        request = await RoleRequest.from_message(interaction.message)
+        user, guild = RoleRequest.parse_info(interaction.message)
+
+        if request:
+            if '📗 Одобренный запрос на роль' == interaction.message.embeds[0].title:
+                await request.cancel_approve(user_text(interaction.user))
+            elif '📕 Отказанный запрос на роль' == interaction.message.embeds[0].title:
+                await request.cancel_deny(user_text(interaction.user))
+
+        embed = interaction.message.embeds[0]
+        embed.colour = nextcord.Colour.red()
+        embed.title = "📕 Перепроверенный запрос на роль"
+
+        await interaction.edit_original_message(embed=embed, view=None)
+        await self.roles_handler.remove_request(user, guild, moderator_id, True, True,
+                                                role=request.role_info.role_names[0],
+                                                rang=request.rang, nick=request.nickname)
+
+
 class ReviewView(nextcord.ui.View):
     def __init__(self, roles_handler):
         super().__init__(timeout=None)
@@ -80,7 +121,7 @@ class ReviewView(nextcord.ui.View):
             if value in reasons_dict:
                 reasons.append(reasons_dict.get(value))
             else:
-                reasons.append(('❔', value))  # Использовать эмодзи по умолчанию для пользовательских причин
+                reasons.append(('❔', value))
 
         reasons_text = "\n".join([f"{emoji} {reason}" for emoji, reason in reasons])
 
@@ -91,10 +132,12 @@ class ReviewView(nextcord.ui.View):
 
         request = await RoleRequest.from_message(interaction.message)
         user, guild = RoleRequest.parse_info(interaction.message)
-        await interaction.edit_original_message(embed=embed, view=None)
+        await interaction.edit_original_message(embed=embed, view=CancelView(self.roles_handler))
         if request:
             await request.reject(reasons_text, user_text(interaction.user))
-        await self.roles_handler.remove_request(user, guild, interaction.user.id, False)
+        await self.roles_handler.remove_request(user, guild, interaction.user.id, False, False,
+                                                role=request.role_info.role_names[0],
+                                                rang=request.rang, nick=request.nickname)
 
     @nextcord.ui.string_select(
         placeholder="Отказать за...",
@@ -154,10 +197,11 @@ class ReviewView(nextcord.ui.View):
 
         request = await RoleRequest.from_message(interaction.message)
         user, guild = RoleRequest.parse_info(interaction.message)
-        await interaction.edit_original_message(embed=embed, view=None)
+        await interaction.edit_original_message(embed=embed, view=CancelView(self.roles_handler))
         if request:
             await request.approve(user_text(interaction.user))
-        await self.roles_handler.remove_request(user, guild, moderator_id, True, role=request.role_info.role_names[0],
+        await self.roles_handler.remove_request(user, guild, moderator_id, True, False,
+                                                role=request.role_info.role_names[0],
                                                 rang=request.rang, nick=request.nickname)
 
 
@@ -275,6 +319,30 @@ class RoleRequest:
         embed = nextcord.Embed(title="📗 Ваше заявление на роль одобрено.", colour=nextcord.Colour.dark_red())
         embed.set_author(name=self.guild.name, icon_url=self.guild.icon.url)
         embed.add_field(name='🧑‍💼 Модератор', value=moderator, inline=False)
+        await send_embed(self.user, embed)
+
+    async def cancel_approve(self, moderator):
+        await self.user.remove_roles(self.role_info.find(self.guild.roles))
+        try:
+            await self.user.edit(nick=self.must_nick)
+        except:
+            pass
+        embed = nextcord.Embed(title="📕 Ваше заявление на роль было перепроверено и отказано",
+                               colour=nextcord.Colour.dark_red())
+        embed.set_author(name=self.guild.name, icon_url=self.guild.icon.url)
+        embed.add_field(name='🧑‍💼 Перепроверил модератор', value=moderator, inline=False)
+        await send_embed(self.user, embed)
+
+    async def cancel_deny(self, moderator):
+        await self.user.add_roles(self.role_info.find(self.guild.roles))
+        try:
+            await self.user.edit(nick=self.must_nick)
+        except:
+            pass
+        embed = nextcord.Embed(title="📗 Ваше заявление на роль было перепроверено и одобрено",
+                               colour=nextcord.Colour.dark_red())
+        embed.set_author(name=self.guild.name, icon_url=self.guild.icon.url)
+        embed.add_field(name='🧑‍💼 Перепроверил модератор', value=moderator, inline=False)
         await send_embed(self.user, embed)
 
     async def reject(self, reason, moderator):

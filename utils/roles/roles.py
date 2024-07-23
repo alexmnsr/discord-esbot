@@ -29,14 +29,27 @@ class RolesHandler:
 
         return True
 
-    async def remove_request(self, user, guild, moderator_id, approve, *, role=None, rang=None, nick=None):
-        info = {"user": user.id, "guild": guild.id}
-        if not await self.mongo.count_documents(info):
-            return False
+    async def remove_request(self, user, guild, moderator_id, approve, cancel, *, role=None, rang=None, nick=None):
+        if not cancel:
+            info = {"user": user.id, "guild": guild.id}
+            if not await self.mongo.count_documents(info):
+                return False
 
-        await self.mongo.delete_one(info)
+            await self.mongo.delete_one(info)
 
         if moderator_id:
+            if cancel:
+                return await self.actions.update_action(
+                    user_id=user.id,
+                    guild_id=guild.id,
+                    moderator_id=moderator_id,
+                    action_type=ActionType.ROLE_CANCEL,
+                    payload={
+                        'role': role,
+                        'rang': rang,
+                        'nick': nick
+                    }
+                )
             await self.moder_mongo.update_one(
                 {'moder_id': moderator_id, 'guild': guild.id, 'date': datetime.datetime.now().strftime('%d.%m.%Y')},
                 {'$push': {'roles_approved' if approve else 'roles_rejected': user.id}},
