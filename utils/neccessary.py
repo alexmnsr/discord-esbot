@@ -276,7 +276,7 @@ async def create_role_mutes(role_name, guild: nextcord.Guild):
     )
 
     for channel in guild.channels:
-        if 'правила' in channel.name:
+        if 'правила' in channel.name and '-' not in channel.name:
             await channel.set_permissions(role, reason='Создание ролей Mutes', read_messages=True, send_messages=False)
         else:
             await channel.set_permissions(role, reason='Создание ролей Mutes', read_messages=False,
