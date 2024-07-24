@@ -14,23 +14,35 @@ class Online(commands.Cog):
         self.handler = bot.db.online_handler
 
     @commands.Cog.listener()
-    async def on_voice_state_update(self, member: nextcord.Member,
-                                    before: nextcord.VoiceState,
+    async def on_voice_state_update(self, member: nextcord.Member, before: nextcord.VoiceState,
                                     after: nextcord.VoiceState) -> None:
         if before.channel == after.channel:
             return
 
-        if before.channel is None:
-            await self.handler.join(member, after.channel)
-        elif after.channel is None:
-            await self.handler.leave(member, before.channel)
-        else:
-            await self.handler.leave(member, before.channel)
-            await self.handler.join(member, after.channel)
+        try:
+            if before.channel is None:
+                if after.channel and isinstance(after.channel, (nextcord.VoiceChannel, nextcord.StageChannel)):
+                    await self.handler.join(member, after.channel)
+            elif after.channel is None:
+                if before.channel and isinstance(before.channel, (nextcord.VoiceChannel, nextcord.StageChannel)):
+                    await self.handler.leave(member, before.channel)
+            else:
+                if before.channel and isinstance(before.channel, (nextcord.VoiceChannel, nextcord.StageChannel)):
+                    await self.handler.leave(member, before.channel)
+                if after.channel and isinstance(after.channel, (nextcord.VoiceChannel, nextcord.StageChannel)):
+                    await self.handler.join(member, after.channel)
+        except Exception as e:
+            print(f"Ошибка обработки обновления состояния голоса для {member.name}: {e}")
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        await self.handler.reload(self.bot.get_all_channels())
+        try:
+            all_channels = self.bot.get_all_channels()
+            voice_channels = [channel for channel in all_channels if
+                              isinstance(channel, (nextcord.VoiceChannel, nextcord.StageChannel))]
+            await self.handler.reload(voice_channels)
+        except Exception as e:
+            print(f"Ошибка при загрузке информации о каналах при старте бота: {e}")
 
     @nextcord.slash_command(name='online', description='Показать онлайн пользователя',
                             dm_permission=False)
