@@ -289,7 +289,7 @@ class Punishments(commands.Cog):
             return await interaction.send('Пользователь не найден.')
 
         if not await self.handler.mutes.remove_mute(user.id, interaction.guild.id, role_name,
-                                                    moderator_id=interaction.user.id):
+                                                    moderator=interaction.user):
             return await interaction.send('У пользователя нет мута.')
 
         embed = nextcord.Embed(

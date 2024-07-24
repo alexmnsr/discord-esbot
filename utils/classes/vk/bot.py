@@ -6,7 +6,6 @@ from vkbottle.bot import Bot
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('vkbottle').setLevel(logging.INFO)
 
-# Список серверов (413 = test конференция)
 chat_ids = {
     611264224391331911: 413,
     2: 413,
@@ -23,7 +22,7 @@ chat_ids = {
     773905724056928276: 413,
     14: 413,
     898582894338002994: 404,
-    992142629213061220: 413,
+    992142629213061220: 420,
     992143605105967165: 413,
     18: 413,
     19: 413,
