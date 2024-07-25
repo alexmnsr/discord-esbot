@@ -5,8 +5,33 @@ from apscheduler.triggers.cron import CronTrigger
 import pytz
 from dateutil.relativedelta import relativedelta
 
-from utils.classes.actions import moder_actions, ActionType
-from utils.neccessary import user_text, send_embed
+from utils.classes.actions import moder_actions
+from nextcord.ui import View, Button
+from typing import Dict
+from utils.neccessary import send_embed
+
+
+class PointsAdd_View(View):
+    def __init__(self, bot, moderator_ids: Dict[int, int]):
+        super().__init__(timeout=None)
+        self.bot = bot
+        self.moderator_ids = moderator_ids
+
+    @nextcord.ui.button(
+        label="Выдать поинты", style=nextcord.ButtonStyle.green, emoji='📕', custom_id="points_request:give_points"
+    )
+    async def add_points_vk(self, button: Button, interaction: nextcord.Interaction):
+        for moderator_id, details in self.moderator_ids.items():
+            points = details['points']
+            reasons = details['reasons']
+            if points == 0:
+                continue
+            reasons_text = " | ".join(reasons)
+            await self.bot.vk.send_message(506143782509740052,
+                                           f'/point {moderator_id}* {points} {reasons_text} | {datetime.datetime.now().strftime("%d.%m.%Y")}')
+
+        button.disabled = True
+        await interaction.response.send_message("Поинты были выданы!", ephemeral=True)
 
 
 class CRON_Stats:
@@ -31,7 +56,7 @@ class CRON_Stats:
             trigger = CronTrigger(hour=hour, minute=minute, day_of_week=day_of_week, day=day, month=month,
                                   timezone=msk_tz)
             self.scheduler.add_job(self.send_report, trigger, args=[period])
-            self.scheduler.add_job(self.send_stats_bond, trigger, args=[period])
+            # self.scheduler.add_job(self.send_stats_bond, trigger, args=[period])
 
     async def send_report(self, period):
         for guild in self.bot.guilds:
@@ -103,7 +128,7 @@ class CRON_Stats:
                     'actions': {key: value for key, value in acts_summary.items()}
                 }
             channel = [channel_name for channel_name in guild.channels if 'test' in channel_name.name][0]
-            if channel and guild.id == 506143782509740052:
+            if channel:  # and guild.id == 506143782509740052
                 await channel.send(embed=embed)
                 await self.send_points(moderator_stats, channel)
 
@@ -163,12 +188,14 @@ class CRON_Stats:
                 user = await guild.fetch_member(user_id)
                 await send_embed(user, embed)
 
-    async def send_points(self, moderator_stats: dict, channel: nextcord.TextChannel):
+    async def send_points(self, moderator_stats: Dict[int, Dict[str, int]], channel: nextcord.TextChannel):
         max_online_st_moderator = datetime.timedelta()
         max_online_st_moderator_id = None
 
         max_online = datetime.timedelta()
         max_online_moderator = None
+
+        send_messages_points = {}
 
         max_role = 0
         max_role_moderator = None
@@ -177,7 +204,7 @@ class CRON_Stats:
             total_online_td = stats['total_online']
             display_name = stats['member'].display_name
 
-            if 'SMD' in display_name:
+            if 'SMD' in display_name or '[AD' in display_name:
                 if total_online_td > max_online_st_moderator:
                     max_online_st_moderator = total_online_td
                     max_online_st_moderator_id = moderator_id
@@ -207,18 +234,38 @@ class CRON_Stats:
         for moderator_id, stats in moderator_stats.items():
             total_online_td = stats['total_online']
             points = calculate_online_points(total_online_td)
-            if points != 0:
-                embed.add_field(name=f"Онлайн",
-                                value=f"Модератор: {channel.guild.get_member(moderator_id).mention}\nOnline: {total_online_td}\nПоинты: {points} поинтов\n",
-                                inline=False)
+            reasons = []
 
-        embed.add_field(name=f"Лучший по онлайну [SMD]",
-                        value=f"Модератор: {channel.guild.get_member(max_online_st_moderator_id).mention}\nOnline: {max_online_st_moderator}\nПоинты: 1 поинтов",
-                        inline=True) if max_online_st_moderator_id is not None else print('Нет модератора')
-        embed.add_field(name=f"Лучший по онлайну [MD]",
-                        value=f"Модератор: {channel.guild.get_member(max_online_moderator).mention}\nOnline: {max_online}\nПоинты: 1 Поинты",
-                        inline=True) if max_online_moderator is not None else print('Нет модератора')
-        embed.add_field(name=f"Роли",
-                        value=f"Модератор: {channel.guild.get_member(max_role_moderator).mention}\nПоинты: 1 поинт",
-                        inline=False)
-        await channel.send(embed=embed)
+            if moderator_id not in send_messages_points:
+                send_messages_points[moderator_id] = {'points': 0, 'reasons': []}
+
+            if points > 0:
+                send_messages_points[moderator_id]['points'] += points
+                reasons.append(f"Онлайн {total_online_td.days * 24 + total_online_td.seconds // 3600}ч")
+
+            if moderator_id == max_online_st_moderator_id:
+                send_messages_points[moderator_id]['points'] += 1
+                reasons.append("Лучший по онлайну [SMD]")
+
+            if moderator_id == max_online_moderator:
+                send_messages_points[moderator_id]['points'] += 1
+                reasons.append("Лучший по онлайну [MD]")
+
+            if moderator_id == max_role_moderator:
+                send_messages_points[moderator_id]['points'] += 1
+                reasons.append("Лучший по ролям")
+
+            if reasons:
+                if moderator_id in send_messages_points:
+                    send_messages_points[moderator_id]['reasons'].extend(reasons)
+                else:
+                    send_messages_points[moderator_id] = {'points': points, 'reasons': reasons}
+
+                embed.add_field(
+                    name=f"Модератор - {channel.guild.get_member(moderator_id).display_name}",
+                    value=f"Online: {total_online_td}\nПоинты: {points} поинтов\nПричины: {', '.join(reasons)}",
+                    inline=False
+                )
+
+        embed.set_footer(text=f"{datetime.datetime.now().strftime('%d.%m.%Y')}")
+        await channel.send(embed=embed, view=PointsAdd_View(bot=self.bot, moderator_ids=send_messages_points))
