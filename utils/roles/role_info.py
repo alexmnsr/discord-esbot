@@ -135,7 +135,7 @@ class ReviewView(nextcord.ui.View):
         await interaction.edit_original_message(embed=embed, view=CancelView(self.roles_handler))
         if request:
             await request.reject(reasons_text, user_text(interaction.user))
-        await self.roles_handler.remove_request(user, guild, False, False, interaction.user.id,
+        await self.roles_handler.remove_request(user, guild, False, False, moderator_id=interaction.user.id,
                                                 role=request.role_info.role_names[0],
                                                 rang=request.rang, nick=request.nickname)
 

@@ -84,7 +84,7 @@ class Roles(commands.Cog):
                               statistics_hassle)
         if request.already_roled:
             await interaction.user.edit(nick=request.must_nick)
-            await self.handler.remove_request(interaction.user, interaction.guild, None, None, False)
+            await self.handler.remove_request(interaction.user, interaction.guild, False, False)
             return await message.edit('Ваш ранг изменён.')
 
         embed = nextcord.Embed(
@@ -134,12 +134,9 @@ class Roles(commands.Cog):
 
     @nextcord.user_command('Удалить заявку на выдачу роли')
     @restricted_command(2)
-    async def remove_role_database(self, interaction: nextcord.Interaction):
-        try:
-            await self.handler.remove_request(interaction.user, interaction.guild, None, None, False)
-            await interaction.send(f'Заявка пользователя на роль была удалена', ephemeral=True)
-        except:
-            await interaction.send(f'Не нашел заявки на роль', ephemeral=True)
+    async def remove_role_database(self, interaction: nextcord.Interaction, member: nextcord.Member):
+        await self.handler.remove_request(interaction.user, interaction.guild, False, False)
+        await interaction.send(f'Заявка пользователя на роль была удалена', ephemeral=True)
 
 
 def setup(bot: EsBot) -> None:
