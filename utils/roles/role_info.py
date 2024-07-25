@@ -103,7 +103,7 @@ class CancelView(nextcord.ui.View):
         embed.title = "📕 Перепроверенный запрос на роль"
 
         await interaction.edit_original_message(embed=embed, view=None)
-        await self.roles_handler.remove_request(user, guild, moderator_id, True, True,
+        await self.roles_handler.remove_request(user, guild, True, True, moderator_id=moderator_id,
                                                 role=request.role_info.role_names[0],
                                                 rang=request.rang, nick=request.nickname)
 
@@ -135,7 +135,7 @@ class ReviewView(nextcord.ui.View):
         await interaction.edit_original_message(embed=embed, view=CancelView(self.roles_handler))
         if request:
             await request.reject(reasons_text, user_text(interaction.user))
-        await self.roles_handler.remove_request(user, guild, interaction.user.id, False, False,
+        await self.roles_handler.remove_request(user, guild, False, False, interaction.user.id,
                                                 role=request.role_info.role_names[0],
                                                 rang=request.rang, nick=request.nickname)
 
@@ -200,7 +200,7 @@ class ReviewView(nextcord.ui.View):
         await interaction.edit_original_message(embed=embed, view=CancelView(self.roles_handler))
         if request:
             await request.approve(user_text(interaction.user))
-        await self.roles_handler.remove_request(user, guild, moderator_id, True, False,
+        await self.roles_handler.remove_request(user, guild, True, False, moderator_id=moderator_id,
                                                 role=request.role_info.role_names[0],
                                                 rang=request.rang, nick=request.nickname)
 

@@ -29,7 +29,7 @@ class RolesHandler:
 
         return True
 
-    async def remove_request(self, user, guild, moderator_id, approve, cancel, *, role=None, rang=None, nick=None):
+    async def remove_request(self, user, guild, approve, cancel, *, moderator_id=None, role=None, rang=None, nick=None):
         if not cancel:
             info = {"user": user.id, "guild": guild.id}
             if not await self.mongo.count_documents(info):
