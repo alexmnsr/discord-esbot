@@ -98,7 +98,6 @@ class PunishmentsDatabase:
         })
         return action_id
 
-
     async def give_text_mute(self, user_id, guild_id, moderator_id, reason, duration, jump_url):
         return await self.give_mute(user_id, guild_id, moderator_id, reason, duration, ActionType.MUTE_TEXT,
                                     jump_url=jump_url)
@@ -141,11 +140,10 @@ class PunishmentsDatabase:
             await self.actions.add_action(
                 user_id=user_id,
                 guild_id=guild_id,
-                moderator_id=moderator_id,
+                moderator_id=approve_moderator,
                 action_type=ActionType.APPROVE_WARN,
                 payload={
-                    'jump_url': jump_url,
-                    'approve_moderator': approve_moderator
+                    'jump_url': jump_url
                 }
             )
         action_id = await self.actions.add_action(
@@ -202,11 +200,10 @@ class PunishmentsDatabase:
             await self.actions.add_action(
                 user_id=user_id,
                 guild_id=guild_id,
-                moderator_id=moderator_id,
+                moderator_id=approve_moderator,
                 action_type=ActionType.APPROVE_BAN,
                 payload={
-                    'jump_url': jump_url,
-                    'approve_moderator': approve_moderator
+                    'jump_url': jump_url
                 }
             )
         action_id = await self.actions.add_action(
