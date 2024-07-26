@@ -52,10 +52,10 @@ class OnlineDatabase:
         self.all_online = self.db['all_online']
 
     async def get_current_info(self):
+        await self.clean_up_old_requests()
         return CurrentInfo(await self.get_current_users())
 
     async def get_current_users(self):
-        await self.clean_up_old_requests()
         return await self.current_online.find({}).to_list(length=None)
 
     async def clean_up_old_requests(self):
@@ -102,25 +102,41 @@ class OnlineDatabase:
             'is_counting': is_counting
         })
 
-    async def add_leave_info(self, member: nextcord.Member,
-                             channel):
+    async def add_leave_info(self, member: nextcord.Member, channel):
         now = datetime.datetime.now()
         current_info = await self.pop_current_info(member.id, channel.id)
         if not current_info:
             return
 
-        intervals: dict[str, int] = get_dict_of_time_intervals(current_info['join_time'], now)
-        for date, seconds in intervals.items():
+        join_time = current_info['join_time']
+
+        if join_time.date() != now.date():
+            end_of_day = join_time.replace(hour=23, minute=59, second=59, microsecond=999999)
+            interval_to_midnight = (end_of_day - join_time).total_seconds()
+
             await self.all_online.update_one({
                 'user_id': member.id,
                 'guild_id': member.guild.id,
                 'channel_id': channel.id,
                 'channel_name': channel.name,
-                'date': date
+                'date': join_time.date()
             }, {
                 '$set': {'is_counting': current_info['is_counting']},
-                '$inc': {'seconds': seconds}
+                '$inc': {'seconds': interval_to_midnight}
             }, upsert=True)
+
+        interval_after_midnight = (now - max(join_time.replace(hour=0, minute=0), join_time)).total_seconds()
+
+        await self.all_online.update_one({
+            'user_id': member.id,
+            'guild_id': member.guild.id,
+            'channel_id': channel.id,
+            'channel_name': channel.name,
+            'date': now.date()
+        }, {
+            '$set': {'is_counting': current_info['is_counting']},
+            '$inc': {'seconds': interval_after_midnight}
+        }, upsert=True)
 
     async def get_info(self, is_open: bool, user_id: int, guild_id: int, date: str = None):
         all_online = await self.all_online.find({
