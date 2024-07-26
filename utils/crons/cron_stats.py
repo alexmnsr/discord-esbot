@@ -56,7 +56,7 @@ class CRON_Stats:
             trigger = CronTrigger(hour=hour, minute=minute, day_of_week=day_of_week, day=day, month=month,
                                   timezone=msk_tz)
             self.scheduler.add_job(self.send_report, trigger, args=[period])
-            # self.scheduler.add_job(self.send_stats_bond, trigger, args=[period])
+            self.scheduler.add_job(self.send_stats_bond, trigger, args=[period])
 
     async def send_report(self, period):
         for guild in self.bot.guilds:
@@ -193,12 +193,12 @@ class CRON_Stats:
         max_online_st_moderator_id = None
 
         max_online = datetime.timedelta()
-        max_online_moderator = None
+        max_online_moderator_id = None
 
         send_messages_points = {}
 
         max_role = 0
-        max_role_moderator = None
+        max_role_moderator_id = None
 
         for moderator_id, stats in moderator_stats.items():
             total_online_td = stats['total_online']
@@ -211,13 +211,13 @@ class CRON_Stats:
             elif '[MD' in display_name:
                 if total_online_td > max_online:
                     max_online = total_online_td
-                    max_online_moderator = moderator_id
+                    max_online_moderator_id = moderator_id
 
             role_approve = stats['actions'].get('role_approve', 0)
             role_reject = stats['actions'].get('role_reject', 0)
             if role_approve > max_role:
-                max_role = role_approve + role_reject / 2
-                max_role_moderator = moderator_id
+                max_role = role_approve + (role_reject / 2)
+                max_role_moderator_id = moderator_id
 
         def calculate_online_points(online_time):
             if online_time >= datetime.timedelta(hours=20):
@@ -247,25 +247,21 @@ class CRON_Stats:
                 send_messages_points[moderator_id]['points'] += 1
                 reasons.append("Лучший по онлайну [SMD]")
 
-            if moderator_id == max_online_moderator:
+            if moderator_id == max_online_moderator_id:
                 send_messages_points[moderator_id]['points'] += 1
                 reasons.append("Лучший по онлайну [MD]")
 
-            if moderator_id == max_role_moderator:
+            if moderator_id == max_role_moderator_id:
                 send_messages_points[moderator_id]['points'] += 1
                 reasons.append("Лучший по ролям")
 
             if reasons:
-                if moderator_id in send_messages_points:
-                    send_messages_points[moderator_id]['reasons'].extend(reasons)
-                else:
-                    send_messages_points[moderator_id] = {'points': points, 'reasons': reasons}
+                send_messages_points[moderator_id]['reasons'].extend(reasons)
 
                 embed.add_field(
                     name=f"Модератор - {channel.guild.get_member(moderator_id).display_name}",
-                    value=f"Online: {total_online_td}\nПоинты: {points} поинтов\nПричины: {', '.join(reasons)}",
+                    value=f"Online: {total_online_td}\nПоинты: {send_messages_points[moderator_id]['points']} поинтов\nПричины: {', '.join(send_messages_points[moderator_id]['reasons'])}",
                     inline=False
                 )
-
         embed.set_footer(text=f"{datetime.datetime.now().strftime('%d.%m.%Y')}")
         await channel.send(embed=embed, view=PointsAdd_View(bot=self.bot, moderator_ids=send_messages_points))

@@ -65,7 +65,6 @@ class Punishments(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         await checking_presence(self.bot)
-        await self.handler.reload()
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: nextcord.Interaction):
@@ -203,7 +202,7 @@ class Punishments(commands.Cog):
         embed.add_field(name='Время', value=beautify_seconds(mute_seconds))
         embed.set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
 
-        if message:
+        if message == nextcord.Message:
             channel = [c for c in message.guild.text_channels if 'выдача-наказаний' in c.name][0]
             await interaction.send(embed=embed, ephemeral=True)
             mess = await channel.send(embed=embed)

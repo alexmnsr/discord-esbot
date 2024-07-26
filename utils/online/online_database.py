@@ -55,7 +55,26 @@ class OnlineDatabase:
         return CurrentInfo(await self.get_current_users())
 
     async def get_current_users(self):
+        await self.clean_up_old_requests()
         return await self.current_online.find({}).to_list(length=None)
+
+    async def clean_up_old_requests(self):
+        users_with_latest_requests = await self.current_online.aggregate([
+            {
+                '$group': {
+                    '_id': '$user_id',
+                    'latest_request': {'$max': '$created_at'}
+                }
+            }
+        ]).to_list(length=None)
+
+        latest_requests = {req['_id']: req['latest_request'] for req in users_with_latest_requests}
+
+        for user_id, latest_time in latest_requests.items():
+            await self.current_online.delete_many({
+                'user_id': user_id,
+                'created_at': {'$ne': latest_time}
+            })
 
     async def pop_current_info(self, user_id: int, channel_id: int):
         current_info = await self.current_online.find_one({
@@ -66,9 +85,8 @@ class OnlineDatabase:
         if not current_info:
             return
 
-        await self.current_online.delete_one({
-            'user_id': user_id,
-            'channel_id': channel_id
+        await self.current_online.delete_many({
+            'user_id': user_id
         })
         return current_info
 

@@ -21,10 +21,6 @@ class Stats(commands.Cog):
         self.handler = bot.db.online_handler
         self.acts_handler = bot.db.actions
 
-    @commands.Cog.listener()
-    async def on_ready(self) -> None:
-        await self.handler.reload(self.bot.get_all_members())
-
     @nextcord.slash_command(name='stats', description='Показать онлайн модераторов', dm_permission=False)
     @restricted_command(1)
     async def stats(self, interaction: nextcord.Interaction,

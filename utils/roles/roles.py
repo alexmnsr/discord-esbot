@@ -1,6 +1,7 @@
 import datetime
 import re
 
+import nextcord
 from motor.core import AgnosticCollection
 
 from utils.classes.actions import ActionType
@@ -19,7 +20,7 @@ class RolesHandler:
     def check_nickname(nickname):
         return nickname_regex.match(nickname)
 
-    async def request_role(self, user, guild):
+    async def request_role(self, user: nextcord.Member, guild: nextcord.Guild):
         info = {"user": user.id, "guild": guild.id}
 
         if await self.mongo.count_documents(info):

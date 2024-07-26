@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 
 import nextcord
@@ -13,19 +14,27 @@ class OnlineHandler:
         self.database = OnlineDatabase(mongodb)
 
     async def reload(self, all_channels):
+        print("Начал обновление онлайна пользователей!")
         current_info = await self.database.get_current_info()
+        call_user = 0
         for channel in all_channels:
             if isinstance(channel, (nextcord.VoiceChannel, nextcord.StageChannel)):
                 for member in channel.members:
-                    if prev_channel := current_info.in_channel(member.id, channel.guild.id):
+                    if not (prev_channel := current_info.in_channel(member.id, channel.guild.id)):
+                        call_user = member.id
                         await self.join(member, channel)
-                    elif prev_channel != channel.id:
-                        prev_channel_obj = AbstractChannel(id=prev_channel[0], name=prev_channel[1])
-                        await self.leave(member, prev_channel_obj)
-                        await self.join(member, channel)
+                    elif prev_channel[0] != channel.id:
+                        if not call_user == member.id:
+                            call_user = member.id
+                            prev_channel_obj = AbstractChannel(id=prev_channel[0], name=prev_channel[1])
+                            await self.leave(member, prev_channel_obj)
+                            await self.join(member, channel)
                 for user in current_info.get_channel_users(channel.id):
-                    if user not in [member.id for member in channel.members]:
-                        await self.leave(AbstractUser(user, channel.guild), channel)
+                    if not user in [member.id for member in channel.members]:
+                        if not call_user == user:
+                            call_user = user
+                            await self.leave(AbstractUser(user, channel.guild), channel)
+        print("Обновление онлайна пользователей прошло успешно!")
 
     async def join(self, member: nextcord.Member,
                    channel) -> None:
