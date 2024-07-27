@@ -167,7 +167,7 @@ class Punishments(commands.Cog):
                                                 string_to_seconds(duration))
         embed = nextcord.Embed(
             title=f'Вы выдали временный мут.',
-            description=f'Причина: {reason} (До уточнения информации)\nВремя истечения: <t:{int((datetime.datetime.now() + datetime.timedelta(seconds=string_to_seconds(duration))).timestamp())}:R>',
+            description=f'Причина: {reason} (До уточнения информации)\nВремя истечения: <t:{int((datetime.datetime.now() + datetime.timedelta(seconds=string_to_seconds(duration))).timestamp())}:R>\nМодератор: {interaction.user.mention}',
             color=0xFF0000
         )
         embed.set_author(name=interaction.guild.name, icon_url=interaction.guild.icon.url)

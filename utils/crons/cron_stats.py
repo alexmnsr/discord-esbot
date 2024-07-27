@@ -56,7 +56,7 @@ class CRON_Stats:
             trigger = CronTrigger(hour=hour, minute=minute, day_of_week=day_of_week, day=day, month=month,
                                   timezone=msk_tz)
             self.scheduler.add_job(self.send_report, trigger, args=[period])
-            self.scheduler.add_job(self.send_stats_bond, trigger, args=[period])
+            # self.scheduler.add_job(self.send_stats_bond, trigger, args=[period])
 
     async def send_report(self, period):
         for guild in self.bot.guilds:
@@ -202,13 +202,11 @@ class CRON_Stats:
 
         for moderator_id, stats in moderator_stats.items():
             total_online_td = stats['total_online']
-            display_name = stats['member'].display_name
-
-            if 'SMD' in display_name or '[AD' in display_name:
+            if 'ст. модератор' or 'ассистент discord' in [r.name.lower() for r in stats['member'].roles]:
                 if total_online_td > max_online_st_moderator:
                     max_online_st_moderator = total_online_td
                     max_online_st_moderator_id = moderator_id
-            elif '[MD' in display_name:
+            elif 'модератор' in [r.name for r in stats['member'].roles]:
                 if total_online_td > max_online:
                     max_online = total_online_td
                     max_online_moderator_id = moderator_id
