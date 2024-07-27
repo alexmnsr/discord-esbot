@@ -65,6 +65,7 @@ class Punishments(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         await checking_presence(self.bot)
+        await self.handler.reload()
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: nextcord.Interaction):
