@@ -81,20 +81,15 @@ class Actions:
         self.actions = self.db['list']
 
     async def add_action(self, *, user_id, guild_id, moderator_id, action_type: ActionType, payload):
-        while True:
-            action_id = await self.actions.count_documents({}) + 1000
-            result = await self.actions.insert_one({
-                'user_id': user_id,
-                'guild_id': guild_id,
-                'moderator_id': moderator_id,
-                'action_type': action_type.value,
-                'payload': payload,
-                '_id': action_id,
-                'time': datetime.datetime.now()
-            })
-
-            if result.acknowledged:  # Проверяем, что вставка прошла успешно
-                return action_id
+        result = await self.actions.insert_one({
+            'user_id': user_id,
+            'guild_id': guild_id,
+            'moderator_id': moderator_id,
+            'action_type': action_type.value,
+            'payload': payload,
+            'time': datetime.datetime.now()
+        })
+        return result.inserted_id  # Возвращаем автоматически сгенерированный _id
 
     async def update_action(self, *, user_id, guild_id, moderator_id, action_type: ActionType, payload):
         filter = {

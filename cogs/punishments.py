@@ -545,12 +545,10 @@ class Punishments(commands.Cog):
     @nextcord.slash_command(name='act', description="Найти событие по ID")
     @restricted_command(1)
     async def act(self, interaction,
-                  action_id: int = nextcord.SlashOption('id', min_value=1000, description='Action ID события')):
+                  action_id: str = nextcord.SlashOption('id', description='Action ID события')):
         data = await self.handler.database.actions.get_action(action_id)
         if not data:
-            return await interaction.send(f'Такого ID не существует.\n'
-                                          f'Доступные ID: 1000 - {await self.handler.database.actions.max_id}',
-                                          ephemeral=True)
+            return await interaction.send(f'Такого ID не существует.', ephemeral=True)
         user = await self.client.fetch_user(data["moderator_id"])
         embed = ((nextcord.Embed(title=human_actions.get(
             data['action_type'].split('.')[-1].lower() if data['action_type'].startswith('ActionType.') else data[
