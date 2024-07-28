@@ -1,5 +1,6 @@
 import datetime
 
+from bson import ObjectId
 from motor import motor_asyncio
 
 from utils.classes.actions import ActionType
@@ -46,22 +47,22 @@ class PunishmentsDatabase:
         return await self.mutes.find_one({
                                              'user_id': user_id,
                                              'guild_id': guild_id,
-                                             'type': 'text'
-                                         } if not action_id else {'action_id': action_id})
+                                             'type': "text"
+                                         } if not action_id else {'_id': ObjectId(action_id)})
 
     async def get_voice_mute(self, *, user_id=None, guild_id=None, action_id=None):
         return await self.mutes.find_one({
                                              'user_id': user_id,
                                              'guild_id': guild_id,
-                                             'type': 'voice'
-                                         } if not action_id else {'action_id': action_id})
+                                             'type': "voice"
+                                         } if not action_id else {'_id': ObjectId(action_id)})
 
     async def get_full_mute(self, *, user_id=None, guild_id=None, action_id=None):
         return await self.mutes.find_one({
                                              'user_id': user_id,
                                              'guild_id': guild_id,
-                                             'type': 'full'
-                                         } if not action_id else {'action_id': action_id})
+                                             'type': "full"
+                                         } if not action_id else {'_id': ObjectId(action_id)})
 
     async def add_approve(self, info: dict) -> int:
         approve_id = await self.approves.count_documents({}) + 1000
@@ -93,8 +94,7 @@ class PunishmentsDatabase:
             'duration': duration,
             'given_at': datetime.datetime.now(),
             'type': mute_type.name.split('_')[1].lower(),
-            'jump_url': jump_url,
-            'action_id': action_id
+            'jump_url': jump_url
         })
         return action_id
 
@@ -162,8 +162,7 @@ class PunishmentsDatabase:
             'moderator_id': moderator_id,
             'reason': reason,
             'given_at': datetime.datetime.now(),
-            'type': str(warn_type),
-            'action_id': action_id
+            'type': str(warn_type)
         })
         return action_id
 
@@ -171,7 +170,7 @@ class PunishmentsDatabase:
         return await self.warns.find_one({
                                              'user_id': user_id,
                                              'guild_id': guild_id
-                                         } if not action_id else {'action_id': action_id})
+                                         } if not action_id else {'_id': ObjectId(action_id)})
 
     async def remove_warn(self, *, user_id=None, guild_id=None, moderator_id=None, action_id=None):
         await self.actions.add_action(
@@ -186,7 +185,7 @@ class PunishmentsDatabase:
         return await self.warns.delete_one({
                                                'user_id': user_id,
                                                'guild_id': guild_id
-                                           } if not action_id else {'action_id': action_id})
+                                           } if not action_id else {'_id': ObjectId(action_id)})
 
     async def remove_warns(self, *, user_id=None, guild_id=None):
         return await self.warns.delete_many({
@@ -226,8 +225,7 @@ class PunishmentsDatabase:
             'duration': duration,
             'given_at': datetime.datetime.now(),
             'type': ban_type.name.split('_')[1].lower(),
-            'jump_url': jump_url,
-            'action_id': action_id
+            'jump_url': jump_url
         })
         return action_id
 
@@ -236,7 +234,7 @@ class PunishmentsDatabase:
                                             'user_id': user_id,
                                             'guild_id': guild_id,
                                             'type': type_ban
-                                        } if not action_id else {'action_id': action_id})
+                                        } if not action_id else {'_id': ObjectId(action_id)})
 
     async def remove_ban(self, *, user_id=None, guild_id=None, action_id=None, moderator_id=None, type_ban=None):
         await self.actions.add_action(
@@ -252,4 +250,4 @@ class PunishmentsDatabase:
                                               'user_id': user_id,
                                               'guild_id': guild_id,
                                               'type': type_ban
-                                          } if not action_id else {'action_id': action_id})
+                                          } if not action_id else {'_id': ObjectId(action_id)})

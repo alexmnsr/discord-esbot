@@ -3,6 +3,7 @@ import datetime
 from datetime import timedelta
 
 import nextcord
+from bson import ObjectId
 
 from utils.classes.actions import ActionType
 from utils.neccessary import remove_role, send_embed, add_role, user_visual, user_text, mute_name, beautify_seconds, \
@@ -79,24 +80,39 @@ class MuteHandler:
         log_embed.set_footer(text=f'ID: {member.id}')
         await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
 
-        self.client.loop.create_task(self.wait_mute(action_id, duration, role_name, member))
+        action_id = await get(user_id=member.id, guild_id=guild.id)
+
+        self.client.loop.create_task(self.wait_mute(action_id['_id'], duration, role_name, member))
 
     async def wait_mute(self, action_id, seconds, role_name, member: nextcord.Member):
-        await asyncio.sleep(seconds)
+        if seconds > 0:
+            await asyncio.sleep(seconds)
+
         if action_id is None:
+            print("Action ID is None, removing temporary role.")
             await remove_temp_role(member=member)
+
         get, give, remove = self.mute_info(role_name)
         mute = await get(action_id=action_id)
+
         if not mute:
+            print(f"No mute found for action ID: {action_id}.")
             return
 
         await remove(mute['user_id'], mute['guild_id'])
+
+        # Определяем название роли для удаления
         if role_name == 'Mute » Full':
             role_name = ['Mute » Text', 'Mute » Voice']
+
+        # Удаляем роль
         guild, member = await remove_role(self.client, mute['user_id'], mute['guild_id'], action_id, role_name)
+
         if not guild:
+            print("Guild not found, unable to remove role.")
             return
 
+        # Создаем и отправляем уведомление участнику
         embed = nextcord.Embed(
             title=f'Ваш {mute_name(role_name)} мут истек.',
             description=f'Вы снова можете продолжать общение в текстовых чатах на сервере {guild.name}.',
@@ -104,7 +120,11 @@ class MuteHandler:
         )
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
 
-        await send_embed(member, embed)
+        try:
+            await send_embed(member, embed)
+            print(f"Sent embed notification to {member.display_name}.")
+        except nextcord.HTTPException as e:
+            print(f"Failed to send embed notification to {member.display_name}: {e}")
 
     async def remove_mute(self, user_id, guild_id, role_name, moderator):
         get, give, remove = self.mute_info(role_name)
@@ -212,12 +232,15 @@ class BanHandler:
         log_embed.set_footer(text=f'ID: {user.id}')
         await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
 
+        action_id = await self.database.get_ban(user_id=user.id, guild_id=guild.id)
+
         if duration != '-1':
-            self.client.loop.create_task(await self.wait_ban(action_id, duration))
+            self.client.loop.create_task(await self.wait_ban(action_id['_id'], duration))
 
     async def wait_ban(self, action_id, seconds):
         seconds = int(seconds)
-        await asyncio.sleep(seconds)
+        if seconds > 0:
+            await asyncio.sleep(seconds)
         ban = await self.database.get_ban(action_id=action_id)
         if not ban:
             return
@@ -298,10 +321,11 @@ class PunishmentsHandler:
     async def reload(self):
         current_mutes = await self.database.get_mutes()
         current_bans = await self.database.get_bans()
+        print(current_mutes)
         for mute in current_mutes:
             role_name = 'Mute » Text' if mute['type'] == 'text' else 'Mute » Voice' if mute[
                                                                                            'type'] == 'voice' else 'Mute » Full'
-            self.client.loop.create_task(self.mutes.wait_mute(mute['action_id'],
+            self.client.loop.create_task(self.mutes.wait_mute(mute['_id'],
                                                                     ((mute['given_at'] + datetime.timedelta(
                                                                         seconds=mute[
                                                                             'duration'])) - datetime.datetime.now()).total_seconds(),
@@ -309,6 +333,6 @@ class PunishmentsHandler:
         for ban in current_bans:
             if ban['duration'] == '-1':
                 continue
-            self.client.loop.create_task(self.bans.wait_ban(ban['action_id'],
+            self.client.loop.create_task(self.bans.wait_ban(ban['_id'],
                                                                   ((ban['given_at'] + datetime.timedelta(seconds=ban[
                                                                       'duration'])) - datetime.datetime.now()).total_seconds()))

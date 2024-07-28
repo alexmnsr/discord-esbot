@@ -210,12 +210,24 @@ async def remove_role(client, member_id, guild_id, action_id, role_name):
         member = await guild.fetch_member(member_id)
     except nextcord.NotFound:
         member = None
+
     if not member:
         return guild, await client.fetch_user(member_id)
 
+    roles_to_remove = []
     for role in member.roles:
-        if role.name == role_name if not isinstance(role_name, list) else role.name in role_name:
-            await member.remove_roles(role, reason=f'Action ID: {action_id}.')
+        if (isinstance(role_name, list) and role.name in role_name) or (role.name == role_name):
+            roles_to_remove.append(role)
+
+    if not roles_to_remove:
+        return guild, member  # Ничего не нужно удалять
+
+    try:
+        await member.remove_roles(*roles_to_remove, reason=f'Action ID: {action_id}.')
+    except nextcord.Forbidden:
+        print(f'Bot does not have permission to remove roles from {member.display_name}.')
+    except nextcord.HTTPException as e:
+        print(f'Failed to remove roles from {member.display_name}: {e}')
 
     return guild, member
 
@@ -234,7 +246,7 @@ async def add_role(client, member_id, guild_id, role_name, action_id='Temp_Mute'
     for role in guild.roles:
         if role.name == role_name if not isinstance(role_name, list) else role.name in role_name:
             await member.add_roles(role,
-                                   reason=f'Action ID: {action_id}.' if action_id is int else 'Временная блокировка (до выяснений)')
+                                   reason=f'Action ID: {action_id}.' if action_id == 'Temp_Mute' else 'Временная блокировка (до выяснений)')
 
     return guild, member
 
