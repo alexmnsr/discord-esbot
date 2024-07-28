@@ -183,8 +183,8 @@ class Punishments(commands.Cog):
                         message_len: int = None):
         if isinstance(user, str) and not (user := await self.bot.resolve_user(user, interaction.guild)):
             return await interaction.send('Пользователь не найден.', ephemeral=True)
-        # if isinstance(user, nextcord.Member) and interaction.user.top_role <= user.top_role:
-        #     return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
+        if isinstance(user, nextcord.Member) and interaction.user.top_role <= user.top_role:
+            return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
         await interaction.response.defer()
         mute_seconds = string_to_seconds(duration)
         if not mute_seconds:
@@ -212,7 +212,7 @@ class Punishments(commands.Cog):
                 jump_url = mess.jump_url
         else:
             mess = await interaction.send(embed=embed)
-            jump_url = (await mess.fetch()).jump_url
+            jump_url = mess.jump_url
 
         await self.handler.mutes.give_mute(role_name, user=user, guild=interaction.guild,
                                            moderator=interaction.user,
