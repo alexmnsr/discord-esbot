@@ -223,7 +223,7 @@ class StartView(nextcord.ui.View):
         created_at = interaction.message.created_at.replace(tzinfo=None)
 
         check_time = now - created_at
-        if check_time.total_seconds() > 2 * 60 * 60:
+        if check_time.total_seconds() > 1 * 60 * 60:
             _ = asyncio.create_task(self.announce_role(interaction, check_time))
         embed.set_footer(text=f'Взято за {int(check_time.total_seconds() * 1000)} мс.')
         embed.add_field(name="Модератор", value=user_visual(interaction.user))

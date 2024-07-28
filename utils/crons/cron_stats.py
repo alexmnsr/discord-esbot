@@ -202,11 +202,12 @@ class CRON_Stats:
 
         for moderator_id, stats in moderator_stats.items():
             total_online_td = stats['total_online']
-            if 'ст. модератор' or 'ассистент discord' in [r.name.lower() for r in stats['member'].roles]:
+            roles = [r.name.lower() for r in stats['member'].roles]
+            if 'ст. модератор' or 'ассистент discord' in roles:
                 if total_online_td > max_online_st_moderator:
                     max_online_st_moderator = total_online_td
                     max_online_st_moderator_id = moderator_id
-            elif 'модератор' in [r.name for r in stats['member'].roles]:
+            elif 'модератор' in roles and 'главный модератор' not in roles:
                 if total_online_td > max_online:
                     max_online = total_online_td
                     max_online_moderator_id = moderator_id
