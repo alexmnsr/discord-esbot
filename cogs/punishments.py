@@ -182,42 +182,37 @@ class Punishments(commands.Cog):
     async def give_mute(self, interaction, user, duration, reason, role_name, *, message: nextcord.Message = None,
                         message_len: int = None):
         if isinstance(user, str) and not (user := await self.bot.resolve_user(user, interaction.guild)):
-            return await interaction.send('Пользователь не найден.')
-
-        if isinstance(user, nextcord.Member) and interaction.user.top_role <= user.top_role:
-            return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
-
+            return await interaction.send('Пользователь не найден.', ephemeral=True)
+        # if isinstance(user, nextcord.Member) and interaction.user.top_role <= user.top_role:
+        #     return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
         await interaction.response.defer()
-
         mute_seconds = string_to_seconds(duration)
         if not mute_seconds:
             return await interaction.send('Неверный формат длительности мута.')
         get, give, remove = self.handler.mutes.mute_info(role_name)
         if await get(user_id=user.id, guild_id=interaction.guild.id):
             return await interaction.send('У пользователя уже есть мут.')
-        embed = (nextcord.Embed(title='Выдача наказания', color=nextcord.Color.red())
-                 .set_author(name=user.display_name, icon_url=user.display_avatar.url))
-        embed.add_field(name='Нарушитель', value=f'<@{user.id}>')
-        embed.add_field(name='Модератор', value=interaction.user.display_name)
-        embed.add_field(name='Причина', value=reason)
-        embed.add_field(name='Время', value=beautify_seconds(mute_seconds))
-        embed.set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
+        embed = ((nextcord.Embed(title='Выдача наказания', color=nextcord.Color.red())
+                  .set_author(name=user.display_name, icon_url=user.display_avatar.url))
+                 .add_field(name='Нарушитель', value=f'<@{user.id}>')
+                 .add_field(name='Модератор', value=interaction.user.display_name)
+                 .add_field(name='Причина', value=reason)
+                 .add_field(name='Время', value=beautify_seconds(mute_seconds))
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
 
-        if message == nextcord.Message:
+        if message:
             channel = [c for c in message.guild.text_channels if 'выдача-наказаний' in c.name][0]
             await interaction.send(embed=embed, ephemeral=True)
-            mess = await channel.send(embed=embed)
-            if isinstance(mess, nextcord.Message):
-                jump_url = mess.jump_url
+            if isinstance(message, nextcord.Message):
+                mess = await channel.send(embed=embed)
                 thread = await mess.create_thread(name='📸 Скриншот чата', auto_archive_duration=60)
+                jump_url = mess.jump_url
             else:
-                jump_url = "No jump URL available"
+                mess = await channel.send(embed=embed)
+                jump_url = mess.jump_url
         else:
             mess = await interaction.send(embed=embed)
-            if isinstance(mess, nextcord.Message):
-                jump_url = mess.jump_url
-            else:
-                jump_url = "No jump URL available"
+            jump_url = (await mess.fetch()).jump_url
 
         await self.handler.mutes.give_mute(role_name, user=user, guild=interaction.guild,
                                            moderator=interaction.user,
@@ -286,16 +281,16 @@ class Punishments(commands.Cog):
 
     async def remove_mute(self, interaction, user, role_name):
         if not (user := await self.bot.resolve_user(user)):
-            return await interaction.send('Пользователь не найден.')
+            return await interaction.send('Пользователь не найден.', ephemeral=True)
 
         if not await self.handler.mutes.remove_mute(user.id, interaction.guild.id, role_name,
                                                     moderator=interaction.user):
-            return await interaction.send('У пользователя нет мута.')
+            return await interaction.send('У пользователя нет мута.', ephemeral=True)
 
         embed = nextcord.Embed(
             title='Снятие наказания',
             description=f'У пользователя {user.mention} снят мут.')
-        await interaction.send(embed=embed)
+        await interaction.send(embed=embed, ephemeral=True)
 
     @unmute.subcommand(name='text', description="Снять текстовый мут с пользователя.")
     async def unmute_text(self, interaction,

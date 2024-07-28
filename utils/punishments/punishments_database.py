@@ -245,7 +245,7 @@ class PunishmentsDatabase:
             moderator_id=moderator_id,
             action_type=ActionType.UNBAN_LOCAL,
             payload={
-
+                'time': 'end time punishment'
             }
         )
         return await self.bans.delete_one({

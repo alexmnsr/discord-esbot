@@ -213,7 +213,7 @@ class BanHandler:
         await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
 
         if duration != '-1':
-            self.client.loop.create_task(self.wait_ban(action_id, duration))
+            self.client.loop.create_task(await self.wait_ban(action_id, duration))
 
     async def wait_ban(self, action_id, seconds):
         seconds = int(seconds)
@@ -222,7 +222,6 @@ class BanHandler:
         if not ban:
             return
 
-        await self.database.remove_ban(action_id=action_id)
         if ban['type'] == 'global':
             for g in self.client.guilds:
                 try:
@@ -237,6 +236,7 @@ class BanHandler:
                 await guild.unban(nextcord.Object(ban['user_id']), reason=f'Action ID: {action_id}')
             except nextcord.NotFound:
                 pass
+        await self.database.remove_ban(action_id=action_id)
 
         embed = nextcord.Embed(
             title=f'Срок Вашей блокировки {"всех серверах" if ban["type"] == "global" else "на сервере " + guild.name} истек.',
@@ -302,12 +302,13 @@ class PunishmentsHandler:
             role_name = 'Mute » Text' if mute['type'] == 'text' else 'Mute » Voice' if mute[
                                                                                            'type'] == 'voice' else 'Mute » Full'
             self.client.loop.create_task(self.mutes.wait_mute(mute['action_id'],
-                                                              ((mute['given_at'] + datetime.timedelta(seconds=mute[
-                                                                  'duration'])) - datetime.datetime.now()).total_seconds(),
-                                                              role_name, member=None))
+                                                                    ((mute['given_at'] + datetime.timedelta(
+                                                                        seconds=mute[
+                                                                            'duration'])) - datetime.datetime.now()).total_seconds(),
+                                                                    role_name, member=None))
         for ban in current_bans:
             if ban['duration'] == '-1':
                 continue
             self.client.loop.create_task(self.bans.wait_ban(ban['action_id'],
-                                                            ((ban['given_at'] + datetime.timedelta(seconds=ban[
-                                                                'duration'])) - datetime.datetime.now()).total_seconds()))
+                                                                  ((ban['given_at'] + datetime.timedelta(seconds=ban[
+                                                                      'duration'])) - datetime.datetime.now()).total_seconds()))
