@@ -73,7 +73,7 @@ class CancelView(nextcord.ui.View):
         self.roles_handler = roles_handler
 
     @nextcord.ui.button(
-        label="Одобрить", style=nextcord.ButtonStyle.green, emoji='📗', custom_id="role_request:approve_button"
+        label="Одобрить выдачу (GMD | DS)", style=nextcord.ButtonStyle.green, emoji='📗', custom_id="role_request:approve_button"
     )
     async def approve_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         if grant_level(interaction.user.roles, interaction.user) < 4:
@@ -84,7 +84,7 @@ class CancelView(nextcord.ui.View):
         await interaction.message.add_reaction('✅')
 
     @nextcord.ui.button(
-        label="Отменить", style=nextcord.ButtonStyle.red, emoji='📕', custom_id="role_request:cancel"
+        label="Отменить выдачу (GMD | DS)", style=nextcord.ButtonStyle.red, emoji='📕', custom_id="role_request:cancel"
     )
     async def cancel(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         fields = interaction.message.embeds[0].fields
