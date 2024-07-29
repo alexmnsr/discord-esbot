@@ -73,7 +73,18 @@ class CancelView(nextcord.ui.View):
         self.roles_handler = roles_handler
 
     @nextcord.ui.button(
-        label="Отменить (GMD | DS)", style=nextcord.ButtonStyle.red, emoji='📕', custom_id="role_request:cancel"
+        label="Одобрить", style=nextcord.ButtonStyle.green, emoji='📗', custom_id="role_request:approve_button"
+    )
+    async def approve_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        if grant_level(interaction.user.roles, interaction.user) < 4:
+            return await interaction.send("Вы не можете использовать это", ephemeral=True)
+        self.stop()
+        button.disabled = True
+        await interaction.message.edit(view=None)
+        await interaction.message.add_reaction('✅')
+
+    @nextcord.ui.button(
+        label="Отменить", style=nextcord.ButtonStyle.red, emoji='📕', custom_id="role_request:cancel"
     )
     async def cancel(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         fields = interaction.message.embeds[0].fields
@@ -101,8 +112,10 @@ class CancelView(nextcord.ui.View):
         embed = interaction.message.embeds[0]
         embed.colour = nextcord.Colour.red()
         embed.title = "📕 Перепроверенный запрос на роль"
-
         await interaction.edit_original_message(embed=embed, view=None)
+        button.disabled = True
+        await interaction.message.edit(view=None)
+        await interaction.message.add_reaction('❌')
         await self.roles_handler.remove_request(user, guild, True, True, moderator_id=moderator_id,
                                                 role=request.role_info.role_names[0],
                                                 rang=request.rang, nick=request.nickname)
@@ -234,7 +247,7 @@ class StartView(nextcord.ui.View):
         bot = interaction.client
         await bot.vk.send_message(
             interaction.guild.id,
-            f"#test EsBot \n"
+            f"Server: {interaction.guild.name} \n"
             f"Заявление на роль было проверено за {round(check_time.total_seconds() / 60)} минут.\n"
             f"Модератор - {interaction.user.display_name}"
         )

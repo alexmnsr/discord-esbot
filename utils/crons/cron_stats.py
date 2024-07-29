@@ -12,15 +12,24 @@ from utils.neccessary import send_embed
 
 
 class PointsAdd_View(View):
-    def __init__(self, bot, moderator_ids: Dict[int, int]):
+    def __init__(self, bot, moderator_ids: Dict[int, int], date):
         super().__init__(timeout=None)
         self.bot = bot
         self.moderator_ids = moderator_ids
+        self.date = date
 
     @nextcord.ui.button(
         label="Выдать поинты", style=nextcord.ButtonStyle.green, emoji='📕', custom_id="points_request:give_points"
     )
     async def add_points_vk(self, button: Button, interaction: nextcord.Interaction):
+        member = await interaction.guild.get_member(interaction.user.id)
+        roles = [r.name.lower() for r in member.roles]
+        if 'главный модератор' in roles:
+            send_button = '| GMD'
+        elif 'следящий за discord' in roles:
+            send_button = '| DS'
+        else:
+            send_button = ''
         for moderator_id, details in self.moderator_ids.items():
             points = details['points']
             reasons = details['reasons']
@@ -28,9 +37,10 @@ class PointsAdd_View(View):
                 continue
             reasons_text = " | ".join(reasons)
             await self.bot.vk.send_message(506143782509740052,
-                                           f'/point {moderator_id}* {points} {reasons_text} | {datetime.datetime.now().strftime("%d.%m.%Y")}')
+                                           f'/point {moderator_id}* {points} {reasons_text} | {self.date}{send_button}')
 
         button.disabled = True
+        await interaction.edit_original_message(view=self)
         await interaction.response.send_message("Поинты были выданы!", ephemeral=True)
 
 
@@ -213,7 +223,7 @@ class CRON_Stats:
                     max_online_moderator_id = moderator_id
 
             role_approve = stats['actions'].get('role_approve', 0)
-            role_reject = stats['actions'].get('role_reject', 0)
+            role_reject = stats['actions'].get('role_remove', 0)
             if role_approve > max_role:
                 max_role = role_approve + (role_reject / 2)
                 max_role_moderator_id = moderator_id
@@ -263,4 +273,4 @@ class CRON_Stats:
                     inline=False
                 )
         embed.set_footer(text=f"{datetime.datetime.now().strftime('%d.%m.%Y')}")
-        await channel.send(embed=embed, view=PointsAdd_View(bot=self.bot, moderator_ids=send_messages_points))
+        await channel.send(embed=embed, view=PointsAdd_View(bot=self.bot, moderator_ids=send_messages_points, date=datetime.datetime.now().strftime("%d.%m.%Y")))

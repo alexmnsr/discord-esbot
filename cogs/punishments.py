@@ -183,8 +183,8 @@ class Punishments(commands.Cog):
                         message_len: int = None):
         if isinstance(user, str) and not (user := await self.bot.resolve_user(user, interaction.guild)):
             return await interaction.send('Пользователь не найден.', ephemeral=True)
-        # if isinstance(user, nextcord.Member) and interaction.user.top_role <= user.top_role:
-        #     return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
+        if isinstance(user, nextcord.Member) and interaction.user.top_role <= user.top_role:
+            return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
         await interaction.response.defer()
         mute_seconds = string_to_seconds(duration)
         if not mute_seconds:
@@ -199,8 +199,7 @@ class Punishments(commands.Cog):
                  .add_field(name='Причина', value=reason)
                  .add_field(name='Время', value=beautify_seconds(mute_seconds))
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
-
-        if message:
+        if isinstance(message, nextcord.Message):
             channel = [c for c in message.guild.text_channels if 'выдача-наказаний' in c.name][0]
             await interaction.send(embed=embed, ephemeral=True)
             if isinstance(message, nextcord.Message):
