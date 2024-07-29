@@ -135,7 +135,7 @@ class MuteHandler:
         if role_name == 'Mute » Full':
             role_name = ['Mute » Text', 'Mute » Voice']
 
-        guild, member = await remove_role(self.client, user_id, guild_id, mute['action_id'], role_name)
+        guild, member = await remove_role(self.client, user_id, guild_id, mute['_id'], role_name)
 
         if guild:
             embed = nextcord.Embed(
@@ -148,8 +148,8 @@ class MuteHandler:
         log_embed = nextcord.Embed(title=f'Снятие {mute_name(role_name)} мута', color=0x00FF00)
         log_embed.add_field(name='Пользователь', value=user_visual(member))
         log_embed.set_author(name=moderator.display_name, icon_url=moderator.display_avatar.url)
-        log_embed.set_footer(text=f'ID: {mute["action_id"]}')
-        await self.client.db.actions.send_log(mute['action_id'], guild, log_embed)
+        log_embed.set_footer(text=f'ID: {mute["_id"]}')
+        await self.client.db.actions.send_log(mute['_id'], guild, log_embed)
         return True
 
 
@@ -235,7 +235,7 @@ class BanHandler:
         action_id = await self.database.get_ban(user_id=user.id, guild_id=guild.id)
 
         if duration != '-1':
-            self.client.loop.create_task(await self.wait_ban(action_id['_id'], duration))
+            self.client.loop.create_task(self.wait_ban(action_id['_id'], duration))
 
     async def wait_ban(self, action_id, seconds):
         seconds = int(seconds)
@@ -289,8 +289,8 @@ class BanHandler:
 
         log_embed = nextcord.Embed(title='Снятие блокировки', color=0x00FF00)
         log_embed.set_author(name=user.display_name, icon_url=user.display_avatar.url)
-        log_embed.set_footer(text=f'ID: {ban["action_id"]}')
-        await self.client.db.actions.send_log(ban['action_id'], guild, log_embed)
+        log_embed.set_footer(text=f'ID: {ban["_id"]}')
+        await self.client.db.actions.send_log(ban['_id'], guild, log_embed)
         return True
 
 

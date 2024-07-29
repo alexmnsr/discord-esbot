@@ -144,12 +144,12 @@ class Punishments(commands.Cog):
 
         for mute in mutes:
             if mute['type'] == 'full':
-                await give_role('Mute » Text', mute['action_id'])
-                await give_role('Mute » Voice', mute['action_id'])
+                await give_role('Mute » Text', mute['_id'])
+                await give_role('Mute » Voice', mute['_id'])
             elif mute['type'] == 'text':
-                await give_role('Mute » Text', mute['action_id'])
+                await give_role('Mute » Text', mute['_id'])
             elif mute['type'] == 'voice':
-                await give_role('Mute » Voice', mute['action_id'])
+                await give_role('Mute » Voice', mute['_id'])
 
     @nextcord.slash_command(name='tmute', description='Выдать пользователю временный мут (До выяснений)')
     @restricted_command(1)
@@ -503,7 +503,7 @@ class Punishments(commands.Cog):
         else:
             return await interaction.send('Блокировка не найдена', ephemeral=True)
 
-        await interaction.guild.unban(user, reason=f"Action ID блокировки: {ban['action_id']}")
+        await interaction.guild.unban(user, reason=f"Action ID блокировки: {ban['_id']}")
 
         embed = ((nextcord.Embed(title='Разблокировка пользователя', color=nextcord.Color.red())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
@@ -511,7 +511,7 @@ class Punishments(commands.Cog):
                  .add_field(name='Блокировал модератор', value=f'<@{ban["moderator_id"]}>')
                  .add_field(name='Разблокировал:', value=f'<@{interaction.user.id}>')
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
-                 .set_footer(text=f"Action ID: {ban['action_id']}"))
+                 .set_footer(text=f"Action ID: {ban['_id']}"))
         return await interaction.send(embed=embed)
 
     @nextcord.slash_command(name='gban', description="Заблокировать пользователя на всех серверах",
