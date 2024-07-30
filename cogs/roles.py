@@ -133,7 +133,7 @@ class Roles(commands.Cog):
         await interaction.send(f'Роль {roles[0].mention} была снята.', ephemeral=True)
 
     @nextcord.user_command('Удалить заявку на выдачу роли')
-    @restricted_command(2)
+    @restricted_command(1)
     async def remove_role_database(self, interaction: nextcord.Interaction, member: nextcord.Member):
         await self.handler.remove_request(interaction.user, interaction.guild, False, False)
         await interaction.send(f'Заявка пользователя на роль была удалена', ephemeral=True)

@@ -22,7 +22,7 @@ class PointsAdd_View(View):
         label="Выдать поинты", style=nextcord.ButtonStyle.green, emoji='📕', custom_id="points_request:give_points"
     )
     async def add_points_vk(self, button: Button, interaction: nextcord.Interaction):
-        member = await interaction.guild.get_member(interaction.user.id)
+        member = interaction.guild.get_member(interaction.user.id)
         roles = [r.name.lower() for r in member.roles]
         if 'главный модератор' in roles:
             send_button = '| GMD'
@@ -38,9 +38,7 @@ class PointsAdd_View(View):
             reasons_text = " | ".join(reasons)
             await self.bot.vk.send_message(506143782509740052,
                                            f'/point {moderator_id}* {points} {reasons_text} | {self.date}{send_button}')
-
-        button.disabled = True
-        await interaction.edit_original_message(view=self)
+        await interaction.edit_original_message(view=None)
         await interaction.response.send_message("Поинты были выданы!", ephemeral=True)
 
 

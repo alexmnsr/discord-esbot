@@ -231,7 +231,7 @@ class BanHandler:
         log_embed.set_footer(text=f'ID: {user.id}')
         await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
 
-        action_id = await self.database.get_ban(user_id=user.id, guild_id=guild.id)
+        action_id = await self.database.get_ban(user_id=user.id, guild_id=guild.id, type_ban=type_ban)
 
         if duration != '-1':
             self.client.loop.create_task(self.wait_ban(action_id['_id'], duration))
