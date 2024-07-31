@@ -24,7 +24,7 @@ class CRON_Stats:
         msk_tz = pytz.timezone('Europe/Moscow')
         now = datetime.datetime.now(msk_tz)
         reports = [
-            ('день', 23, 59, '*', '*', None),
+            ('день', 1, 20, '*', '*', None),
             ('неделя', 23, 59, 'sun', '*', None),
             ('месяц', 23, 59, '*', f'{(now.replace(day=1) + relativedelta(months=1, days=-1)).day}',
              datetime.datetime.now().month)
@@ -33,7 +33,7 @@ class CRON_Stats:
             trigger = CronTrigger(hour=hour, minute=minute, day_of_week=day_of_week, day=day, month=month,
                                   timezone=msk_tz)
             self.scheduler.add_job(self.send_report, trigger, args=[period])
-            self.scheduler.add_job(self.send_stats_bond, trigger, args=[period])
+            # self.scheduler.add_job(self.send_stats_bond, trigger, args=[period])
 
     async def send_report(self, period):
         for guild in self.bot.guilds:
@@ -44,7 +44,7 @@ class CRON_Stats:
             await self.send_stats_to_bond_vk(guild, period=period)
 
     async def send_stats_to_guild(self, guild, period='день'):
-        date = datetime.datetime.now(pytz.timezone('Europe/Moscow')).strftime('%d.%m.%Y')
+        date = '31.07.2024' # datetime.datetime.now(pytz.timezone('Europe/Moscow')).strftime('%d.%m.%Y')
         start_date = datetime.datetime.strptime(date, '%d.%m.%Y')
 
         if period == "день":
@@ -240,7 +240,7 @@ class CRON_Stats:
                     inline=False
                 )
         embed.set_footer(text=f"{datetime.datetime.now().strftime('%d.%m.%Y')}")
-        message = await channel.send(embed=embed, view=PointsAdd_View(moderator_ids=send_messages_points, date=datetime.datetime.now().strftime("%d.%m.%Y")))
+        message = await channel.send(embed=embed, view=PointsAdd_View(moderator_ids=str(send_messages_points), date=datetime.datetime.now().strftime("%d.%m.%Y")))
         params = {
             'moderator_ids': str(send_messages_points),
             'date': datetime.datetime.now().strftime("%d.%m.%Y")
