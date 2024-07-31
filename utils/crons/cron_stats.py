@@ -24,7 +24,7 @@ class CRON_Stats:
         msk_tz = pytz.timezone('Europe/Moscow')
         now = datetime.datetime.now(msk_tz)
         reports = [
-            ('день', 23, 59, '*', '*', None),
+            ('день', 1, 35, '*', '*', None),
             ('неделя', 23, 59, 'sun', '*', None),
             ('месяц', 23, 59, '*', f'{(now.replace(day=1) + relativedelta(months=1, days=-1)).day}',
              datetime.datetime.now().month)
@@ -44,7 +44,7 @@ class CRON_Stats:
             await self.send_stats_to_bond_vk(guild, period=period)
 
     async def send_stats_to_guild(self, guild, period='день'):
-        date = datetime.datetime.now(pytz.timezone('Europe/Moscow')).strftime('%d.%m.%Y')
+        date = '31.07.2024' # datetime.datetime.now(pytz.timezone('Europe/Moscow')).strftime('%d.%m.%Y')
         start_date = datetime.datetime.strptime(date, '%d.%m.%Y')
 
         if period == "день":
@@ -180,7 +180,7 @@ class CRON_Stats:
         for moderator_id, stats in moderator_stats.items():
             total_online_td = stats['total_online']
             roles = [r.name.lower() for r in stats['member'].roles]
-            if 'ст. модератор' or 'ассистент discord' in roles:
+            if 'ст. модератор' in roles or 'ассистент discord' in roles:
                 if total_online_td > max_online_st_moderator:
                     max_online_st_moderator = total_online_td
                     max_online_st_moderator_id = moderator_id
@@ -191,8 +191,10 @@ class CRON_Stats:
 
             role_approve = stats['actions'].get('role_approve', 0)
             role_reject = stats['actions'].get('role_remove', 0)
-            if role_approve > max_role:
-                max_role = role_approve + (role_reject / 2)
+            total_roles = role_approve + (role_reject / 2)
+
+            if total_roles > max_role:
+                max_role = total_roles
                 max_role_moderator_id = moderator_id
 
         def calculate_online_points(online_time):
