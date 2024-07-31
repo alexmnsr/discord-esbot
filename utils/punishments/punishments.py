@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import importlib
 from datetime import timedelta
 
 import nextcord
@@ -42,7 +43,7 @@ class MuteHandler:
         )
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
         await send_embed(member, embed)
-        self.client.loop.create_task(self.wait_mute(None, duration, 'Temp_Mute » Full', member))
+        self.client.loop.create_task(self.wait_mute(None, duration, 'Temp_Mute » Full', moderator, member))
 
     async def give_mute(self, role_name, *, user, guild, moderator, reason, duration, jump_url):
         get, give, remove = self.mute_info(role_name)
@@ -81,9 +82,9 @@ class MuteHandler:
 
         action_id = await get(user_id=member.id, guild_id=guild.id)
 
-        self.client.loop.create_task(self.wait_mute(action_id['_id'], duration, role_name, member))
+        self.client.loop.create_task(self.wait_mute(action_id['_id'], duration, role_name, moderator, member))
 
-    async def wait_mute(self, action_id, seconds, role_name, member: nextcord.Member):
+    async def wait_mute(self, action_id, seconds, role_name, moderator, member: nextcord.Member = None):
         if seconds > 0:
             await asyncio.sleep(seconds)
 
@@ -98,20 +99,17 @@ class MuteHandler:
             print(f"No mute found for action ID: {action_id}.")
             return
 
-        await remove(mute['user_id'], mute['guild_id'])
+        await remove(mute['user_id'], mute['guild_id'], moderator)
 
-        # Определяем название роли для удаления
         if role_name == 'Mute » Full':
             role_name = ['Mute » Text', 'Mute » Voice']
-
-        # Удаляем роль
-        guild, member = await remove_role(self.client, mute['user_id'], mute['guild_id'], action_id, role_name)
+        guild = self.client.get_guild(mute['guild_id'])
+        guild, member = await remove_role(mute['user_id'], guild, action_id, role_name)
 
         if not guild:
             print("Guild not found, unable to remove role.")
             return
 
-        # Создаем и отправляем уведомление участнику
         embed = nextcord.Embed(
             title=f'Ваш {mute_name(role_name)} мут истек.',
             description=f'Вы снова можете продолжать общение в текстовых чатах на сервере {guild.name}.',
@@ -125,16 +123,18 @@ class MuteHandler:
         except nextcord.HTTPException as e:
             print(f"Failed to send embed notification to {member.display_name}: {e}")
 
-    async def remove_mute(self, user_id, guild_id, role_name, moderator):
+    async def remove_mute(self, user_id, guild, role_name, moderator, *, cancel=None):
         get, give, remove = self.mute_info(role_name)
 
-        if not (mute := await get(user_id=user_id, guild_id=guild_id)) or not await remove(user_id, guild_id,
-                                                                                           moderator_id=moderator.id):
+        if not (mute := await get(user_id=user_id, guild_id=guild.id)) or not await remove(user_id, guild.id,
+                                                                                           moderator=moderator):
             return False
         if role_name == 'Mute » Full':
             role_name = ['Mute » Text', 'Mute » Voice']
+        guild, member = await remove_role(user_id, guild, mute['_id'], role_name)
 
-        guild, member = await remove_role(self.client, user_id, guild_id, mute['_id'], role_name)
+        if cancel:
+            await self.database.cancel_mute(user_id=user_id, guild_id=guild.id, moderator_id=moderator.id)
 
         if guild:
             embed = nextcord.Embed(
@@ -231,7 +231,7 @@ class BanHandler:
         log_embed.set_footer(text=f'ID: {user.id}')
         await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
 
-        action_id = await self.database.get_ban(user_id=user.id, guild_id=guild.id, type_ban=type_ban)
+        action_id = await self.database.get_ban(user_id=user.id, guild_id=guild.id)
 
         if duration != '-1':
             self.client.loop.create_task(self.wait_ban(action_id['_id'], duration))
@@ -309,29 +309,67 @@ class ApproveHandler:
 
 
 class PunishmentsHandler:
-    def __init__(self, client, global_db, mongodb) -> None:
+    def __init__(self, client, global_db, mongodb, buttons) -> None:
         self.database = PunishmentsDatabase(client, global_db, mongodb)
         self.client = client
         self.mutes = MuteHandler(self)
         self.bans = BanHandler(self)
         self.warns = WarnHandler(self)
         self.approves = ApproveHandler(self)
+        self.buttons = buttons
+
+    async def get_class_from_file(self, module_name: str, class_name: str):
+        module = importlib.import_module(module_name)
+        cls = getattr(module, class_name, None)
+
+        if isinstance(cls, type):
+            return cls
+        return None
+
+    async def load_buttons(self):
+        loaded_buttons = await self.buttons.load_all_buttons()
+
+        for button_data in loaded_buttons['Punishments']:
+            module_name = 'utils.button_state.views.Punishments'
+            message_id = button_data.get('message_id')
+            channel_id = button_data.get('channel_id')
+            class_name = button_data.get('class_method')
+            selected_class = await self.get_class_from_file(module_name, class_name)
+            if selected_class:
+                print(f"Класс {selected_class.__name__} найден.")
+            else:
+                print(f"Класс {selected_class.__name__} не найден.")
+            params = button_data.get('params', {})
+            view = selected_class(**params)
+
+            channel = self.client.get_channel(channel_id)
+            if channel:
+                try:
+                    message = await channel.fetch_message(message_id)
+                    await message.edit(view=view)
+                except nextcord.NotFound:
+                    print("Сообщение не найдено.")
+                except nextcord.Forbidden:
+                    print("Нет прав на редактирование этого сообщения.")
+                except Exception as e:
+                    print(f"Произошла ошибка: {e}")
 
     async def reload(self):
         current_mutes = await self.database.get_mutes()
         current_bans = await self.database.get_bans()
-        print(current_mutes)
+        await self.load_buttons()
+
         for mute in current_mutes:
             role_name = 'Mute » Text' if mute['type'] == 'text' else 'Mute » Voice' if mute[
                                                                                            'type'] == 'voice' else 'Mute » Full'
             self.client.loop.create_task(self.mutes.wait_mute(mute['_id'],
-                                                                    ((mute['given_at'] + datetime.timedelta(
-                                                                        seconds=mute[
-                                                                            'duration'])) - datetime.datetime.now()).total_seconds(),
-                                                                    role_name, member=None))
+                                                              ((mute['given_at'] + datetime.timedelta(
+                                                                  seconds=mute[
+                                                                      'duration'])) - datetime.datetime.now()).total_seconds(),
+                                                              role_name, await self.client.fetch_user(mute['moderator_id'])))
         for ban in current_bans:
             if ban['duration'] == '-1':
                 continue
             self.client.loop.create_task(self.bans.wait_ban(ban['_id'],
-                                                                  ((ban['given_at'] + datetime.timedelta(seconds=ban[
-                                                                      'duration'])) - datetime.datetime.now()).total_seconds()))
+                                                            ((ban['given_at'] + datetime.timedelta(seconds=ban[
+                                                                'duration'])) - datetime.datetime.now()).total_seconds()))

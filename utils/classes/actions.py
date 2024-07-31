@@ -1,6 +1,8 @@
 import datetime
 import enum
 
+import bson
+from bson import ObjectId
 from motor import motor_asyncio
 
 
@@ -125,8 +127,24 @@ class Actions:
         punishments = await self.actions.find(query).to_list(length=None)
         return punishments
 
+    async def delete_action(self, *, user_id, guild_id, moderator_id):
+        filter = {
+            'user_id': user_id,
+            'guild_id': guild_id,
+            'moderator_id': moderator_id
+        }
+
+        existing_document = await self.actions.find_one(filter)
+        if not existing_document:
+            print("Document not found with the given filter")
+            return None
+
+        result = await self.actions.delete_one({'_id': existing_document['_id']})
+
+        return result
+
     async def get_action(self, action_id):
-        return await self.actions.find_one({'_id': action_id})
+        return await self.actions.find_one({'_id': ObjectId(action_id)})
 
     @staticmethod
     async def send_log(action_id, guild, embed):

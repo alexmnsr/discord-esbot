@@ -14,6 +14,7 @@ class EsBot(commands.Bot):
         super().__init__(command_prefix='MANSORY', intents=Intents.all())
         self.db = Database(self)
         self.vk = VKBot()
+        self.buttons = self.db.state_buttons
         self.is_view_initialised = False
         self.deleted_messages = []
 

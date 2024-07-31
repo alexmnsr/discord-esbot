@@ -67,19 +67,87 @@ def find_role(role_name):
     return None
 
 
+class WarnModerator(nextcord.ui.Modal):
+    def __init__(self, interaction, moderator_id):
+        super().__init__(title='Параметры наказания', timeout=300)
+        self.bot = interaction.client
+        self.moderator_id = moderator_id
+
+        self.warn = nextcord.ui.TextInput(
+            label='Количество предупреждений',
+            placeholder='Введите количество предупреждений',
+            max_length=6,
+            required=True
+        )
+        self.add_item(self.warn)
+
+        self.reason = nextcord.ui.TextInput(
+            label='Причина',
+            placeholder='Введите причину',
+            required=True
+        )
+        self.add_item(self.reason)
+
+    async def callback(self, interaction: nextcord.Interaction):
+        if grant_level(interaction.user.roles, interaction.user) < 4:
+            channel = [c for c in interaction.guild.text_channels if 'подтверждение-нарушения' in c.name][0]
+            embed = nextcord.Embed(title='Запрос на подтверждение GMD')
+            embed.add_field(name='Модератор', value=interaction.guild.get_member(self.moderator_id).mention)
+            embed.add_field(name='Количество предупреждений', value=self.warn.value)
+            embed.add_field(name='Причины', value=self.reason.value)
+            embed.set_footer(text=f'Подал: {interaction.user.id}')
+            await channel.send(embed=embed, view=ApproveDS(self.bot, self.moderator_id, self.warn, self.reason))
+        else:
+            await self.bot.vk.send_message(interaction.guild.id,
+                                           f'/warn {self.moderator_id}* {self.warn.value} {self.reason.value} | DS')
+        await interaction.response.send_message('Выданно', ephemeral=True)
+        self.stop()
+
+
+class ApproveDS(nextcord.ui.View):
+    def __init__(self, bot, moderator_id, warn, reason):
+        super().__init__(timeout=None)
+        self.bot = bot
+        self.moderator_id = moderator_id
+        self.warn = warn
+        self.reason = reason
+
+    @nextcord.ui.button(
+        label="Одобрить", style=nextcord.ButtonStyle.green, emoji='📗',
+        custom_id="punishment_request:approve_button_DS"
+    )
+    async def approve_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        if grant_level(interaction.user.roles, interaction.user) < 4:
+            return await interaction.send("Вы не можете использовать это", ephemeral=True)
+        await self.bot.vk.send_message(interaction.guild.id,
+                                       f'/warn {self.moderator_id}* {self.warn.value} {self.reason.value} | GMD')
+        await interaction.message.edit(view=None)
+        await interaction.message.add_reaction('✅')
+
+    @nextcord.ui.button(
+        label="Отменить", style=nextcord.ButtonStyle.red, emoji='📕',
+        custom_id="punishment_request:cancel_DS"
+    )
+    async def cancel(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        if grant_level(interaction.user.roles, interaction.user) < 4:
+            return await interaction.send("Вы не можете использовать это", ephemeral=True)
+        await interaction.message.edit(view=None)
+        await interaction.message.add_reaction('❌')
+
+
 class CancelView(nextcord.ui.View):
     def __init__(self, roles_handler):
         super().__init__(timeout=None)
         self.roles_handler = roles_handler
 
     @nextcord.ui.button(
-        label="Одобрить выдачу (GMD | DS)", style=nextcord.ButtonStyle.green, emoji='📗', custom_id="role_request:approve_button"
+        label="Одобрить выдачу (GMD | DS)", style=nextcord.ButtonStyle.green, emoji='📗',
+        custom_id="role_request:approve_button"
     )
     async def approve_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         if grant_level(interaction.user.roles, interaction.user) < 4:
             return await interaction.send("Вы не можете использовать это", ephemeral=True)
         self.stop()
-        button.disabled = True
         await interaction.message.edit(view=None)
         await interaction.message.add_reaction('✅')
 
@@ -98,8 +166,6 @@ class CancelView(nextcord.ui.View):
             return await interaction.send("Вы не можете использовать это", ephemeral=True)
         self.stop()
 
-        await interaction.response.defer()
-
         request = await RoleRequest.from_message(interaction.message)
         user, guild = RoleRequest.parse_info(interaction.message)
 
@@ -111,9 +177,8 @@ class CancelView(nextcord.ui.View):
 
         embed = interaction.message.embeds[0]
         embed.colour = nextcord.Colour.red()
-        embed.title = "📕 Перепроверенный запрос на роль"
-        await interaction.edit_original_message(embed=embed, view=None)
-        button.disabled = True
+        warn_modal = WarnModerator(interaction, moderator_id=interaction.user.id)
+        await interaction.response.send_modal(warn_modal)
         await interaction.message.edit(view=None)
         await interaction.message.add_reaction('❌')
         await self.roles_handler.remove_request(user, guild, True, True, moderator_id=moderator_id,

@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import importlib
 
 import nextcord
 
@@ -10,10 +11,49 @@ from typing import Union
 
 
 class OnlineHandler:
-    def __init__(self, mongodb) -> None:
+    def __init__(self, client, mongodb, buttons) -> None:
+        self.client = client
         self.database = OnlineDatabase(mongodb)
+        self.buttons = buttons
+
+    async def get_class_from_file(self, module_name: str, class_name: str):
+        module = importlib.import_module(module_name)
+        cls = getattr(module, class_name, None)
+
+        if isinstance(cls, type):
+            return cls
+        return None
+
+    async def load_buttons(self):
+        loaded_buttons = await self.buttons.load_all_buttons()
+
+        for button_data in loaded_buttons['Online']:
+            module_name = 'utils.button_state.views.Online'
+            message_id = button_data.get('message_id')
+            channel_id = button_data.get('channel_id')
+            class_name = button_data.get('class_method')
+            selected_class = await self.get_class_from_file(module_name, class_name)
+            if selected_class:
+                print(f"Класс {selected_class.__name__} найден.")
+            else:
+                print(f"Класс {selected_class.__name__} не найден.")
+            params = button_data.get('params', {})
+            view = selected_class(**params)
+
+            channel = self.client.get_channel(channel_id)
+            if channel:
+                try:
+                    message = await channel.fetch_message(message_id)
+                    await message.edit(view=view)
+                except nextcord.NotFound:
+                    print("Сообщение не найдено.")
+                except nextcord.Forbidden:
+                    print("Нет прав на редактирование этого сообщения.")
+                except Exception as e:
+                    print(f"Произошла ошибка: {e}")
 
     async def reload(self, all_channels):
+        await self.load_buttons()
         print("Начал обновление онлайна пользователей!")
         current_info = await self.database.get_current_info()
         call_user = 0

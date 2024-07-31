@@ -7,6 +7,21 @@ from utils.neccessary import nick_without_tag, restricted_command
 from utils.roles.role_info import role_info, RoleRequest
 
 
+class ApproveHandler:
+    def __init__(self, handler: "PunishmentsHandler") -> None:
+        self.handler = handler
+        self.client = handler.client
+        self.database = handler.database
+
+    async def add(self, info: dict) -> int:
+        return await self.database.add_approve(info)
+
+    async def pop(self, approve_id: int) -> dict:
+        data = await self.database.get_approve(approve_id)
+        await self.database.remove_approve(approve_id)
+        return data
+
+
 def command_mention(app_command, guild_id):
     command_id = app_command.command_ids.get(guild_id)
 

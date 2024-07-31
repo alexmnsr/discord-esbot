@@ -7,3 +7,4 @@ psutil~=5.9.8
 pytz~=2024.1
 APScheduler~=3.10.4
 python-dateutil~=2.9.0.post0
+pymongo~=4.7.3

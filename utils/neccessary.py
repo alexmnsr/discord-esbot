@@ -201,8 +201,7 @@ async def remove_temp_role(member: nextcord.Member = None, role_name='Temp_Mute 
             await member.remove_roles(role, reason=f'Снятие временного наказания (Temp_Mute).')
 
 
-async def remove_role(client, member_id, guild_id, action_id, role_name):
-    guild = client.get_guild(guild_id)
+async def remove_role(member_id, guild, action_id, role_name):
     if not guild:
         return False, False
 
@@ -212,7 +211,7 @@ async def remove_role(client, member_id, guild_id, action_id, role_name):
         member = None
 
     if not member:
-        return guild, await client.fetch_user(member_id)
+        return guild, await guild.fetch_user(member_id)
 
     roles_to_remove = []
     for role in member.roles:

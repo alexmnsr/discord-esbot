@@ -1,5 +1,6 @@
 import datetime
 
+import nextcord
 from bson import ObjectId
 from motor import motor_asyncio
 
@@ -110,11 +111,11 @@ class PunishmentsDatabase:
         return await self.give_mute(user_id, guild_id, moderator_id, reason, duration, ActionType.MUTE_FULL,
                                     jump_url=jump_url)
 
-    async def remove_mute(self, user_id, guild_id, mute_type, moderator_id=None):
+    async def remove_mute(self, user_id, guild_id, mute_type, moderator=None):
         await self.actions.add_action(
             user_id=user_id,
             guild_id=guild_id,
-            moderator_id=moderator_id,
+            moderator_id=moderator.id,
             action_type=ActionType.UNMUTE_LOCAL,
             payload={
 
@@ -126,14 +127,23 @@ class PunishmentsDatabase:
             'type': mute_type.name.split('_')[1].lower()
         })).deleted_count == 1
 
-    async def remove_text_mute(self, user_id, guild_id, moderator_id=0):
-        return await self.remove_mute(user_id, guild_id, ActionType.MUTE_TEXT, moderator_id=moderator_id)
+    async def cancel_mute(self, user_id, guild_id, moderator_id):
+        if isinstance(moderator_id, nextcord.Member):
+            moderator_id = moderator_id.id  # Получаем ID модератора
+        return await self.actions.delete_action(
+            user_id=user_id,
+            guild_id=guild_id,
+            moderator_id=moderator_id
+        )
 
-    async def remove_voice_mute(self, user_id, guild_id, moderator_id=0):
-        return await self.remove_mute(user_id, guild_id, ActionType.MUTE_VOICE, moderator_id=moderator_id)
+    async def remove_text_mute(self, user_id, guild_id, moderator=0):
+        return await self.remove_mute(user_id, guild_id, ActionType.MUTE_TEXT, moderator=moderator)
 
-    async def remove_full_mute(self, user_id, guild_id, moderator_id=0):
-        return await self.remove_mute(user_id, guild_id, ActionType.MUTE_FULL, moderator_id=moderator_id)
+    async def remove_voice_mute(self, user_id, guild_id, moderator=0):
+        return await self.remove_mute(user_id, guild_id, ActionType.MUTE_VOICE, moderator=moderator)
+
+    async def remove_full_mute(self, user_id, guild_id, moderator=0):
+        return await self.remove_mute(user_id, guild_id, ActionType.MUTE_FULL, moderator=moderator)
 
     async def give_warn(self, user_id, guild_id, moderator_id, reason, warn_type, approve_moderator=None, *, jump_url):
         if approve_moderator is not None:
@@ -172,11 +182,11 @@ class PunishmentsDatabase:
                                              'guild_id': guild_id
                                          } if not action_id else {'_id': ObjectId(action_id)})
 
-    async def remove_warn(self, *, user_id=None, guild_id=None, moderator_id=None, action_id=None):
+    async def remove_warn(self, *, user_id=None, guild_id=None, moderator=None, action_id=None):
         await self.actions.add_action(
             user_id=user_id,
             guild_id=guild_id,
-            moderator_id=moderator_id,
+            moderator_id=moderator.id,
             action_type=ActionType.UNWARN_LOCAL,
             payload={
 
@@ -229,11 +239,10 @@ class PunishmentsDatabase:
         })
         return action_id
 
-    async def get_ban(self, *, user_id=None, guild_id=None, action_id=None, type_ban=None):
+    async def get_ban(self, *, user_id=None, guild_id=None, action_id=None):
         return await self.bans.find_one({
                                             'user_id': user_id,
-                                            'guild_id': guild_id,
-                                            'type': type_ban
+                                            'guild_id': guild_id
                                         } if not action_id else {'_id': ObjectId(action_id)})
 
     async def remove_ban(self, *, user_id=None, guild_id=None, action_id=None, moderator_id=None, type_ban=None):
@@ -248,6 +257,5 @@ class PunishmentsDatabase:
         )
         return await self.bans.delete_one({
                                               'user_id': user_id,
-                                              'guild_id': guild_id,
-                                              'type': type_ban
+                                              'guild_id': guild_id
                                           } if not action_id else {'_id': ObjectId(action_id)})

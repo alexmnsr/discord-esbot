@@ -10,11 +10,12 @@ nickname_regex = re.compile(r'^[A-Z][a-z]+(?:_[A-Z][a-z]+)?_[A-Z][a-z]+$')
 
 
 class RolesHandler:
-    def __init__(self, client, global_db, mongodb: AgnosticCollection) -> None:
+    def __init__(self, client, global_db, mongodb: AgnosticCollection, buttons) -> None:
         self.client = client
         self.mongo = mongodb["Requests"]
         self.moder_mongo = mongodb["Review"]
         self.actions = global_db.actions
+        self.db_buttons = buttons["Roles"]
 
     @staticmethod
     def check_nickname(nickname):
