@@ -24,6 +24,8 @@ class ActionType(enum.Enum):
     ROLE_REJECT = 'role_reject'
     ROLE_REMOVE = 'role_remove'
     ROLE_CANCEL = 'role_cancel'
+    BLOCK_CHANNEL = 'block_channel'
+    REMOVE_BLOCKCHANNEL = 'unblock_channel'
 
 
 human_actions = {
@@ -40,7 +42,9 @@ human_actions = {
     ActionType.ROLE_APPROVE.value: "Одобрение роли",
     ActionType.ROLE_REJECT.value: "Отклонение роли",
     ActionType.ROLE_REMOVE.value: "Снятие роли",
-    ActionType.ROLE_CANCEL.value: "Перепроверка роли"
+    ActionType.ROLE_CANCEL.value: "Перепроверка роли",
+    ActionType.BLOCK_CHANNEL.value: "Блокировка канала",
+    ActionType.REMOVE_BLOCKCHANNEL.value: "Разблокировка канала"
 }
 
 moder_actions = {
@@ -59,7 +63,9 @@ moder_actions = {
     ActionType.ROLE_APPROVE.value: "Одобренных ролей",
     ActionType.ROLE_REJECT.value: "Отказанных ролей",
     ActionType.ROLE_REMOVE.value: "Снятия ролей",
-    ActionType.ROLE_CANCEL.value: "Перепроверка роли"
+    ActionType.ROLE_CANCEL.value: "Перепроверка роли",
+    ActionType.BLOCK_CHANNEL.value: "Блокировка канала",
+    ActionType.REMOVE_BLOCKCHANNEL.value: "Разблокировка канала"
 }
 
 payload_types = {

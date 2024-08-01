@@ -64,7 +64,7 @@ class Punishments(commands.Cog):
         await interaction.send(embed=embed)
 
     @nextcord.slash_command(name='bchannel')
-    @restricted_command(1)
+    @restricted_command(2)
     async def block_channel(self, interaction,
                             user: str = nextcord.SlashOption('пользователь',
                                                              description='Пользователь',
@@ -86,11 +86,8 @@ class Punishments(commands.Cog):
             return await interaction.send('Неверный формат длительности мута.')
         category = await self.handler.block.find_categories(interaction.guild, category_name=category)
         if category is None:
-            return await interaction.send('Не нашел такой категории', ephemeral=True)
-        await self.handler.block.give_block_channel(user, interaction.guild, seconds, reason, category)
-        # await self.handler.block.wait_block_channel(user.id, category, seconds)
-
-
+            return await interaction.send('Не нашел нужной категории', ephemeral=True)
+        await self.handler.block.give_block_channel(interaction, user, interaction.guild, seconds, reason, category)
 
     @nextcord.slash_command(name='mute')
     @restricted_command(1)
@@ -258,8 +255,8 @@ class Punishments(commands.Cog):
         if not resolved_user:
             return await interaction.send('Пользователь не найден.')
 
-        # if isinstance(resolved_user, nextcord.Member) and interaction.user.top_role <= resolved_user.top_role:
-        #     return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
+        if isinstance(resolved_user, nextcord.Member) and interaction.user.top_role <= resolved_user.top_role:
+            return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
         count_warns = len(await self.handler.database.get_warns(resolved_user.id, interaction.guild.id)) + 1
         embed = self.handler.warns.create_warn_embed(interaction, resolved_user, count_warns, reason)
@@ -329,8 +326,8 @@ class Punishments(commands.Cog):
         if not resolved_user:
             return await interaction.send('Пользователь не найден.')
 
-        # if isinstance(resolved_user, nextcord.Member) and interaction.user.top_role <= resolved_user.top_role:
-        #     return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
+        if isinstance(resolved_user, nextcord.Member) and interaction.user.top_role <= resolved_user.top_role:
+            return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
         duration_in_seconds = string_to_seconds(duration, 'd')
         if duration_in_seconds is None:
@@ -343,7 +340,8 @@ class Punishments(commands.Cog):
 
         embed = self.handler.bans.create_ban_embed(interaction, resolved_user, duration_in_seconds, reason)
         if grant_level(interaction.user.roles, interaction.user) <= 3:
-            await interaction.send(embed=embed, view=PunishmentApprove(punishment='ban', reason=reason, moderator_id=interaction.user.id,
+            await interaction.send(embed=embed, view=PunishmentApprove(punishment='ban', reason=reason,
+                                                                       moderator_id=interaction.user.id,
                                                                        user_id=resolved_user.id,
                                                                        lvl=3, duration=duration_in_seconds))
             message = await interaction.original_message()

@@ -158,16 +158,43 @@ class BlockChannelHandler:
         self.client = handler.client
         self.database = handler.database
 
-    async def give_block_channel(self, user: nextcord.Member, guild: nextcord.Guild, duration,
+    async def give_block_channel(self, interaction: nextcord.Interaction, user: nextcord.Member, guild: nextcord.Guild,
+                                 duration,
                                  reason, category: nextcord.CategoryChannel):
+        moderator = interaction.user
         overwrite = nextcord.PermissionOverwrite()
         overwrite.send_messages = False
         overwrite.connect = False
         await category.set_permissions(user, overwrite=overwrite, reason=reason)
-        await self.wait_block_channel(user.id, category.id, duration)
+        action_id = await self.database.give_block_channel(user_id=user.id,
+                                                           guild_id=guild.id,
+                                                           moderator_id=interaction.user.id,
+                                                           reason=reason,
+                                                           duration=duration,
+                                                           category=category.name)
+        if not action_id:
+            return
 
-    async def remove_block_channel(self, user: int, category: int):
-        pass
+        embed = nextcord.Embed(
+            title=f'Вам выдана блокировка каналов на категорию "{category.name}" на сервере {guild.name}.',
+            description=f'Причина: {reason}\nВремя истечения: <t:{int((datetime.datetime.now() + timedelta(seconds=int(duration))).timestamp())}:R>',
+            color=0xFF0000
+        )
+        embed.set_author(name=guild.name, icon_url=guild.icon.url)
+
+        await send_embed(user, embed)
+        await interaction.send(
+            f'Пользователь {user.display_name}, получил блокировку каналов.\nКатегория:{category.name}\nВремя истечения: <t:{int((datetime.datetime.now() + timedelta(seconds=int(duration))).timestamp())}:R>',
+            ephemeral=True)
+        await self.wait_block_channel(user, moderator, category, duration, guild, action_id)
+
+    async def remove_block_channel(self, user: nextcord.Member, moderator, category: nextcord.CategoryChannel,
+                                   guild: nextcord.Guild, action_id=None):
+        await self.database.remove_block_channel(user_id=user.id,
+                                                 guild_id=guild.id,
+                                                 moderator_id=moderator.id,
+                                                 action_id=action_id)
+        await category.set_permissions(user, overwrite=None, reason="Снята блокировка после истечения времени.")
 
     async def find_categories(self, guild: nextcord.Guild, category_name):
         category_find = None
@@ -176,12 +203,13 @@ class BlockChannelHandler:
                 category_find = category
         return category_find
 
-    async def wait_block_channel(self, user: int, category: int, duration, action_id=None):
-        seconds = int(duration)
+    async def wait_block_channel(self, user: nextcord.Member, moderator, category: nextcord.CategoryChannel, duration,
+                                 guild: nextcord.Guild, action_id=None):
+        seconds = duration
         if seconds > 0:
             await asyncio.sleep(seconds)
 
-        await self.remove_block_channel(user)
+        await self.remove_block_channel(user, moderator, category, guild, action_id)
 
 
 class WarnHandler:

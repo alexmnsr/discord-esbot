@@ -14,11 +14,8 @@ class PunishmentsDatabase:
         self.mutes = self.db['mutes']
         self.bans = self.db['bans']
         self.warns = self.db['warns']
-        self.approves = self.db['approves']
+        self.block_channel = self.db['block_channels']
         self.actions = global_db.actions
-
-    async def get_approve(self, approve_id: int) -> dict:
-        return await self.approves.find_one({'_id': approve_id, 'check': False})
 
     async def get_mutes(self, user_id=None, guild_id=None):
         query = {}
@@ -64,15 +61,6 @@ class PunishmentsDatabase:
                                              'guild_id': guild_id,
                                              'type': "full"
                                          } if not action_id else {'_id': ObjectId(action_id)})
-
-    async def add_approve(self, info: dict) -> int:
-        approve_id = await self.approves.count_documents({}) + 1000
-        info.update({'_id': approve_id, 'check': False})
-        await self.approves.insert_one(info)
-        return approve_id
-
-    async def remove_approve(self, approve_id: int) -> None:
-        await self.approves.update_one({'_id': approve_id}, {'$set': {'check': True}})
 
     async def give_mute(self, user_id, guild_id, moderator_id, reason, duration, mute_type, *, jump_url):
         action_id = await self.actions.add_action(
@@ -256,6 +244,46 @@ class PunishmentsDatabase:
             }
         )
         return await self.bans.delete_one({
+                                              'user_id': user_id,
+                                              'guild_id': guild_id
+                                          } if not action_id else {'_id': ObjectId(action_id)})
+
+    async def give_block_channel(self, user_id, guild_id, moderator_id, reason, duration, category):
+        action_id = await self.actions.add_action(
+            user_id=user_id,
+            guild_id=guild_id,
+            moderator_id=moderator_id,
+            action_type=ActionType.BLOCK_CHANNEL,
+            payload={
+                'reason': reason,
+                'duration': duration,
+                'category': category
+            }
+        )
+
+        await self.block_channel.insert_one({
+            'user_id': user_id,
+            'guild_id': guild_id,
+            'moderator_id': moderator_id,
+            'reason': reason,
+            'duration': duration,
+            'given_at': datetime.datetime.now(),
+            'type': ActionType.BLOCK_CHANNEL.name.split('_')[1].lower(),
+            'category': category
+        })
+        return action_id
+
+    async def remove_block_channel(self, *, user_id=None, guild_id=None, action_id=None, moderator_id=None):
+        await self.actions.add_action(
+            user_id=user_id,
+            guild_id=guild_id,
+            moderator_id=moderator_id,
+            action_type=ActionType.REMOVE_BLOCKCHANNEL,
+            payload={
+                'time': 'end time punishment'
+            }
+        )
+        return await self.block_channel.delete_one({
                                               'user_id': user_id,
                                               'guild_id': guild_id
                                           } if not action_id else {'_id': ObjectId(action_id)})
