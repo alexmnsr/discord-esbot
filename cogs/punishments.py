@@ -313,7 +313,7 @@ class Punishments(commands.Cog):
                 'lvl': 2
             }
             await self.bot.buttons.add_button("Punishments", message_id=message.id,
-                                              channel_id=message.channel.id,
+                                              channel_id=interaction.channel_id,
                                               user_request=user,
                                               moderator_id=interaction.user.id,
                                               guild_id=interaction.guild.id,
@@ -428,7 +428,7 @@ class Punishments(commands.Cog):
                 'lvl': 3
             }
             await self.bot.buttons.add_button("Punishments", message_id=message.id,
-                                              channel_id=message.channel.id,
+                                              channel_id=interaction.channel_id,
                                               user_request=user,
                                               moderator_id=interaction.user.id,
                                               guild_id=interaction.guild.id,
