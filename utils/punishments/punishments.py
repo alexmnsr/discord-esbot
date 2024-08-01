@@ -152,6 +152,38 @@ class MuteHandler:
         return True
 
 
+class BlockChannelHandler:
+    def __init__(self, handler) -> None:
+        self.handler = handler
+        self.client = handler.client
+        self.database = handler.database
+
+    async def give_block_channel(self, user: nextcord.Member, guild: nextcord.Guild, duration,
+                                 reason, category: nextcord.CategoryChannel):
+        overwrite = nextcord.PermissionOverwrite()
+        overwrite.send_messages = False
+        overwrite.connect = False
+        await category.set_permissions(user, overwrite=overwrite, reason=reason)
+        await self.wait_block_channel(user.id, category.id, duration)
+
+    async def remove_block_channel(self, user: int, category: int):
+        pass
+
+    async def find_categories(self, guild: nextcord.Guild, category_name):
+        category_find = None
+        for category in guild.categories:
+            if category_name in category.name:
+                category_find = category
+        return category_find
+
+    async def wait_block_channel(self, user: int, category: int, duration, action_id=None):
+        seconds = int(duration)
+        if seconds > 0:
+            await asyncio.sleep(seconds)
+
+        await self.remove_block_channel(user)
+
+
 class WarnHandler:
     def __init__(self, handler) -> None:
         self.handler = handler
@@ -189,6 +221,57 @@ class WarnHandler:
 
         return action_id
 
+    async def apply_warn(self, interaction, user, count_warns, reason, embed, moderator_id, approve_moderator=None,
+                         jump_url=None):
+        if count_warns == 3:
+            await self.handler.bans.give_ban(
+                ActionType.WARN_LOCAL,
+                user=user.id,
+                guild=interaction.guild,
+                moderator=moderator_id,
+                approve_moderator=approve_moderator,
+                reason=f'[3/3 WARN] {reason}',
+                duration=10,
+                jump_url=jump_url
+            )
+            await self.handler.database.remove_warns(user_id=user.id, guild_id=interaction.guild.id)
+        else:
+            action_id = await self.handler.warns.give_warn(
+                ActionType.WARN_LOCAL,
+                user=user,
+                guild=interaction.guild,
+                moderator=moderator_id,
+                approve_moderator=approve_moderator,
+                reason=reason,
+                jump_url=jump_url
+            )
+            try:
+                await interaction.guild.kick(user, reason=f"Action ID: {action_id}")
+            except:
+                print('Net prav')
+
+    @staticmethod
+    def create_warn_embed(interaction, user, count_warns, reason):
+        embed = (nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
+                 .set_author(name=user.display_name, icon_url=user.display_avatar.url)
+                 .add_field(name='Нарушитель', value=f'<@{user.id}>')
+                 .add_field(name='Причина', value=reason)
+                 .add_field(name='Модератор', value=f'<@{interaction.user.id}>')
+                 .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3")
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
+        return embed
+
+    @staticmethod
+    def create_unwarn_embed(interaction, user, warn_data):
+        embed = ((nextcord.Embed(title='Снятие предупреждения', color=nextcord.Color.red())
+                  .set_author(name=user.display_name, icon_url=user.display_avatar.url))
+                 .add_field(name='Нарушитель', value=f'<@{user.id}>')
+                 .add_field(name='Выдавал', value=f'<@{warn_data["moderator_id"]}>')
+                 .add_field(name='Причина', value=f'{warn_data["reason"]}')
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
+                 .set_footer(text=f"Модератор: {interaction.user.id}"))
+        return embed
+
 
 class BanHandler:
     def __init__(self, handler) -> None:
@@ -216,7 +299,10 @@ class BanHandler:
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
 
         await send_embed(user.id, embed)
-        await guild.ban(user, reason=f'Action ID: {action_id}')
+        try:
+            await guild.ban(user, reason=f'Action ID: {action_id}')
+        except:
+            print('miss premissions ban')
 
         log_embed = nextcord.Embed(
             title=f'Выдача {f"блокировки на сервере {guild.name}" if type_ban != ActionType.BAN_GLOBAL else "глобальной блокировки."}',
@@ -235,6 +321,31 @@ class BanHandler:
 
         if duration != '-1':
             self.client.loop.create_task(self.wait_ban(action_id['_id'], duration))
+
+    @staticmethod
+    def create_ban_embed(interaction, user, duration, reason):
+        embed = (nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
+                 .set_author(name=user.display_name, icon_url=user.display_avatar.url)
+                 .add_field(name='Нарушитель', value=f'<@{user.id}>')
+                 .add_field(name='Длительность',
+                            value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда')
+                 .add_field(name='Причина', value=reason)
+                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
+                 .set_footer(text=f"Модератор: {interaction.user.id}"))
+        return embed
+
+    async def apply_ban(self, interaction, user, duration, reason, embed, moderator_id, approve_moderator=None,
+                        jump_url=None):
+        await self.handler.bans.give_ban(
+            ActionType.BAN_LOCAL,
+            user=user,
+            guild=interaction.guild,
+            moderator=moderator_id,
+            approve_moderator=approve_moderator,
+            reason=reason,
+            duration=duration,
+            jump_url=jump_url
+        )
 
     async def wait_ban(self, action_id, seconds):
         seconds = int(seconds)
@@ -293,21 +404,6 @@ class BanHandler:
         return True
 
 
-class ApproveHandler:
-    def __init__(self, handler: "PunishmentsHandler") -> None:
-        self.handler = handler
-        self.client = handler.client
-        self.database = handler.database
-
-    async def add(self, info: dict) -> int:
-        return await self.database.add_approve(info)
-
-    async def pop(self, approve_id: int) -> dict:
-        data = await self.database.get_approve(approve_id)
-        await self.database.remove_approve(approve_id)
-        return data
-
-
 class PunishmentsHandler:
     def __init__(self, client, global_db, mongodb, buttons) -> None:
         self.database = PunishmentsDatabase(client, global_db, mongodb)
@@ -315,7 +411,7 @@ class PunishmentsHandler:
         self.mutes = MuteHandler(self)
         self.bans = BanHandler(self)
         self.warns = WarnHandler(self)
-        self.approves = ApproveHandler(self)
+        self.block = BlockChannelHandler(self)
         self.buttons = buttons
 
     async def get_class_from_file(self, module_name: str, class_name: str):
@@ -366,7 +462,8 @@ class PunishmentsHandler:
                                                               ((mute['given_at'] + datetime.timedelta(
                                                                   seconds=mute[
                                                                       'duration'])) - datetime.datetime.now()).total_seconds(),
-                                                              role_name, await self.client.fetch_user(mute['moderator_id'])))
+                                                              role_name,
+                                                              await self.client.fetch_user(mute['moderator_id'])))
         for ban in current_bans:
             if ban['duration'] == '-1':
                 continue

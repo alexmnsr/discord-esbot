@@ -5,7 +5,6 @@ class ButtonState:
         self.db_roles = mongodb['Roles']
         self.db_punishments = mongodb['Punishments']
         self.db_online = mongodb['Online']
-        print('Инициализировал кнопки')
 
     async def add_button(self, datebase, *, message_id, channel_id, user_request=None, moderator_id=None, guild_id=None, class_method=None,
                          params=None):
@@ -27,7 +26,7 @@ class ButtonState:
         })
         return button_id.inserted_id
 
-    async def remove_button(self, datebase, *, message_id, moderator_id, guild_id, id_button=None):
+    async def remove_button(self, datebase, *, channel_id, message_id, guild_id, id_button=None):
         if datebase == "Roles":
             db = self.db_roles
         elif datebase == "Punishments":
@@ -36,7 +35,7 @@ class ButtonState:
             db = self.db_online
         filter = {
             'message_id': message_id,
-            'moderator_id': moderator_id,
+            'channel_id': channel_id,
             'guild_id': guild_id
         } if id_button is None else {'id_button': id_button}
 

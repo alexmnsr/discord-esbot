@@ -3,6 +3,7 @@ import enum
 
 import bson
 from bson import ObjectId
+from bson.errors import InvalidId
 from motor import motor_asyncio
 
 
@@ -144,7 +145,15 @@ class Actions:
         return result
 
     async def get_action(self, action_id):
-        return await self.actions.find_one({'_id': ObjectId(action_id)})
+        try:
+            if isinstance(action_id, str) and len(action_id) == 24:
+                action_id = ObjectId(action_id)
+            elif isinstance(action_id, str):
+                action_id = int(action_id)
+            return await self.actions.find_one({'_id': action_id})
+        except (InvalidId, ValueError) as e:
+            print(f"Invalid action_id format: {e}")
+            return None
 
     @staticmethod
     async def send_log(action_id, guild, embed):
