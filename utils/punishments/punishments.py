@@ -406,7 +406,7 @@ class BanHandler:
         )
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
 
-        await send_embed(await self.client.fetch_user(ban['user_id']), embed)
+        await send_embed(await self.client.fetch_member(ban['user_id']), embed)
 
     async def unban(self, user, guild):
         if (not (ban := await self.database.get_ban(user_id=user.id, guild_id=guild.id)) or
