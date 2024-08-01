@@ -142,7 +142,6 @@ class PunishmentApprove(nextcord.ui.View):
     async def approve_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         if grant_level(interaction.user.roles, interaction.user) < self.lvl:
             return await interaction.send("Вы не можете использовать это", ephemeral=True)
-        self.stop()
         user = await interaction.guild.fetch_member(self.user)
         if self.punishment == 'warn':
             embed = self.handler.warns.create_warn_embed(interaction, user, self.count_warns, self.reason)
@@ -158,6 +157,7 @@ class PunishmentApprove(nextcord.ui.View):
                                              message_id=interaction.message.id,
                                              channel_id=interaction.channel_id,
                                              guild_id=interaction.guild.id)
+        self.stop()
 
     @nextcord.ui.button(
         label="Отказать", style=nextcord.ButtonStyle.red, emoji='📕',
@@ -206,6 +206,7 @@ class ApproveDS(nextcord.ui.View):
                                              message_id=interaction.message.id,
                                              channel_id=interaction.channel_id,
                                              guild_id=interaction.guild.id)
+        self.stop()
 
     @nextcord.ui.button(
         label="Отменить", style=nextcord.ButtonStyle.red, emoji='📕',
@@ -220,6 +221,7 @@ class ApproveDS(nextcord.ui.View):
                                              message_id=interaction.message.id,
                                              channel_id=interaction.channel_id,
                                              guild_id=interaction.guild.id)
+        self.stop()
 
 
 class CancelPunishments(nextcord.ui.View):
@@ -245,6 +247,7 @@ class CancelPunishments(nextcord.ui.View):
                                              message_id=interaction.message.id,
                                              channel_id=interaction.channel_id,
                                              guild_id=interaction.guild.id)
+        self.stop()
 
     @nextcord.ui.button(
         label="Отменить выдачу (GMD | DS)", style=nextcord.ButtonStyle.red, emoji='📕',
@@ -253,7 +256,6 @@ class CancelPunishments(nextcord.ui.View):
     async def cancel(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         if grant_level(interaction.user.roles, interaction.user) < 4:
             return await interaction.response.send_message("Вы не можете использовать это", ephemeral=True)
-        self.stop()
 
         moderator = await interaction.guild.fetch_member(int(self.moderator))
 
@@ -285,3 +287,4 @@ class CancelPunishments(nextcord.ui.View):
                                              guild_id=interaction.guild.id)
         await interaction.message.edit(view=None)
         await interaction.message.add_reaction('❌')
+        self.stop()
