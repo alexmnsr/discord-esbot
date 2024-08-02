@@ -105,12 +105,17 @@ class WarnModerator(nextcord.ui.Modal):
     async def callback(self, interaction: nextcord.Interaction):
         if grant_level(interaction.user.roles, interaction.user) < 4:
             channel = [c for c in interaction.guild.text_channels if 'подтверждение-нарушения' in c.name][0]
-            embed = nextcord.Embed(title='Запрос на подтверждение GMD')
-            embed.add_field(name='Модератор', value=interaction.guild.get_member(self.moderator_id).mention)
-            embed.add_field(name='Количество предупреждений', value=self.warn.value)
-            embed.add_field(name='Причины', value=self.reason.value)
-            embed.set_footer(text=f'Подал: {interaction.user.id}')
-            await channel.send(embed=embed, view=ApproveDS(self.moderator_id, self.warn, self.reason))
+            if channel:
+                embed = nextcord.Embed(title='Запрос на подтверждение GMD')
+                embed.add_field(name='Модератор', value=interaction.guild.get_member(self.moderator_id).mention)
+                embed.add_field(name='Количество предупреждений', value=self.warn.value)
+                embed.add_field(name='Причины', value=self.reason.value)
+                embed.set_footer(text=f'Подал: {interaction.user.mention}')
+                await channel.send(embed=embed, view=ApproveDS(self.moderator_id, self.warn, self.reason))
+            else:
+                await interaction.response.defer(ephemeral=True)
+                await interaction.followup.send("Канал 'подтверждение-нарушения' не найден, GMD - не может использовать эту команду по данной причине.", ephemeral=True)
+                return
         else:
             await self.bot.vk.send_message(interaction.guild.id,
                                            f'/warn {self.moderator_id}* {self.warn.value} {self.reason.value} | DS')
@@ -141,7 +146,9 @@ class PunishmentApprove(nextcord.ui.View):
     )
     async def approve_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         if grant_level(interaction.user.roles, interaction.user) < self.lvl:
-            return await interaction.send("Вы не можете использовать это", ephemeral=True)
+            await interaction.response.defer(ephemeral=True)
+            await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
+            return
         user = await interaction.guild.fetch_member(self.user)
         if self.punishment == 'warn':
             embed = self.handler.warns.create_warn_embed(interaction, user, self.count_warns, self.reason)
@@ -165,7 +172,9 @@ class PunishmentApprove(nextcord.ui.View):
     )
     async def cancel(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         if grant_level(interaction.user.roles, interaction.user) < self.lvl:
-            return await interaction.response.send_message("Вы не можете использовать это", ephemeral=True)
+            await interaction.response.defer(ephemeral=True)
+            await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
+            return
         user = await interaction.guild.fetch_member(self.user)
 
         if self.punishment == 'warn':
@@ -197,7 +206,9 @@ class ApproveDS(nextcord.ui.View):
     )
     async def approve_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         if grant_level(interaction.user.roles, interaction.user) < 4:
-            return await interaction.send("Вы не можете использовать это", ephemeral=True)
+            await interaction.response.defer(ephemeral=True)
+            await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
+            return
         await self.bot.vk.send_message(interaction.guild.id,
                                        f'/warn {self.moderator_id}* {self.warn.value} {self.reason.value} | GMD')
         await interaction.message.edit(view=None)
@@ -214,7 +225,9 @@ class ApproveDS(nextcord.ui.View):
     )
     async def cancel(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         if grant_level(interaction.user.roles, interaction.user) < 4:
-            return await interaction.send("Вы не можете использовать это", ephemeral=True)
+            await interaction.response.defer(ephemeral=True)
+            await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
+            return
         await interaction.message.edit(view=None)
         await interaction.message.add_reaction('❌')
         await self.bot.buttons.remove_button("Punishments",
@@ -239,7 +252,9 @@ class CancelPunishments(nextcord.ui.View):
     )
     async def approve_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         if grant_level(interaction.user.roles, interaction.user) < 4:
-            return await interaction.send("Вы не можете использовать это", ephemeral=True)
+            await interaction.response.defer(ephemeral=True)
+            await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
+            return
         self.stop()
         await interaction.message.edit(view=None)
         await interaction.message.add_reaction('✅')
@@ -255,7 +270,9 @@ class CancelPunishments(nextcord.ui.View):
     )
     async def cancel(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         if grant_level(interaction.user.roles, interaction.user) < 4:
-            return await interaction.response.send_message("Вы не можете использовать это", ephemeral=True)
+            await interaction.response.defer(ephemeral=True)
+            await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
+            return
 
         moderator = await interaction.guild.fetch_member(int(self.moderator))
 
