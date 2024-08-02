@@ -153,11 +153,12 @@ class PunishmentApprove(nextcord.ui.View):
         if self.punishment == 'warn':
             embed = self.handler.warns.create_warn_embed(interaction, user, self.count_warns, self.reason)
             await self.handler.warns.apply_warn(interaction, user, self.count_warns, self.reason, embed,
-                                                moderator_id=interaction.user.id)
+                                                moderator_id=interaction.user.id, approve_moderator=interaction.user.id)
         elif self.punishment == 'ban':
             embed = self.handler.bans.create_ban_embed(interaction, user, self.duration, self.reason)
             await self.handler.bans.apply_ban(interaction, user, self.duration, self.reason, embed,
-                                              moderator_id=interaction.user.id)
+                                              moderator_id=interaction.user.id, approve_moderator=interaction.user.id)
+        embed.add_field(name='Подтвердил:', value=interaction.user.mention)
         await interaction.message.edit(view=None)
         await interaction.message.add_reaction('✅')
         await self.bot.buttons.remove_button("Punishments",
