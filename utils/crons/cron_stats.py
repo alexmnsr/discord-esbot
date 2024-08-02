@@ -245,7 +245,7 @@ class CRON_Stats:
         message = await channel.send(embed=embed, view=PointsAdd_View(moderator_ids=str(send_messages_points), date=datetime.datetime.now().strftime("%d.%m.%Y")))
         params = {
             'moderator_ids': str(send_messages_points),
-            'date': datetime.datetime.now().strftime("%d.%m.%Y")
+            'date': datetime.datetime.now().strftime("%d.%m.%Y"),
         }
         await self.bot.buttons.add_button("Online", message_id=message.id,
                                           channel_id=channel.id,

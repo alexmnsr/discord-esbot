@@ -11,6 +11,7 @@ bot = EsBot()
 class PointsAdd_View(nextcord.ui.View):
     def __init__(self, moderator_ids, date):
         super().__init__(timeout=None)
+        self.bot = bot
         self.moderator_ids = ast.literal_eval(moderator_ids)
         self.date = date
 
@@ -33,10 +34,9 @@ class PointsAdd_View(nextcord.ui.View):
                 continue
             reasons_text = " | ".join(reasons)
             await bot.vk.send_message(506143782509740052,
-                                           f'/point {moderator_id}* {points} {reasons_text} | {self.date}{send_button}')
-        await bot.buttons.remove_button("Online",
+                                      f'/point {moderator_id}* {points} {reasons_text} | {self.date}{send_button}')
+        await self.bot.buttons.remove_button("Online",
                                              message_id=interaction.message.id,
-                                             channel_id=interaction.channel_id,
-                                             guild_id=interaction.guild.id)
+                                             channel_id=interaction.channel_id)
         await interaction.edit_original_message(view=None)
         await interaction.response.send_message("Поинты были выданы!", ephemeral=True)
