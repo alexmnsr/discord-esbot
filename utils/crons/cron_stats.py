@@ -184,7 +184,7 @@ class CRON_Stats:
                 if total_online_td > max_online_st_moderator:
                     max_online_st_moderator = total_online_td
                     max_online_st_moderator_id = moderator_id
-            elif 'модератор' in roles and 'главный модератор' not in roles:
+            if 'модератор' in roles and 'главный модератор' not in roles:
                 if total_online_td > max_online:
                     max_online = total_online_td
                     max_online_moderator_id = moderator_id
