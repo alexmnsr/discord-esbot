@@ -427,8 +427,9 @@ class Punishments(commands.Cog):
         data = await self.handler.database.actions.get_action(action_id)
         if not data:
             return await interaction.send(f'Такого ID не существует.', ephemeral=True)
-        if data['guild_id'] == 690955874008694905:
-            return await interaction.send(f'Вы не можете запрашивать action_id с тестового сервера.\nПроверьте свой action_id.', ephemeral=True)
+        if data['guild_id'] == 690955874008694905 and interaction.user.id != 479244541858152449:
+            return await interaction.send(
+                f'Вы не можете запрашивать action_id с тестового сервера.\nПроверьте свой action_id.', ephemeral=True)
         user = await self.client.fetch_user(data["moderator_id"])
         embed = ((nextcord.Embed(title=human_actions.get(
             data['action_type'].split('.')[-1].lower() if data['action_type'].startswith('ActionType.') else data[
