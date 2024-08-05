@@ -71,6 +71,17 @@ class Roles(commands.Cog):
         if rang > 4 and role == 'Федеральная Служба Исполнения Наказаний':
             return await interaction.response.send_message('Ранг не может быть выше 4 для этой роли.', ephemeral=True)
 
+        statistics = await statistics.to_file()
+        if statistics_hassle:
+            statistics_hassle = await statistics_hassle.to_file()
+
+        request = RoleRequest(interaction.user, interaction.guild, nickname, rang, role_info[role], statistics,
+                              statistics_hassle)
+        if request.already_roled:
+            await interaction.user.edit(nick=request.must_nick)
+            await self.handler.remove_request(interaction.user, interaction.guild, False, False)
+            return await interaction.send('Ваш ранг изменён.', ephemeral=True)
+
         if await self.handler.request_role(interaction.user, interaction.guild):
             message = await interaction.send('Заявление обрабатывается.')
             async for channel_message in interaction.channel.history(limit=5):
@@ -81,17 +92,6 @@ class Roles(commands.Cog):
                 f"## Используйте {command_mention(interaction.application_command, interaction.guild_id)} для подачи заявления")
         else:
             return await interaction.send("Вы уже подавали на роль.", ephemeral=True)
-
-        statistics = await statistics.to_file()
-        if statistics_hassle:
-            statistics_hassle = await statistics_hassle.to_file()
-
-        request = RoleRequest(interaction.user, interaction.guild, nickname, rang, role_info[role], statistics,
-                              statistics_hassle)
-        if request.already_roled:
-            await interaction.user.edit(nick=request.must_nick)
-            await self.handler.remove_request(interaction.user, interaction.guild, False, False)
-            return await message.edit('Ваш ранг изменён.')
 
         embed = nextcord.Embed(
             colour=nextcord.Color.dark_green(),
