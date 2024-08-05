@@ -218,7 +218,7 @@ class WarnHandler:
         self.database = handler.database
 
     async def give_warn(self, type_warn, *, user, guild, moderator, reason, approve_moderator=None, jump_url):
-        action_id = await self.database.give_warn(user_id=user.id,
+        action_id = await self.database.give_warn(user_id=user.id if isinstance(user, nextcord.Member) else user,
                                                   guild_id=guild.id,
                                                   moderator_id=moderator,
                                                   reason=reason,
@@ -327,7 +327,7 @@ class BanHandler:
         self.database = handler.database
 
     async def give_ban(self, type_ban, *, user, guild, moderator, reason, duration, approve_moderator=None, jump_url):
-        action_id = await self.database.give_ban(user_id=user.id,
+        action_id = await self.database.give_ban(user_id=user.id if isinstance(user, nextcord.Member) else user,
                                                  guild_id=guild.id,
                                                  moderator_id=moderator,
                                                  reason=reason,
