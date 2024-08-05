@@ -325,7 +325,7 @@ class BanHandler:
         )
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
 
-        await send_embed(user.id, embed)
+        await send_embed(user, embed)
         try:
             await guild.ban(user, reason=f'Action ID: {action_id}')
         except:
