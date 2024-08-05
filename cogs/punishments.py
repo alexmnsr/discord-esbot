@@ -2,7 +2,6 @@ import datetime
 
 import nextcord
 from nextcord.ext import commands
-from nextcord.ui import Modal, TextInput
 
 from utils.button_state.views.Punishments import CancelPunishments, PunishmentApprove, MuteModal
 from utils.classes.actions import ActionType, human_actions, payload_types

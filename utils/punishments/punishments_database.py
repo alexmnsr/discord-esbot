@@ -115,14 +115,23 @@ class PunishmentsDatabase:
             'type': mute_type.name.split('_')[1].lower()
         })).deleted_count == 1
 
-    async def cancel_mute(self, user_id, guild_id, moderator_id):
+    async def cancel(self, user_id, guild_id, moderator_id):
         if isinstance(moderator_id, nextcord.Member):
-            moderator_id = moderator_id.id  # Получаем ID модератора
-        return await self.actions.delete_action(
+            moderator_id = moderator_id.id
+        await self.actions.delete_action(
             user_id=user_id,
             guild_id=guild_id,
             moderator_id=moderator_id
         )
+        await self.actions.add_action(
+            user_id=None,
+            guild_id=guild_id,
+            moderator_id=moderator_id,
+            action_type=ActionType.RECHECKING_CANCEL,
+            payload={
+            }
+        )
+        return True
 
     async def remove_text_mute(self, user_id, guild_id, moderator=0):
         return await self.remove_mute(user_id, guild_id, ActionType.MUTE_TEXT, moderator=moderator)

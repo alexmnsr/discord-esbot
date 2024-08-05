@@ -23,7 +23,7 @@ class ActionType(enum.Enum):
     ROLE_APPROVE = 'role_approve'
     ROLE_REJECT = 'role_reject'
     ROLE_REMOVE = 'role_remove'
-    ROLE_CANCEL = 'role_cancel'
+    RECHECKING_CANCEL = 'rechecking_cancel'
     BLOCK_CHANNEL = 'block_channel'
     REMOVE_BLOCKCHANNEL = 'unblock_channel'
 
@@ -42,7 +42,7 @@ human_actions = {
     ActionType.ROLE_APPROVE.value: "Одобрение роли",
     ActionType.ROLE_REJECT.value: "Отклонение роли",
     ActionType.ROLE_REMOVE.value: "Снятие роли",
-    ActionType.ROLE_CANCEL.value: "Перепроверка роли",
+    ActionType.RECHECKING_CANCEL.value: "Перепроверка наказания/роли",
     ActionType.BLOCK_CHANNEL.value: "Блокировка канала",
     ActionType.REMOVE_BLOCKCHANNEL.value: "Разблокировка канала"
 }
@@ -63,7 +63,7 @@ moder_actions = {
     ActionType.ROLE_APPROVE.value: "Одобренных ролей",
     ActionType.ROLE_REJECT.value: "Отказанных ролей",
     ActionType.ROLE_REMOVE.value: "Снятия ролей",
-    ActionType.ROLE_CANCEL.value: "Перепроверка роли",
+    ActionType.RECHECKING_CANCEL.value: "Перепроверка наказания/роли",
     ActionType.BLOCK_CHANNEL.value: "Блокировка канала",
     ActionType.REMOVE_BLOCKCHANNEL.value: "Разблокировка канала"
 }
@@ -134,12 +134,12 @@ class Actions:
         punishments = await self.actions.find(query).to_list(length=None)
         return punishments
 
-    async def delete_action(self, *, user_id, guild_id, moderator_id):
+    async def delete_action(self, *, user_id=None, guild_id=None, moderator_id=None, action_id=None):
         filter = {
             'user_id': user_id,
             'guild_id': guild_id,
             'moderator_id': moderator_id
-        }
+        } if not action_id else {'_id': action_id}
 
         existing_document = await self.actions.find_one(filter)
         if not existing_document:

@@ -31,6 +31,20 @@ class RolesHandler:
 
         return True
 
+    async def cancel(self, action_id, moderator_id, guild_id):
+        await self.actions.delete_action(
+            action_id=action_id
+        )
+        await self.actions.add_action(
+            user_id=None,
+            guild_id=guild_id,
+            moderator_id=moderator_id,
+            action_type=ActionType.RECHECKING_CANCEL,
+            payload={
+            }
+        )
+        return True
+
     async def remove_request(self, user, guild, approve, cancel, *, moderator_id=None, role=None, rang=None, nick=None):
         if not cancel:
             info = {"user": user.id, "guild": guild.id}
@@ -45,7 +59,7 @@ class RolesHandler:
                     user_id=user.id,
                     guild_id=guild.id,
                     moderator_id=moderator_id,
-                    action_type=ActionType.ROLE_CANCEL,
+                    action_type=ActionType.RECHECKING_CANCEL,
                     payload={
                         'role': role,
                         'rang': rang,
@@ -58,7 +72,7 @@ class RolesHandler:
                 upsert=True
             )
 
-            await self.actions.add_action(
+            action_id = await self.actions.add_action(
                 user_id=user.id,
                 guild_id=guild.id,
                 moderator_id=moderator_id,
@@ -70,4 +84,4 @@ class RolesHandler:
                 }
             )
 
-        return True
+        return action_id

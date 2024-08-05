@@ -114,7 +114,9 @@ class WarnModerator(nextcord.ui.Modal):
                 await channel.send(embed=embed, view=ApproveDS(self.moderator_id, self.warn, self.reason))
             else:
                 await interaction.response.defer(ephemeral=True)
-                await interaction.followup.send("Канал 'подтверждение-нарушения' не найден, GMD - не может использовать эту команду по данной причине.", ephemeral=True)
+                await interaction.followup.send(
+                    "Канал 'подтверждение-нарушения' не найден, GMD - не может использовать эту команду по данной причине.",
+                    ephemeral=True)
                 return
         else:
             await self.bot.vk.send_message(interaction.guild.id,
@@ -125,7 +127,8 @@ class WarnModerator(nextcord.ui.Modal):
 
 
 class PunishmentApprove(nextcord.ui.View):
-    def __init__(self, punishment, reason, moderator_id, user_id, lvl, *, duration=None, count_warns=None, role_name=None):
+    def __init__(self, punishment, reason, moderator_id, user_id, lvl, *, duration=None, count_warns=None,
+                 role_name=None):
         super().__init__(timeout=None)
         self.bot = bot
         self.handler = self.bot.db.punishments_handler
@@ -177,6 +180,10 @@ class PunishmentApprove(nextcord.ui.View):
             await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
             return
         user = await interaction.guild.fetch_member(self.user)
+        await self.bot.buttons.remove_button("Punishments",
+                                             message_id=interaction.message.id,
+                                             channel_id=interaction.channel_id,
+                                             guild_id=interaction.guild.id)
 
         if self.punishment == 'warn':
             embed = self.handler.warns.create_warn_embed(interaction, user, self.count_warns, self.reason)
@@ -274,7 +281,10 @@ class CancelPunishments(nextcord.ui.View):
             await interaction.response.defer(ephemeral=True)
             await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
             return
-
+        await self.bot.buttons.remove_button("Punishments",
+                                             message_id=interaction.message.id,
+                                             channel_id=interaction.channel_id,
+                                             guild_id=interaction.guild.id)
         moderator = await interaction.guild.fetch_member(int(self.moderator))
 
         if self.role_name:

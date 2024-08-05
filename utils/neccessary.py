@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import importlib
 import re
 
 import nextcord
@@ -12,6 +13,44 @@ grant_levels = {
     4: ["Главный Модератор"],
     5: ["Следящий за Discord"]
 }
+
+
+async def get_class_from_file(module_name: str, class_name: str):
+    module = importlib.import_module(module_name)
+    cls = getattr(module, class_name, None)
+
+    if isinstance(cls, type):
+        return cls
+    return None
+
+
+async def load_buttons(client, buttons, type_buttons):
+    loaded_buttons = await buttons.load_all_buttons()
+
+    for button_data in loaded_buttons[f'{type_buttons}']:
+        module_name = f'utils.button_state.views.{type_buttons}'
+        message_id = button_data.get('message_id')
+        channel_id = button_data.get('channel_id')
+        class_name = button_data.get('class_method')
+        selected_class = await get_class_from_file(module_name, class_name)
+        if selected_class:
+            print(f"Класс {selected_class.__name__} найден.")
+        else:
+            print(f"Класс {selected_class.__name__} не найден.")
+        params = button_data.get('params', {})
+        view = selected_class(**params)
+
+        channel = client.get_channel(channel_id)
+        if channel:
+            try:
+                message = await channel.fetch_message(message_id)
+                await message.edit(view=view)
+            except nextcord.NotFound:
+                print("Сообщение не найдено.")
+            except nextcord.Forbidden:
+                print("Нет прав на редактирование этого сообщения.")
+            except Exception as e:
+                print(f"Произошла ошибка: {e}")
 
 
 def grant_level(user_roles, member):
@@ -211,7 +250,7 @@ async def remove_role(member_id, guild, action_id, role_name):
         member = None
 
     if not member:
-        return guild, await guild.fetch_user(member_id)
+        return guild, await guild.fetch_member(member_id)
 
     roles_to_remove = []
     for role in member.roles:

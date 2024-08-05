@@ -1,13 +1,12 @@
 import asyncio
 import datetime
-import importlib
 from datetime import timedelta
 
 import nextcord
 
 from utils.classes.actions import ActionType
 from utils.neccessary import remove_role, send_embed, add_role, user_visual, user_text, mute_name, beautify_seconds, \
-    remove_temp_role
+    remove_temp_role, load_buttons
 from utils.punishments.punishments_database import PunishmentsDatabase
 
 
@@ -82,7 +81,7 @@ class MuteHandler:
 
         action_id = await get(user_id=member.id, guild_id=guild.id)
 
-        self.client.loop.create_task(self.wait_mute(action_id['_id'], duration, role_name, moderator, member))
+        self.client.loop.create_task(self.wait_mute(action_id['_id'], duration, role_name, member))
 
     async def wait_mute(self, action_id, seconds, role_name, moderator, member: nextcord.Member = None):
         if seconds > 0:
@@ -134,7 +133,7 @@ class MuteHandler:
         guild, member = await remove_role(user_id, guild, mute['_id'], role_name)
 
         if cancel:
-            await self.database.cancel_mute(user_id=user_id, guild_id=guild.id, moderator_id=moderator.id)
+            await self.database.cancel(user_id=user_id, guild_id=guild.id, moderator_id=moderator.id)
 
         if guild:
             embed = nextcord.Embed(
@@ -406,7 +405,7 @@ class BanHandler:
         )
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
 
-        await send_embed(await self.client.fetch_member(ban['user_id']), embed)
+        await send_embed(await self.client.fetch_user(ban['user_id']), embed)
 
     async def unban(self, user, guild):
         if (not (ban := await self.database.get_ban(user_id=user.id, guild_id=guild.id)) or
@@ -442,46 +441,10 @@ class PunishmentsHandler:
         self.block = BlockChannelHandler(self)
         self.buttons = buttons
 
-    async def get_class_from_file(self, module_name: str, class_name: str):
-        module = importlib.import_module(module_name)
-        cls = getattr(module, class_name, None)
-
-        if isinstance(cls, type):
-            return cls
-        return None
-
-    async def load_buttons(self):
-        loaded_buttons = await self.buttons.load_all_buttons()
-
-        for button_data in loaded_buttons['Punishments']:
-            module_name = 'utils.button_state.views.Punishments'
-            message_id = button_data.get('message_id')
-            channel_id = button_data.get('channel_id')
-            class_name = button_data.get('class_method')
-            selected_class = await self.get_class_from_file(module_name, class_name)
-            if selected_class:
-                print(f"Класс {selected_class.__name__} найден.")
-            else:
-                print(f"Класс {selected_class.__name__} не найден.")
-            params = button_data.get('params', {})
-            view = selected_class(**params)
-
-            channel = self.client.get_channel(channel_id)
-            if channel:
-                try:
-                    message = await channel.fetch_message(message_id)
-                    await message.edit(view=view)
-                except nextcord.NotFound:
-                    print("Сообщение не найдено.")
-                except nextcord.Forbidden:
-                    print("Нет прав на редактирование этого сообщения.")
-                except Exception as e:
-                    print(f"Произошла ошибка: {e}")
-
     async def reload(self):
         current_mutes = await self.database.get_mutes()
         current_bans = await self.database.get_bans()
-        await self.load_buttons()
+        await load_buttons(self.client, self.buttons, type_buttons='Punishments')
 
         for mute in current_mutes:
             role_name = 'Mute » Text' if mute['type'] == 'text' else 'Mute » Voice' if mute[

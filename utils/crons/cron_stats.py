@@ -180,11 +180,11 @@ class CRON_Stats:
         for moderator_id, stats in moderator_stats.items():
             total_online_td = stats['total_online']
             roles = [r.name.lower() for r in stats['member'].roles]
-            if 'ст. модератор' in roles or 'ассистент discord' in roles:
+            if any('ст. модератор' in role for role in roles) or any('ассистент discord' in role for role in roles):
                 if total_online_td > max_online_st_moderator:
                     max_online_st_moderator = total_online_td
                     max_online_st_moderator_id = moderator_id
-            if 'модератор' in roles and 'главный модератор' not in roles:
+            if any('модератор' in role for role in roles) and 'главный модератор' not in roles:
                 if total_online_td > max_online:
                     max_online = total_online_td
                     max_online_moderator_id = moderator_id
@@ -196,15 +196,19 @@ class CRON_Stats:
             if total_roles > max_role:
                 max_role = total_roles
                 max_role_moderator_id = moderator_id
+            elif total_roles == max_role:
+                current_online_td = stats['total_online']
+                if current_online_td > moderator_stats[max_role_moderator_id]['total_online']:
+                    max_role_moderator_id = moderator_id
 
         def calculate_online_points(online_time):
-            if online_time >= datetime.timedelta(hours=20):
+            if online_time >= datetime.timedelta(hours=19, minutes=50):
                 return 4
-            elif online_time >= datetime.timedelta(hours=15):
+            elif online_time >= datetime.timedelta(hours=14, minutes=50):
                 return 3
-            elif online_time >= datetime.timedelta(hours=10):
+            elif online_time >= datetime.timedelta(hours=9, minutes=50):
                 return 2
-            elif online_time >= datetime.timedelta(hours=5):
+            elif online_time >= datetime.timedelta(hours=4, minutes=50):
                 return 1
             return 0
 

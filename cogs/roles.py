@@ -1,25 +1,11 @@
 import nextcord
 from nextcord.ext import commands
 
+from utils.button_state.views.Roles import RoleRequest
 from utils.classes.actions import ActionType
 from utils.classes.bot import EsBot
-from utils.neccessary import nick_without_tag, restricted_command
-from utils.roles.role_info import role_info, RoleRequest
-
-
-class ApproveHandler:
-    def __init__(self, handler: "PunishmentsHandler") -> None:
-        self.handler = handler
-        self.client = handler.client
-        self.database = handler.database
-
-    async def add(self, info: dict) -> int:
-        return await self.database.add_approve(info)
-
-    async def pop(self, approve_id: int) -> dict:
-        data = await self.database.get_approve(approve_id)
-        await self.database.remove_approve(approve_id)
-        return data
+from utils.neccessary import nick_without_tag, restricted_command, load_buttons
+from utils.roles.role_info import role_info
 
 
 def command_mention(app_command, guild_id):
@@ -35,6 +21,7 @@ class Roles(commands.Cog):
     def __init__(self, bot: EsBot) -> None:
         self.bot = bot
         self.handler = bot.db.roles_handler
+        self.buttons = bot.db.state_buttons
 
     async def rang_callback(self, interaction: nextcord.Interaction, rang):
         for option in interaction.data.get('options', []):
@@ -51,6 +38,10 @@ class Roles(commands.Cog):
 
         options = {f'[{v}] {k}': v for v, k in enumerated_rangs}
         await interaction.response.send_autocomplete(options)
+
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        await self.reload()
 
     @nextcord.slash_command(name='role', description='Подать заявление на роль.')
     async def request_role(self, interaction: nextcord.Interaction,
@@ -89,7 +80,7 @@ class Roles(commands.Cog):
             await interaction.channel.send(
                 f"## Используйте {command_mention(interaction.application_command, interaction.guild_id)} для подачи заявления")
         else:
-            return await interaction.send("Вы уже подавали на роль.")
+            return await interaction.send("Вы уже подавали на роль.", ephemeral=True)
 
         statistics = await statistics.to_file()
         if statistics_hassle:
@@ -112,7 +103,7 @@ class Roles(commands.Cog):
                                                                 f'Ранг: {rang}', inline=False)
 
         await message.edit('', embed=embed)
-        await request.send(self.handler)
+        await request.send(user_id=interaction.user.id, guild_id=interaction.guild.id)
 
         if role := request.in_organization:
             if (wo_tag := nick_without_tag(request.user.display_name)) != request.user.display_name:
@@ -150,8 +141,11 @@ class Roles(commands.Cog):
     @nextcord.user_command('Удалить заявку на выдачу роли')
     @restricted_command(1)
     async def remove_role_database(self, interaction: nextcord.Interaction, member: nextcord.Member):
-        await self.handler.remove_request(interaction.user, interaction.guild, False, False)
+        await self.handler.remove_request(member, interaction.guild, False, False)
         await interaction.send(f'Заявка пользователя на роль была удалена', ephemeral=True)
+
+    async def reload(self):
+        await load_buttons(self.handler.client, self.buttons, type_buttons='Roles')
 
 
 def setup(bot: EsBot) -> None:

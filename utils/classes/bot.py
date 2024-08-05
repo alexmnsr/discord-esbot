@@ -6,7 +6,6 @@ from nextcord.ext import commands
 
 from database import Database
 from utils.classes.vk.bot import VKBot
-from utils.roles.role_info import StartView, ReviewView
 
 
 class EsBot(commands.Bot):
@@ -15,14 +14,9 @@ class EsBot(commands.Bot):
         self.db = Database(self)
         self.vk = VKBot()
         self.buttons = self.db.state_buttons
-        self.is_view_initialised = False
         self.deleted_messages = []
 
     async def on_ready(self):
-        if not self.is_view_initialised:
-            self.is_view_initialised = True
-            self.add_view(StartView(self.db.roles_handler))
-            self.add_view(ReviewView(self.db.roles_handler))
 
         print(f'Logged in as {self.user} ({self.user.id})')
         print('------')
