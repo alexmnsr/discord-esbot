@@ -253,7 +253,7 @@ class WarnHandler:
         if count_warns == 3:
             await self.handler.bans.give_ban(
                 ActionType.WARN_LOCAL,
-                user=user.id,
+                user=user.id if isinstance(user, nextcord.Member) else user,
                 guild=interaction.guild,
                 moderator=moderator_id,
                 approve_moderator=approve_moderator,
@@ -265,7 +265,7 @@ class WarnHandler:
         else:
             action_id = await self.handler.warns.give_warn(
                 ActionType.WARN_LOCAL,
-                user=user,
+                user=user.id if isinstance(user, nextcord.Member) else user,
                 guild=interaction.guild,
                 moderator=moderator_id,
                 approve_moderator=approve_moderator,
@@ -279,24 +279,44 @@ class WarnHandler:
 
     @staticmethod
     def create_warn_embed(interaction, user, count_warns, reason):
-        embed = (nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
-                 .set_author(name=user.display_name, icon_url=user.display_avatar.url)
-                 .add_field(name='Нарушитель', value=f'<@{user.id}>')
-                 .add_field(name='Причина', value=reason)
-                 .add_field(name='Модератор', value=f'<@{interaction.user.id}>')
-                 .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3")
-                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
+        if isinstance(user, nextcord.Member):
+            embed = (nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
+            .set_author(name=user.display_name, icon_url=user.display_avatar.url)
+            .add_field(name='Нарушитель', value=f'<@{user.mention}>')
+            .add_field(name='Причина', value=reason)
+            .add_field(name='Модератор', value=f'<@{interaction.user.id}>')
+            .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3")
+            .set_thumbnail(
+                url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
+        else:
+            embed = (nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
+                     .set_author(name=interaction.user.id, icon_url=interaction.guild.icon.url)
+                     .add_field(name='Нарушитель', value=f'<@{user}>')
+                     .add_field(name='Причина', value=reason)
+                     .add_field(name='Модератор', value=f'<@{interaction.user.id}>')
+                     .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3")
+                     .set_thumbnail(url=interaction.guild.icon.url))
         return embed
 
     @staticmethod
     def create_unwarn_embed(interaction, user, warn_data):
-        embed = ((nextcord.Embed(title='Снятие предупреждения', color=nextcord.Color.red())
-                  .set_author(name=user.display_name, icon_url=user.display_avatar.url))
-                 .add_field(name='Нарушитель', value=f'<@{user.id}>')
-                 .add_field(name='Выдавал', value=f'<@{warn_data["moderator_id"]}>')
-                 .add_field(name='Причина', value=f'{warn_data["reason"]}')
-                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
-                 .set_footer(text=f"Модератор: {interaction.user.id}"))
+        if isinstance(user, nextcord.Member):
+            embed = ((nextcord.Embed(title='Снятие предупреждения', color=nextcord.Color.red())
+                      .set_author(name=user.display_name, icon_url=user.display_avatar.url))
+                     .add_field(name='Нарушитель', value=f'<@{user.id}>')
+                     .add_field(name='Выдавал', value=f'<@{warn_data["moderator_id"]}>')
+                     .add_field(name='Причина', value=f'{warn_data["reason"]}')
+                     .set_thumbnail(
+                url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
+                     .set_footer(text=f"Модератор: {interaction.user.id}"))
+        else:
+            embed = ((nextcord.Embed(title='Снятие предупреждения', color=nextcord.Color.red())
+                      .set_author(name=interaction.user.id, icon_url=interaction.user.display_avatar.url))
+                     .add_field(name='Нарушитель', value=f'<@{user}>')
+                     .add_field(name='Выдавал', value=f'<@{warn_data["moderator_id"]}>')
+                     .add_field(name='Причина', value=f'{warn_data["reason"]}')
+                     .set_thumbnail(url=interaction.guild.icon.url)
+                     .set_footer(text=f"Модератор: {interaction.user.id}"))
         return embed
 
 
@@ -351,21 +371,32 @@ class BanHandler:
 
     @staticmethod
     def create_ban_embed(interaction, user, duration, reason):
-        embed = (nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
-                 .set_author(name=user.display_name, icon_url=user.display_avatar.url)
-                 .add_field(name='Нарушитель', value=f'<@{user.id}>')
-                 .add_field(name='Длительность',
-                            value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда')
-                 .add_field(name='Причина', value=reason)
-                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
-                 .set_footer(text=f"Модератор: {interaction.user.id}"))
+        if isinstance(user, nextcord.Member):
+            embed = (nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
+                     .set_author(name=user.display_name, icon_url=user.display_avatar.url)
+                     .add_field(name='Нарушитель', value=user.mention)
+                     .add_field(name='Длительность',
+                                value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда')
+                     .add_field(name='Причина', value=reason)
+                     .set_thumbnail(
+                url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
+                     .set_footer(text=f"Модератор: {interaction.user.id}"))
+        else:
+            embed = (nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
+                     .set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+                     .add_field(name='Нарушитель', value=f'<@{user}>')
+                     .add_field(name='Длительность',
+                                value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда')
+                     .add_field(name='Причина', value=reason)
+                     .set_thumbnail(url=interaction.guild.icon.url)
+                     .set_footer(text=f"Модератор: {interaction.user.id}"))
         return embed
 
     async def apply_ban(self, interaction, user, duration, reason, embed, moderator_id, approve_moderator=None,
                         jump_url=None):
         await self.handler.bans.give_ban(
             ActionType.BAN_LOCAL,
-            user=user,
+            user=user.id if isinstance(user, nextcord.Member) else user,
             guild=interaction.guild,
             moderator=moderator_id,
             approve_moderator=approve_moderator,

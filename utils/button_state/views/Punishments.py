@@ -152,7 +152,9 @@ class PunishmentApprove(nextcord.ui.View):
             await interaction.response.defer(ephemeral=True)
             await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
             return
-        user = await interaction.guild.fetch_member(self.user)
+        user = interaction.guild.get_member(self.user)
+        if user is None:
+            user = self.user
         if self.punishment == 'warn':
             embed = self.handler.warns.create_warn_embed(interaction, user, self.count_warns, self.reason)
             await self.handler.warns.apply_warn(interaction, user, self.count_warns, self.reason, embed,
@@ -179,7 +181,9 @@ class PunishmentApprove(nextcord.ui.View):
             await interaction.response.defer(ephemeral=True)
             await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
             return
-        user = await interaction.guild.fetch_member(self.user)
+        user = interaction.guild.get_member(self.user)
+        if user is None:
+            user = self.user
         await self.bot.buttons.remove_button("Punishments",
                                              message_id=interaction.message.id,
                                              channel_id=interaction.channel_id,
