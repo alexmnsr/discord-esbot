@@ -247,10 +247,7 @@ async def remove_role(member_id, guild, action_id, role_name):
     try:
         member = await guild.fetch_member(member_id)
     except nextcord.NotFound:
-        member = None
-
-    if not member:
-        return guild, await guild.fetch_member(member_id)
+        return
 
     roles_to_remove = []
     for role in member.roles:
@@ -258,7 +255,7 @@ async def remove_role(member_id, guild, action_id, role_name):
             roles_to_remove.append(role)
 
     if not roles_to_remove:
-        return guild, member  # Ничего не нужно удалять
+        return guild, member
 
     try:
         await member.remove_roles(*roles_to_remove, reason=f'Action ID: {action_id}.')

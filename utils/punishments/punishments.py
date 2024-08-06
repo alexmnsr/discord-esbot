@@ -326,7 +326,7 @@ class BanHandler:
         self.client = handler.client
         self.database = handler.database
 
-    async def give_ban(self, type_ban, *, user, guild, moderator, reason, duration, approve_moderator=None, jump_url):
+    async def give_ban(self, type_ban, *, user, guild: nextcord.Guild, moderator, reason, duration, approve_moderator=None, jump_url):
         action_id = await self.database.give_ban(user_id=user.id if isinstance(user, nextcord.Member) else user,
                                                  guild_id=guild.id,
                                                  moderator_id=moderator,
@@ -344,12 +344,21 @@ class BanHandler:
             color=0xFF0000
         )
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
-
-        await send_embed(user, embed)
+        user_id = user
         try:
-            await guild.ban(user, reason=f'Action ID: {action_id}')
-        except:
-            print('miss premissions ban')
+            member = guild.get_member(user_id)
+            if member is None:
+                # Если пользователь не найден на сервере, то мы можем его забанить по ID
+                user = self.client.get_user(user_id)
+                await guild.ban(user, reason=reason)  # Банный пользователь по объекту User
+                print(f'Пользователь с ID {user_id} забанен (не был на сервере).')
+            else:
+                # Если пользователь найден на сервере, баним его
+                await guild.ban(member, reason=reason)
+                print(f'Пользователь {member.name} забанен.')
+
+        except Exception as e:
+            print(f'Произошла ошибка при бане пользователя: {e}')
 
         log_embed = nextcord.Embed(
             title=f'Выдача {f"блокировки на сервере {guild.name}" if type_ban != ActionType.BAN_GLOBAL else "глобальной блокировки."}',
@@ -364,10 +373,8 @@ class BanHandler:
         log_embed.set_footer(text=f'ID: {user.id if isinstance(user, nextcord.Member) else user}')
         await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
 
-        action_id = await self.database.get_ban(user_id=user.id if isinstance(user, nextcord.Member) else user, guild_id=guild.id)
-
         if duration != '-1':
-            self.client.loop.create_task(self.wait_ban(action_id['_id'], duration))
+            self.client.loop.create_task(self.wait_ban(action_id, duration))
 
     @staticmethod
     def create_ban_embed(interaction, user, duration, reason):
