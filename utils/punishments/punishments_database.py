@@ -63,6 +63,8 @@ class PunishmentsDatabase:
                                          } if not action_id else {'_id': ObjectId(action_id)})
 
     async def give_mute(self, user_id, guild_id, moderator_id, reason, duration, mute_type, *, jump_url):
+        if isinstance(user_id, nextcord.user.User):
+            user_id = user_id['id']
         action_id = await self.actions.add_action(
             user_id=user_id,
             guild_id=guild_id,
@@ -143,6 +145,8 @@ class PunishmentsDatabase:
         return await self.remove_mute(user_id, guild_id, ActionType.MUTE_FULL, moderator=moderator)
 
     async def give_warn(self, user_id, guild_id, moderator_id, reason, warn_type, approve_moderator=None, *, jump_url):
+        if isinstance(user_id, nextcord.user.User):
+            user_id = user_id['id']
         if approve_moderator is not None:
             await self.actions.add_action(
                 user_id=user_id,
@@ -202,6 +206,8 @@ class PunishmentsDatabase:
 
     async def give_ban(self, user_id, guild_id, moderator_id, reason, duration, ban_type, *, approve_moderator=None,
                        jump_url):
+        if isinstance(user_id, nextcord.user.User):
+            user_id = user_id['id']
         if approve_moderator is not None:
             await self.actions.add_action(
                 user_id=user_id,
