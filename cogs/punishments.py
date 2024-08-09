@@ -297,8 +297,8 @@ class Punishments(commands.Cog):
                      user: str = nextcord.SlashOption('пользователь',
                                                       description='Пользователь, которому вы хотите выдать предупреждение.',
                                                       required=True),
-                     action_id: int = nextcord.SlashOption('action_id', description='Action ID наказания',
-                                                           required=True)):
+                     action_id=nextcord.SlashOption('action_id', description='Action ID наказания',
+                                                    required=True)):
         if not (user := await self.bot.resolve_user(user)):
             return await interaction.send('Пользователь не найден.')
         if not (warn_data := await self.handler.database.get_warn(user_id=user.id, guild_id=interaction.guild.id,
