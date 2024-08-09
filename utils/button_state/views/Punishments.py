@@ -162,7 +162,7 @@ class PunishmentApprove(nextcord.ui.View):
                                                        self.reason, check=True)
             await self.handler.bans.apply_ban(interaction, self.user, self.duration, self.reason, embed,
                                               moderator_id=interaction.user.id, approve_moderator=interaction.user.id)
-        embed.add_field(name='Подтвердил:', value=interaction.user.mention)
+        embed.add_field(name='Подтвердил', value=interaction.user.mention)
         await interaction.message.edit(view=None)
         await interaction.message.add_reaction('✅')
         await self.bot.buttons.remove_button("Punishments",

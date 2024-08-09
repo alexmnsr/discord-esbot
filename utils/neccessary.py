@@ -309,25 +309,54 @@ async def send_embed(member, embed):
 
 
 async def create_role_mutes(role_name, guild: nextcord.Guild):
-    if role_name == 'Temp_Mute » Full':
-        permissions_kwargs = {'send_messages': False, 'speak': False}
-    elif 'Mute » Text' in role_name:
-        permissions_kwargs = {'send_messages': False}
-    elif 'Mute » Voice' in role_name:
-        permissions_kwargs = {'speak': False}
-    else:
-        permissions_kwargs = {}
+    permissions_kwargs = get_role_permissions(role_name)
 
     role = await guild.create_role(
         name=role_name, permissions=nextcord.Permissions(**permissions_kwargs), color=nextcord.Color.light_grey()
     )
 
+    await set_channel_permissions(role, guild, permissions_kwargs)
+
+
+async def update_role_permissions(role: nextcord.Role, role_name: str, guild: nextcord.Guild):
+    desired_permissions = get_role_permissions(role_name)
+    current_permissions = role.permissions
+
+    print(f'Current permissions for {role.name}: {current_permissions}')  # Логирование
+    print(f'Desired permissions for {role_name}: {desired_permissions}')  # Логирование
+    await role.edit(permissions=nextcord.Permissions(**desired_permissions), reason='Обновление разрешений роли Mutes')
+    await set_channel_permissions(role, guild, desired_permissions)
+
+
+async def set_channel_permissions(role: nextcord.Role, guild: nextcord.Guild, permissions_kwargs):
     for channel in guild.channels:
-        if 'правила' in channel.name and '-' not in channel.name:
-            await channel.set_permissions(role, reason='Создание ролей Mutes', read_messages=True, send_messages=False)
+        current_channel_permissions = channel.permissions_for(role)
+
+        # Проверка, нужно ли обновлять разрешения для 'Temp_Mute » Full'
+        if role.name == 'Temp_Mute » Full':
+            if 'правила' in channel.name and '-' not in channel.name:
+                if current_channel_permissions.read_messages != True or current_channel_permissions.send_messages != False:
+                    await channel.set_permissions(role, reason='Редактирование ролей Mutes', read_messages=True,
+                                                  send_messages=False)
+            else:
+                if current_channel_permissions.read_messages != False or current_channel_permissions.speak != False or current_channel_permissions.connect != False:
+                    await channel.set_permissions(role, reason='Редактирование ролей Mutes', read_messages=False,
+                                                  speak=False, connect=False)
         else:
-            await channel.set_permissions(role, reason='Создание ролей Mutes', read_messages=False,
-                                          **permissions_kwargs)
+            if current_channel_permissions.read_messages != False:
+                await channel.set_permissions(role, reason='Редактирование ролей Mutes', read_messages=False,
+                                              **permissions_kwargs)
+
+
+def get_role_permissions(role_name: str):
+    if role_name == 'Temp_Mute » Full':
+        return {'send_messages': False, 'speak': False, 'connect': False}
+    elif 'Mute » Text' in role_name:
+        return {'send_messages': False}
+    elif 'Mute » Voice' in role_name:
+        return {'connect': False}
+    else:
+        return {}
 
 
 async def checking_presence(bot):
@@ -335,12 +364,21 @@ async def checking_presence(bot):
         mute_text_role = nextcord.utils.get(guild.roles, name='Mute » Text')
         mute_voice_role = nextcord.utils.get(guild.roles, name='Mute » Voice')
         mute_temp_role = nextcord.utils.get(guild.roles, name='Temp_Mute » Full')
+
         if not mute_temp_role:
             await create_role_mutes('Temp_Mute » Full', guild)
+        else:
+            await update_role_permissions(mute_temp_role, 'Temp_Mute » Full', guild)
+
         if not mute_text_role:
             await create_role_mutes('Mute » Text', guild)
+        else:
+            await update_role_permissions(mute_text_role, 'Mute » Text', guild)
+
         if not mute_voice_role:
             await create_role_mutes('Mute » Voice', guild)
+        else:
+            await update_role_permissions(mute_voice_role, 'Mute » Voice', guild)
 
 
 time_pattern = re.compile(r'(\d+)([мдmdч])?')
