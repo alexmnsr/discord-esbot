@@ -1,3 +1,8 @@
+import nextcord
+
+from utils.neccessary import get_class_from_file
+
+
 class ButtonState:
     def __init__(self, client, global_db, mongodb):
         self.client = client
@@ -6,13 +11,14 @@ class ButtonState:
         self.db_punishments = mongodb['Punishments']
         self.db_online = mongodb['Online']
 
-    async def add_button(self, datebase, *, message_id, channel_id, user_request=None, moderator_id=None, guild_id=None, class_method=None,
+    async def add_button(self, datebase, *, message_id, channel_id, user_request=None, moderator_id=None, guild_id=None,
+                         class_method=None,
                          params=None):
         if datebase == "Roles":
             db = self.db_roles
         elif datebase == "Punishments":
             db = self.db_punishments
-        else:
+        elif datebase == "Online":
             db = self.db_online
         button_id = await db.insert_one({
             'message_id': message_id,
@@ -22,6 +28,7 @@ class ButtonState:
             'guild_id': guild_id,
             'class_method': class_method,
             'params': params,
+            'type_button': datebase,
             'check': False
         })
         return button_id.inserted_id
@@ -48,24 +55,64 @@ class ButtonState:
 
         return result
 
-    async def get_button(self, datebase, *, user_request, moderator_id, guild_id, id_button=None):
-        if datebase == "Roles":
-            db = self.db_roles
-        elif datebase == "Punishments":
-            db = self.db_punishments
-        else:
-            db = self.db_online
+    async def get_button(self, datebase=None, user_request=None, moderator_id=None, guild_id=None, id_button=None):
+        databases = {
+            "Roles": self.db_roles,
+            "Punishments": self.db_punishments,
+            "Online": self.db_online
+        }
+
+        if id_button is not None:
+            for db_name, db in databases.items():
+                existing_document = await db.find_one({'message_id': id_button})
+                if existing_document:
+                    return existing_document
+            print("Document not found with the given id_button across all databases")
+            return None
+
+        db = databases.get(datebase)
+        if not db:
+            print("Invalid database specified")
+            return None
+
         filter = {
             'user_request': user_request,
             'moderator_id': moderator_id,
             'guild_id': guild_id
-        } if id_button is None else {'id_button': id_button}
+        }
 
         existing_document = await db.find_one(filter)
         if not existing_document:
             print("Document not found with the given filter")
             return None
         return existing_document
+
+    async def update_button(self, module, message_id: int, channel_id: int, class_name, params):
+        module_name = f'utils.button_state.views.{module}'
+        selected_class = await get_class_from_file(module_name, class_name)
+
+        if selected_class:
+            print(f"Класс {selected_class.__name__} найден.")
+        else:
+            print(f"Класс {class_name} не найден.")
+            return  # Выход, если класс не найден
+
+        view = selected_class(**params)
+
+        channel = self.client.get_channel(channel_id)
+        if channel:
+            try:
+                message = await channel.fetch_message(message_id)
+                await message.edit(view=view)
+                print("Кнопка успешно обновлена.")
+            except nextcord.NotFound:
+                print("Сообщение не найдено.")
+            except nextcord.Forbidden:
+                print("Нет прав на редактирование этого сообщения.")
+            except Exception as e:
+                print(f"Произошла ошибка: {e}")
+        else:
+            print("Канал не найден.")
 
     async def load_all_buttons(self):
         all_buttons = {

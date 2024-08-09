@@ -288,7 +288,7 @@ class Punishments(commands.Cog):
                                              view=CancelPunishments(moderator_id=interaction.user.id,
                                                                     user_id=resolved_user.id))
             jump_url = (await message.fetch()).jump_url
-            await self.handler.warns.apply_warn(interaction, resolved_user, count_warns, reason, embed,
+            await self.handler.warns.apply_warn(interaction, resolved_user.id, count_warns, reason, embed,
                                                 moderator_id=interaction.user.id, jump_url=jump_url)
 
     @nextcord.slash_command(name='unwarn', description="Снять предупреждение пользователя")
@@ -339,6 +339,7 @@ class Punishments(commands.Cog):
 
         embed = self.handler.bans.create_ban_embed(interaction, resolved_user, duration_in_seconds, reason)
         if grant_level(interaction.user.roles, interaction.user) <= 3 or interaction.user.id == 479244541858152449:
+            print(f'cogs/ 342:  {resolved_user.id}')
             await interaction.send(embed=embed, view=PunishmentApprove(punishment='ban', reason=reason,
                                                                        moderator_id=interaction.user.id,
                                                                        user_id=resolved_user.id,
@@ -362,7 +363,7 @@ class Punishments(commands.Cog):
         else:
             message = await interaction.send(embed=embed)
             jump_url = (await message.fetch()).jump_url
-            await self.handler.bans.apply_ban(interaction, resolved_user, duration_in_seconds, reason, embed,
+            await self.handler.bans.apply_ban(interaction, resolved_user.id, duration_in_seconds, reason, embed,
                                               moderator_id=interaction.user.id, jump_url=jump_url)
 
     @nextcord.slash_command(name='unban', description="Разблокировать пользователя")

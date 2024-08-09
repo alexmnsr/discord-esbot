@@ -6,12 +6,13 @@ import nextcord
 from nextcord.ext import commands
 
 from utils.classes.bot import EsBot
+from utils.neccessary import restricted_command
 
 
 class SysCommand(commands.Cog):
     def __init__(self, bot: EsBot) -> None:
         self.bot = bot
-        self.handler = bot.db.online_handler
+        self.buttons = self.bot.db.state_buttons
 
     @nextcord.slash_command(name='sys', description="Системные настройки и информация")
     async def sys(self, interaction: nextcord.Interaction):
@@ -37,9 +38,23 @@ class SysCommand(commands.Cog):
         )
         embed.add_field(name="Информация о памяти", value=memory_info, inline=False)
 
-        embed.add_field(name="Текущее время", value=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), inline=False) # now time
+        embed.add_field(name="Текущее время", value=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        inline=False)  # now time
 
         await interaction.send(embed=embed, ephemeral=True)
+
+    @nextcord.message_command(name='Обновить кнопки', force_global=True)
+    @restricted_command(1)
+    async def update_buttons(self, interaction: nextcord.Interaction, message: nextcord.Message):
+        button = await self.buttons.get_button(id_button=message.id)
+        if button is None:
+            return await interaction.send('Кнопки в базе данных не были найдены.', ephemeral=True)
+        try:
+            await self.buttons.update_button(button['type_button'], message.id, button['channel_id'],
+                                             button['class_method'], button['params'])
+            await interaction.send('Обновил', ephemeral=True)
+        except Exception as e:
+            await interaction.send(f'Произошла ошибка при обновлении кнопки: {e}', ephemeral=True)
 
     def get_size(self, bytes: int, suffix="B") -> str:
         """
