@@ -351,9 +351,13 @@ class BanHandler:
         user_id = user
         try:
             member = guild.get_member(user_id)
+
             if member is None:
-                # Если пользователь не найден на сервере, то мы можем его забанить по ID
+                # Если пользователь не найден на сервере, попробуем получить его по ID
                 user = self.client.get_user(user_id)
+                if user is None:
+                    print(f'Пользователь с ID {user_id} не найден в Discord. Бан невозможен.')
+                    return
                 await guild.ban(user, reason=reason)  # Банный пользователь по объекту User
                 print(f'Пользователь с ID {user_id} забанен (не был на сервере).')
             else:
