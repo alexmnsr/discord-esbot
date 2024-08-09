@@ -336,10 +336,8 @@ class Punishments(commands.Cog):
 
         if ban:
             return await interaction.send('У пользователя уже есть блокировка.', ephemeral=True)
-
         embed = self.handler.bans.create_ban_embed(interaction, resolved_user, duration_in_seconds, reason)
         if grant_level(interaction.user.roles, interaction.user) <= 3 or interaction.user.id == 479244541858152449:
-            print(f'cogs/ 342:  {resolved_user.id}')
             await interaction.send(embed=embed, view=PunishmentApprove(punishment='ban', reason=reason,
                                                                        moderator_id=interaction.user.id,
                                                                        user_id=resolved_user.id,
