@@ -295,19 +295,19 @@ class Punishments(commands.Cog):
     @restricted_command(2)
     async def unwarn(self, interaction,
                      user: str = nextcord.SlashOption('пользователь',
-                                                      description='Пользователь, которому вы хотите выдать предупреждение.',
+                                                      description='Пользователь, которому вы хотите снять предупреждение.',
                                                       required=True),
                      action_id=nextcord.SlashOption('action_id', description='Action ID наказания',
                                                     required=True)):
         if not (user := await self.bot.resolve_user(user)):
             return await interaction.send('Пользователь не найден.')
-        if not (warn_data := await self.handler.database.get_warn(user_id=user.id, guild_id=interaction.guild.id,
-                                                                  action_id=action_id)):
+        if not (warn_data := await self.handler.database.get_warn(action_id=action_id)):
+            print(warn_data)
             return await interaction.send('Предупреждение не найдено.')
         embed = self.handler.warns.create_unwarn_embed(interaction, user, warn_data)
         await interaction.send(embed=embed)
         await self.handler.database.remove_warn(user_id=user.id, guild_id=interaction.guild.id,
-                                                moderator_id=interaction.user.id, action_id=action_id)
+                                                moderator=interaction.user, action_id=action_id)
 
     @nextcord.slash_command(name='ban', description="Заблокировать пользователя на сервере")
     @restricted_command(1)

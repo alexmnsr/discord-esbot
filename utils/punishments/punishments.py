@@ -314,7 +314,7 @@ class WarnHandler:
                      .set_footer(text=f"Модератор: {interaction.user.id}"))
         else:
             embed = ((nextcord.Embed(title='Снятие предупреждения', color=nextcord.Color.red())
-                      .set_author(name=interaction.user.id, icon_url=interaction.user.display_avatar.url))
+                      .set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url))
                      .add_field(name='Нарушитель', value=f'<@{user}>')
                      .add_field(name='Выдавал', value=f'<@{warn_data["moderator_id"]}>')
                      .add_field(name='Причина', value=f'{warn_data["reason"]}')

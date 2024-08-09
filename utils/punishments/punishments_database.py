@@ -177,11 +177,17 @@ class PunishmentsDatabase:
         })
         return action_id
 
-    async def get_warn(self, *, user_id=None, guild_id=None, action_id=None):
-        return await self.warns.find_one({
-                                             'user_id': user_id,
-                                             'guild_id': guild_id
-                                         } if not action_id else {'_id': ObjectId(action_id)})
+    async def get_warn(self, *, action_id=None):
+        try:
+            if isinstance(action_id, str) and len(action_id) == 24:
+                action_id = ObjectId(action_id)
+            elif isinstance(action_id, str):
+                action_id = int(action_id)
+            print(action_id)
+            return await self.warns.find_one({'_id': action_id})
+        except:
+            print(f"Invalid action_id format")
+            return None
 
     async def remove_warn(self, *, user_id=None, guild_id=None, moderator=None, action_id=None):
         await self.actions.add_action(
@@ -299,6 +305,6 @@ class PunishmentsDatabase:
             }
         )
         return await self.block_channel.delete_one({
-                                              'user_id': user_id,
-                                              'guild_id': guild_id
-                                          } if not action_id else {'_id': ObjectId(action_id)})
+                                                       'user_id': user_id,
+                                                       'guild_id': guild_id
+                                                   } if not action_id else {'_id': ObjectId(action_id)})
