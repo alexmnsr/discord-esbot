@@ -258,7 +258,7 @@ class Punishments(commands.Cog):
             return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
         count_warns = len(await self.handler.database.get_warns(resolved_user.id, interaction.guild.id)) + 1
-        embed = self.handler.warns.create_warn_embed(interaction, resolved_user, count_warns, reason)
+        embed = self.handler.warns.create_warn_embed(interaction, interaction.user.id, resolved_user, count_warns, reason)
         if grant_level(interaction.user.roles, interaction.user) < 2:
             await interaction.send(embed=embed,
                                    view=PunishmentApprove(punishment='warn',
@@ -336,7 +336,7 @@ class Punishments(commands.Cog):
 
         if ban:
             return await interaction.send('У пользователя уже есть блокировка.', ephemeral=True)
-        embed = self.handler.bans.create_ban_embed(interaction, resolved_user, duration_in_seconds, reason)
+        embed = self.handler.bans.create_ban_embed(interaction, interaction.user.id, resolved_user, duration_in_seconds, reason)
         if grant_level(interaction.user.roles, interaction.user) <= 3 or interaction.user.id == 479244541858152449:
             await interaction.send(embed=embed, view=PunishmentApprove(punishment='ban', reason=reason,
                                                                        moderator_id=interaction.user.id,

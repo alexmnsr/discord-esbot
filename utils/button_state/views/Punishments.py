@@ -189,10 +189,10 @@ class PunishmentApprove(nextcord.ui.View):
                                              guild_id=interaction.guild.id)
 
         if self.punishment == 'warn':
-            embed = self.handler.warns.create_warn_embed(interaction, user, self.count_warns, self.reason)
+            embed = self.handler.warns.create_warn_embed(interaction, self.moderator, user, self.count_warns, self.reason)
             modal = RejectApproveModal(punishments='warn', user=self.user, message=interaction.message.id, embed=embed)
         elif self.punishment == 'ban':
-            embed = self.handler.bans.create_ban_embed(interaction, user, self.duration, self.reason)
+            embed = self.handler.bans.create_ban_embed(interaction, self.moderator, user, self.duration, self.reason)
             modal = RejectApproveModal(punishments='ban', user=self.user, message=interaction.message.id, embed=embed)
 
         if not interaction.response.is_done():
