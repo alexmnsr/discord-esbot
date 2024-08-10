@@ -6,6 +6,8 @@ import re
 import nextcord
 from nextcord.ext.application_checks.core import CheckWrapper
 
+from utils.classes.actions import human_actions
+
 grant_levels = {
     1: ["Модератор"],
     2: ["Ст. Модератор"],
@@ -401,6 +403,7 @@ def string_to_seconds(string: str, default_unit='m') -> int | None | str:
     time = int(time)
     time_mult = 60 if unit in ('м', 'm') else 24 * 3600 if unit in ('д', 'd') else 3600 if unit in ('ч', 'h') else 60
     return time * time_mult
+
 
 
 def print_user(user, newline=True):

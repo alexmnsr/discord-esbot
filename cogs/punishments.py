@@ -4,7 +4,7 @@ import nextcord
 from nextcord.ext import commands
 
 from utils.button_state.views.Punishments import CancelPunishments, PunishmentApprove, MuteModal
-from utils.classes.actions import ActionType, human_actions, payload_types
+from utils.classes.actions import ActionType, human_actions, payload_types, excluded_actions
 from utils.classes.bot import EsBot
 from utils.neccessary import string_to_seconds, checking_presence, restricted_command, print_user, \
     beautify_seconds, copy_message, grant_level
@@ -24,6 +24,12 @@ class Punishments(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
+        ban = await self.handler.database.get_ban(user_id=member.id, guild_id=member.guild.id)
+        if ban:
+            await member.guild.ban(member, reason=f"{ban['reason']} | ID: {ban['_id']}")
+            await self.handler.bans.wait_ban(ban['_id'], (ban['given_at'] + datetime.timedelta(seconds=ban[
+                'duration']) - datetime.datetime.now()).total_seconds())
+
         mutes = await self.handler.mutes.user_muted(member.id, member.guild.id)
 
         async def give_role(role_name, action_id):
@@ -258,7 +264,8 @@ class Punishments(commands.Cog):
             return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
         count_warns = len(await self.handler.database.get_warns(resolved_user.id, interaction.guild.id)) + 1
-        embed = self.handler.warns.create_warn_embed(interaction, interaction.user.id, resolved_user, count_warns, reason)
+        embed = self.handler.warns.create_warn_embed(interaction, interaction.user.id, resolved_user, count_warns,
+                                                     reason)
         if grant_level(interaction.user.roles, interaction.user) < 2:
             await interaction.send(embed=embed,
                                    view=PunishmentApprove(punishment='warn',
@@ -336,7 +343,8 @@ class Punishments(commands.Cog):
 
         if ban:
             return await interaction.send('У пользователя уже есть блокировка.', ephemeral=True)
-        embed = self.handler.bans.create_ban_embed(interaction, interaction.user.id, resolved_user, duration_in_seconds, reason)
+        embed = self.handler.bans.create_ban_embed(interaction, interaction.user.id, resolved_user.id,
+                                                   duration_in_seconds, reason)
         if grant_level(interaction.user.roles, interaction.user) <= 3 or interaction.user.id == 479244541858152449:
             await interaction.send(embed=embed, view=PunishmentApprove(punishment='ban', reason=reason,
                                                                        moderator_id=interaction.user.id,
@@ -482,9 +490,6 @@ class Punishments(commands.Cog):
                                    color=nextcord.Colour.dark_blue())
 
             for items in pages[page_num - 1]:
-                reason = items['payload'].get('reason', None)
-                duration = items['payload'].get('duration', None)
-                jump_url = items['payload'].get('jump_url', None)
                 if server == 'Все':
                     if items['guild_id'] == 690955874008694905:
                         continue
@@ -492,11 +497,28 @@ class Punishments(commands.Cog):
                     server_info = f'Сервер: {guild.name}\n'
                 else:
                     server_info = ''
+                if items['action_type'] in excluded_actions:
+                    continue
+                duration = f'Длительность: {beautify_seconds(int(items["payload"]["duration"])) if "duration" in items["payload"] else "Не указана"}'
+                if items['action_type'] in {
+                    ActionType.APPROVE_WARN.value,
+                    ActionType.UNMUTE_LOCAL.value,
+                    ActionType.UNBAN_LOCAL.value,
+                    ActionType.UNWARN_LOCAL.value,
+                    ActionType.WARN_LOCAL.value,
+                    ActionType.REMOVE_BLOCKCHANNEL.value,
+                }:
+                    duration = ''
+                approved = f'Подтвердил: <@{items["approve_punishment"]}>\n' if items.get('approve_punishment', None) else None
                 embed.add_field(
                     name=f'{items["_id"]}: {human_actions.get(items["action_type"].split(".")[-1].lower() if items["action_type"].startswith("ActionType.") else items["action_type"], "Неизвестное событие")}',
-                    value=f'{server_info}Время: {items["time"].strftime("%d.%m.%Y %H:%M:%S")}.\n'
-                          f'Выдал: <@{items["moderator_id"]}>\n{f"Причина: **[{reason}]({jump_url})**" if reason else "Не указана"}\n{f"Длительность: {beautify_seconds(int(duration))}" if duration else "Не указано"}',
-                    inline=False)
+                    value=(
+                        f'{server_info}Время: {items["time"].strftime("%d.%m.%Y %H:%M:%S")}.\n'
+                        f'Выдал: <@{items["moderator_id"]}>\n{approved if approved else ""}'
+                        f'Причина: **[{items["payload"].get("reason", "Не указана")}]({items["payload"].get("jump_url", "#")})**\n{duration}'
+                    ),
+                    inline=False
+                )
 
             embed.set_footer(text=f'Страница: {page_num} из {len(pages)}')
 

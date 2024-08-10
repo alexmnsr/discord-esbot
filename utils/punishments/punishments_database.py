@@ -228,6 +228,7 @@ class PunishmentsDatabase:
             user_id=user_id,
             guild_id=guild_id,
             moderator_id=moderator_id,
+            approve_punishment=approve_moderator,
             action_type=ban_type,
             payload={
                 'reason': reason,
@@ -261,7 +262,7 @@ class PunishmentsDatabase:
             moderator_id=moderator_id,
             action_type=ActionType.UNBAN_LOCAL,
             payload={
-                'time': 'end time punishment'
+                'reason': 'end time punishment'
             }
         )
         return await self.bans.delete_one({

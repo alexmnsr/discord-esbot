@@ -55,18 +55,6 @@ class RolesHandler:
             await self.mongo.delete_one(info)
 
         if moderator_id:
-            if cancel:
-                return await self.actions.update_action(
-                    user_id=user.id,
-                    guild_id=guild.id,
-                    moderator_id=moderator_id,
-                    action_type=ActionType.RECHECKING_CANCEL,
-                    payload={
-                        'role': role,
-                        'rang': rang,
-                        'nick': nick
-                    }
-                )
             await self.moder_mongo.update_one(
                 {'moder_id': moderator_id, 'guild': guild.id, 'date': datetime.datetime.now().strftime('%d.%m.%Y')},
                 {'$push': {'roles_approved' if approve else 'roles_rejected': user.id}},

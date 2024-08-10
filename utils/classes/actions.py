@@ -47,6 +47,14 @@ human_actions = {
     ActionType.REMOVE_BLOCKCHANNEL.value: "Разблокировка канала"
 }
 
+excluded_actions = {
+    ActionType.ROLE_APPROVE.value,
+    ActionType.ROLE_REJECT.value,
+    ActionType.ROLE_REMOVE.value,
+    ActionType.RECHECKING_CANCEL.value,
+    ActionType.APPROVE_WARN.value
+}
+
 moder_actions = {
     ActionType.BAN_LOCAL.value: "Блокировки",
     ActionType.APPROVE_BAN.value: "Подтверждение блокировки",
@@ -89,29 +97,23 @@ class Actions:
         self.db = db
         self.actions = self.db['list']
 
-    async def add_action(self, *, user_id, guild_id, moderator_id, action_type: ActionType, payload):
+    async def add_action(self, *, user_id, guild_id, moderator_id, action_type: ActionType, payload, approve_punishment=None):
         result = await self.actions.insert_one({
             'user_id': user_id,
             'guild_id': guild_id,
             'moderator_id': moderator_id,
+            'approve_punishment': approve_punishment if approve_punishment else None,
             'action_type': action_type.value,
             'payload': payload,
             'time': datetime.datetime.now()
         })
         return result.inserted_id  # Возвращаем автоматически сгенерированный _id
 
-    async def update_action(self, *, user_id, guild_id, moderator_id, action_type: ActionType, payload):
+    async def update_action(self, *, user_id, guild_id, moderator_id, action_type: ActionType, payload, **update):
         filter = {
             'user_id': user_id,
             'guild_id': guild_id,
             'payload': payload
-        }
-
-        update = {
-            '$set': {
-                'moderator_id': int(moderator_id),
-                'action_type': action_type.value
-            }
         }
 
         # Проверка текущего состояния документа

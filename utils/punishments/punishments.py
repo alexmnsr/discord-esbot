@@ -274,16 +274,18 @@ class WarnHandler:
                 jump_url=jump_url
             )
             try:
-                await interaction.guild.kick(user, reason=f"Action ID: {action_id}")
+                member = await interaction.guild.fetch_member(user)
+                if member:
+                    await interaction.guild.kick(user, reason=f"Action ID: {action_id}")
             except:
-                print('Net prav')
+                print(f"Пользователь не находится на сервере, кикнут не был.")
 
     @staticmethod
     def create_warn_embed(interaction, moderator, user, count_warns, reason, check=None):
         if isinstance(user, nextcord.Member):
             embed = (nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
             .set_author(name=user.display_name, icon_url=user.display_avatar.url)
-            .add_field(name='Нарушитель', value=f'<@{user.mention}>')
+            .add_field(name='Нарушитель', value=user.mention)
             .add_field(name='Причина', value=reason)
             .add_field(name='Модератор', value=f'<@{moderator}>')
             .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3")
@@ -293,7 +295,7 @@ class WarnHandler:
         else:
             embed = (nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
                      .set_author(name=interaction.user.id, icon_url=interaction.guild.icon.url)
-                     .add_field(name='Нарушитель', value=f'<@{user}>')
+                     .add_field(name='Нарушитель', value=user.mention)
                      .add_field(name='Причина', value=reason)
                      .add_field(name='Модератор', value=f'<@{moderator}>')
                      .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3")
@@ -348,25 +350,12 @@ class BanHandler:
             color=0xFF0000
         )
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
-        user_id = user
         try:
-            member = guild.get_member(user_id)
-
-            if member is None:
-                # Если пользователь не найден на сервере, попробуем получить его по ID
-                user = self.client.get_user(user_id)
-                if user is None:
-                    print(f'Пользователь с ID {user_id} не найден в Discord. Бан невозможен.')
-                    return
-                await guild.ban(user, reason=reason)  # Банный пользователь по объекту User
-                print(f'Пользователь с ID {user_id} забанен (не был на сервере).')
-            else:
-                # Если пользователь найден на сервере, баним его
+            member = await guild.fetch_member(user)
+            if member:
                 await guild.ban(member, reason=reason)
-                print(f'Пользователь {member.name} забанен.')
-
-        except Exception as e:
-            print(f'Произошла ошибка при бане пользователя: {e}')
+        except:
+            member = None
 
         log_embed = nextcord.Embed(
             title=f'Выдача {f"блокировки на сервере {guild.name}" if type_ban != ActionType.BAN_GLOBAL else "глобальной блокировки."}',
@@ -378,6 +367,9 @@ class BanHandler:
         log_embed.add_field(name='Длительность блокировки',
                             value=beautify_seconds(duration) if duration != '-1' else 'Никогда')
         log_embed.add_field(name='Ссылка на сообщение', value=jump_url)
+        log_embed.add_field(name='Блокировка',
+                            value='Пользователь не был найден на севрере, при попытке захода будет заблокирован',
+                            inline=False) if member is None else None
         log_embed.set_footer(text=f'ID: {user}')
         await self.client.db.actions.send_log(action_id, guild, embed=log_embed)
 

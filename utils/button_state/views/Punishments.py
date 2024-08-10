@@ -152,18 +152,29 @@ class PunishmentApprove(nextcord.ui.View):
             await interaction.response.defer(ephemeral=True)
             await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
             return
+        embed = None
         if self.punishment == 'warn':
             embed = self.handler.warns.create_warn_embed(interaction, self.moderator, self.user, self.count_warns,
                                                          self.reason, check=True)
             await self.handler.warns.apply_warn(interaction, self.user, self.count_warns, self.reason, embed,
                                                 moderator_id=interaction.user.id, approve_moderator=interaction.user.id)
         elif self.punishment == 'ban':
+            ban = await self.handler.database.get_ban(user_id=self.user, guild_id=interaction.guild.id)
+
+            if ban:
+                await interaction.response.defer(ephemeral=True)
+                await interaction.followup.send(f"У пользователя уже есть блокировка | Action_Id: {ban['_id']}",
+                                                ephemeral=True)
+                await self.bot.buttons.remove_button("Punishments",
+                                                     message_id=interaction.message.id,
+                                                     channel_id=interaction.channel_id,
+                                                     guild_id=interaction.guild.id)
+                return await interaction.message.edit(view=None)
             embed = self.handler.bans.create_ban_embed(interaction, self.moderator, self.user, self.duration,
                                                        self.reason, check=True)
             await self.handler.bans.apply_ban(interaction, self.user, self.duration, self.reason, embed,
                                               moderator_id=interaction.user.id, approve_moderator=interaction.user.id)
-        embed.add_field(name='Подтвердил', value=interaction.user.mention)
-        await interaction.message.edit(view=None)
+        await interaction.message.edit(embed=embed, view=None)
         await interaction.message.add_reaction('✅')
         await self.bot.buttons.remove_button("Punishments",
                                              message_id=interaction.message.id,
@@ -189,10 +200,12 @@ class PunishmentApprove(nextcord.ui.View):
                                              guild_id=interaction.guild.id)
 
         if self.punishment == 'warn':
-            embed = self.handler.warns.create_warn_embed(interaction, self.moderator, user, self.count_warns, self.reason)
+            embed = self.handler.warns.create_warn_embed(interaction, self.moderator, user, self.count_warns,
+                                                         self.reason, check=True)
             modal = RejectApproveModal(punishments='warn', user=self.user, message=interaction.message.id, embed=embed)
         elif self.punishment == 'ban':
-            embed = self.handler.bans.create_ban_embed(interaction, self.moderator, user, self.duration, self.reason)
+            embed = self.handler.bans.create_ban_embed(interaction, self.moderator, user, self.duration, self.reason,
+                                                       check=True)
             modal = RejectApproveModal(punishments='ban', user=self.user, message=interaction.message.id, embed=embed)
 
         if not interaction.response.is_done():
