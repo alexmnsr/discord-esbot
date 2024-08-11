@@ -23,8 +23,23 @@ class Online(commands.Cog):
         elif after.channel is None:
             await self.handler.leave(member, before.channel)
         else:
-            await self.handler.leave(member, before.channel)
-            await self.handler.join(member, after.channel)
+            log_channel, embed = self.send_embed_online(member=member, after=after, before=before, transition=True)
+            await log_channel.send(embed=embed)
+            await self.handler.leave(member, before.channel, transition=True)
+            await self.handler.join(member, after.channel, transition=True)
+
+    @staticmethod
+    def send_embed_online(member: nextcord.Member, before: nextcord.VoiceState = None,
+                          after: nextcord.VoiceState = None, join=False, leave=False, transition=False):
+        embed = nextcord.Embed(title='Лог Онлайн', color=nextcord.Color.dark_purple())
+        embed.add_field(name='', value='Участник перешел в другой канал', inline=False)
+        embed.add_field(name='Предыдущий канал', value=f'{before.channel.name} ({before.channel.jump_url})\nID: {before.channel.id}', inline=True)
+        embed.add_field(name='Канал', value=f'{after.channel.name} ({after.channel.jump_url})\nID: {after.channel.id}', inline=True)
+        embed.set_author(name=member.display_name, icon_url=member.avatar.url)
+        embed.set_footer(text=f'ID участника: {member.id} | {datetime.datetime.now().strftime("%H:%M:%S")}',
+                         icon_url=member.avatar.url)
+        log_channel = [channel for channel in member.guild.channels if "логи-голосовых-esbot" in channel.name][0]
+        return log_channel, embed
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:

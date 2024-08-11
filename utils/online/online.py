@@ -38,15 +38,36 @@ class OnlineHandler:
                         if not call_user == user:
                             call_user = user
                             await self.leave(AbstractUser(user, channel.guild), channel)
-        print("Обновление онлайна пользователей прошло успешно!")
 
     async def join(self, member: nextcord.Member,
-                   channel) -> None:
+                   channel, transition=False) -> None:
+        if not transition:
+            log_channel, embed = self.send_embed_online(member=member, channel=channel, leave=True)
+            await log_channel.send(embed=embed)
         await self.database.add_join_info(member, channel, is_counting(channel))
 
-    async def leave(self, member, channel) -> None:
+    async def leave(self, member, channel, transition=False) -> None:
+        if not transition:
+            log_channel, embed = self.send_embed_online(member=member, channel=channel, leave=True)
+            await log_channel.send(embed=embed)
         await self.database.add_leave_info(member, channel)
 
     async def get_info(self, is_open, *, user_id, guild_id, date: str = None):
         return await self.database.get_info(is_open, user_id, guild_id,
                                             date if date else datetime.datetime.now().strftime('%d.%m.%Y'))
+
+    @staticmethod
+    def send_embed_online(member: nextcord.Member, channel: nextcord.VoiceChannel, join=False, leave=False):
+        if join:
+            message = f'Участник {member.mention} вошел в канал "{channel.name}" (ID канала: {channel.id})'
+        elif leave:
+            message = f'Участник {member.mention} покинул канал "{channel.name}" (ID канала: {channel.id})'
+        else:
+            return
+        embed = nextcord.Embed(title='Лог Онлайн', color=nextcord.Color.dark_purple())
+        embed.add_field(name='', value=message)
+        embed.set_author(name=member.display_name, icon_url=member.avatar.url)
+        embed.set_footer(text=f'ID участника: {member.id} | {datetime.datetime.now().strftime("%H:%M:%S")}',
+                         icon_url=member.avatar.url)
+        log_channel = [channel for channel in member.guild.channels if "логи-голосовых-esbot" in channel.name][0]
+        return log_channel, embed

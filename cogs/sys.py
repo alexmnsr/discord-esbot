@@ -43,6 +43,13 @@ class SysCommand(commands.Cog):
 
         await interaction.send(embed=embed, ephemeral=True)
 
+    @nextcord.slash_command(name='delbuttons', description='Удалить все кнопки с сервера')
+    async def delete_buttons_server(self, interaction):
+        if interaction.user.id != 479244541858152449:
+            return await interaction.send('Вы не имеете доступа к данной команде', ephemeral=True)
+        await self.buttons.remove_all_buttons_server(interaction.guild.id)
+        return await interaction.send('Удалил', ephemeral=True)
+
     @nextcord.message_command(name='Обновить кнопки', force_global=True)
     @restricted_command(1)
     async def update_buttons(self, interaction: nextcord.Interaction, message: nextcord.Message):

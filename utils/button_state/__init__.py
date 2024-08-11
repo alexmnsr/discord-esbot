@@ -55,6 +55,15 @@ class ButtonState:
 
         return result
 
+    async def remove_all_buttons_server(self, guild_id):
+        databases = {
+            "Roles": self.db_roles,
+            "Punishments": self.db_punishments,
+            "Online": self.db_online
+        }
+        for db_name, db in databases.items():
+            await db.delete_many({'guild_id': guild_id})
+
     async def get_button(self, datebase=None, user_request=None, moderator_id=None, guild_id=None, id_button=None):
         databases = {
             "Roles": self.db_roles,
