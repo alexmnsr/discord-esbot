@@ -24,7 +24,7 @@ class Online(commands.Cog):
             await self.handler.leave(member, before.channel)
         else:
             try:
-                log_channel, embed = self.send_embed_online(member=member, after=after, before=before, transition=True)
+                log_channel, embed = self.send_embed_online(member=member, after=after, before=before)
                 await log_channel.send(embed=embed)
             except:
                 pass
