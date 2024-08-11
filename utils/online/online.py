@@ -42,7 +42,7 @@ class OnlineHandler:
     async def join(self, member: nextcord.Member,
                    channel, transition=False) -> None:
         if not transition:
-            log_channel, embed = self.send_embed_online(member=member, channel=channel, leave=True)
+            log_channel, embed = self.send_embed_online(member=member, channel=channel, join=True)
             await log_channel.send(embed=embed)
         await self.database.add_join_info(member, channel, is_counting(channel))
 
