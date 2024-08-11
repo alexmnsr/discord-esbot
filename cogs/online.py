@@ -23,14 +23,17 @@ class Online(commands.Cog):
         elif after.channel is None:
             await self.handler.leave(member, before.channel)
         else:
-            log_channel, embed = self.send_embed_online(member=member, after=after, before=before, transition=True)
-            await log_channel.send(embed=embed)
+            try:
+                log_channel, embed = self.send_embed_online(member=member, after=after, before=before, transition=True)
+                await log_channel.send(embed=embed)
+            except:
+                pass
             await self.handler.leave(member, before.channel, transition=True)
             await self.handler.join(member, after.channel, transition=True)
 
     @staticmethod
     def send_embed_online(member: nextcord.Member, before: nextcord.VoiceState = None,
-                          after: nextcord.VoiceState = None, join=False, leave=False, transition=False):
+                          after: nextcord.VoiceState = None):
         embed = nextcord.Embed(title='Лог Онлайн', color=nextcord.Color.dark_purple())
         embed.add_field(name='', value='Участник перешел в другой канал', inline=False)
         embed.add_field(name='Предыдущий канал', value=f'{before.channel.name} ({before.channel.jump_url})\nID: {before.channel.id}', inline=True)
