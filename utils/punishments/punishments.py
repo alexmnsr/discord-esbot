@@ -248,8 +248,9 @@ class WarnHandler:
 
         return action_id
 
-    async def apply_warn(self, interaction, user, count_warns, reason, embed, moderator_id, approve_moderator=None,
-                         jump_url=None):
+    async def apply_warn(self, interaction: nextcord.Interaction, user, count_warns, reason, embed, moderator_id,
+                         approve_moderator=None,
+                         kick=True, jump_url=None):
         if count_warns == 3:
             await self.handler.bans.give_ban(
                 ActionType.WARN_LOCAL,
@@ -273,15 +274,12 @@ class WarnHandler:
                 reason=reason,
                 jump_url=jump_url
             )
-            try:
-                member = await interaction.guild.fetch_member(user)
+            if kick:
+                member = await interaction.guild.fetch_member(user if isinstance(user, int) else user.id)
                 if member:
-                    await interaction.guild.kick(user, reason=f"Action ID: {action_id}")
-            except:
-                print(f"Пользователь не находится на сервере, кикнут не был.")
+                    await interaction.guild.kick(member, reason=f"Action ID: {action_id}")
 
-    @staticmethod
-    def create_warn_embed(interaction, moderator, user, count_warns, reason, check=None):
+    async def create_warn_embed(self, interaction, moderator, user, count_warns, reason, check=None):
         if isinstance(user, nextcord.Member):
             embed = (nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
             .set_author(name=user.display_name, icon_url=user.display_avatar.url)
@@ -376,8 +374,7 @@ class BanHandler:
         if duration != '-1':
             self.client.loop.create_task(self.wait_ban(action_id, duration))
 
-    @staticmethod
-    def create_ban_embed(interaction, moderator, user, duration, reason, check=None):
+    async def create_ban_embed(self, interaction, moderator, user, duration, reason, check=None):
         if isinstance(user, nextcord.Member):
             embed = (nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
             .set_author(name=user.display_name, icon_url=user.display_avatar.url)

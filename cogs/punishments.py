@@ -255,7 +255,11 @@ class Punishments(commands.Cog):
                                                     required=True),
                    reason: str = nextcord.SlashOption('причина',
                                                       description='Причина',
-                                                      required=True)):
+                                                      required=True),
+                   kick: str = nextcord.SlashOption('кик',
+                                                    description='Выберете нужно ли кикать пользователя, по умолчанию - кик.',
+                                                    choices=['Кикать', 'Без кика'],
+                                                    default='Кикать')):
         resolved_user = await self.bot.resolve_user(user, interaction.guild)
         if not resolved_user:
             return await interaction.send('Пользователь не найден.')
@@ -264,8 +268,9 @@ class Punishments(commands.Cog):
             return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
         count_warns = len(await self.handler.database.get_warns(resolved_user.id, interaction.guild.id)) + 1
-        embed = self.handler.warns.create_warn_embed(interaction, interaction.user.id, resolved_user, count_warns,
+        embed = await self.handler.warns.create_warn_embed(interaction, interaction.user.id, resolved_user, count_warns,
                                                      reason)
+        kick = True if kick == 'Кикать' else False
         if grant_level(interaction.user.roles, interaction.user) < 2:
             await interaction.send(embed=embed,
                                    view=PunishmentApprove(punishment='warn',
@@ -281,6 +286,7 @@ class Punishments(commands.Cog):
                 'reason': reason,
                 'moderator_id': interaction.user.id,
                 'user_id': resolved_user.id,
+                'kick': kick,
                 'lvl': 2
             }
             await self.bot.buttons.add_button("Punishments", message_id=message.id,
@@ -296,7 +302,7 @@ class Punishments(commands.Cog):
                                                                     user_id=resolved_user.id))
             jump_url = (await message.fetch()).jump_url
             await self.handler.warns.apply_warn(interaction, resolved_user.id, count_warns, reason, embed,
-                                                moderator_id=interaction.user.id, jump_url=jump_url)
+                                                moderator_id=interaction.user.id, kick=kick, jump_url=jump_url)
 
     @nextcord.slash_command(name='unwarn', description="Снять предупреждение пользователя")
     @restricted_command(2)
@@ -343,7 +349,7 @@ class Punishments(commands.Cog):
 
         if ban:
             return await interaction.send('У пользователя уже есть блокировка.', ephemeral=True)
-        embed = self.handler.bans.create_ban_embed(interaction, interaction.user.id, resolved_user.id,
+        embed = await self.handler.bans.create_ban_embed(interaction, interaction.user.id, resolved_user.id,
                                                    duration_in_seconds, reason)
         if grant_level(interaction.user.roles, interaction.user) <= 3 or interaction.user.id == 479244541858152449:
             await interaction.send(embed=embed, view=PunishmentApprove(punishment='ban', reason=reason,
@@ -509,7 +515,8 @@ class Punishments(commands.Cog):
                     ActionType.REMOVE_BLOCKCHANNEL.value,
                 }:
                     duration = ''
-                approved = f'Подтвердил: <@{items["approve_punishment"]}>\n' if items.get('approve_punishment', None) else None
+                approved = f'Подтвердил: <@{items["approve_punishment"]}>\n' if items.get('approve_punishment',
+                                                                                          None) else None
                 embed.add_field(
                     name=f'{items["_id"]}: {human_actions.get(items["action_type"].split(".")[-1].lower() if items["action_type"].startswith("ActionType.") else items["action_type"], "Неизвестное событие")}',
                     value=(
