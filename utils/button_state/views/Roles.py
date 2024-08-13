@@ -91,8 +91,8 @@ class ReviewView(nextcord.ui.View):
         request = await RoleRequest.from_message(interaction.message)
         user, guild = RoleRequest.parse_info(interaction.message)
         action_id = await self.roles_handler.remove_request(user, guild, False, False, moderator_id=interaction.user.id,
-                                                role=request.role_info.role_names[0],
-                                                rang=request.rang, nick=request.nickname)
+                                                            role=request.role_info.role_names[0],
+                                                            rang=request.rang, nick=request.nickname)
         date = datetime.now().strftime('%d.%m.%Y')
         await interaction.edit_original_message(embed=embed, view=CancelRoles(date=date, action_id=action_id))
         params = {
@@ -165,7 +165,6 @@ class ReviewView(nextcord.ui.View):
             await interaction.response.defer(ephemeral=True)
             await interaction.followup.send("Запросом занимается другой модератор", ephemeral=True)
             return
-        self.stop()
 
         await interaction.response.defer()
 
@@ -191,6 +190,7 @@ class ReviewView(nextcord.ui.View):
                                           guild_id=interaction.guild.id,
                                           class_method='CancelRoles',
                                           params=params)
+        self.stop()
         if request:
             await request.approve(user_text(interaction.user))
 
@@ -249,7 +249,8 @@ class CancelRoles(nextcord.ui.View):
                 await request.cancel_approve(user_text(interaction.user))
             elif '📕 Отказанный запрос на роль' == interaction.message.embeds[0].title:
                 await request.cancel_deny(user_text(interaction.user))
-        await self.roles_handler.cancel(action_id=self.action_id, moderator_id=interaction.user.id, guild_id=interaction.guild.id)
+        await self.roles_handler.cancel(action_id=self.action_id, moderator_id=interaction.user.id,
+                                        guild_id=interaction.guild.id)
 
         embed = interaction.message.embeds[0]
         embed.colour = nextcord.Colour.red()

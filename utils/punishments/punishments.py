@@ -283,7 +283,7 @@ class WarnHandler:
         if isinstance(user, nextcord.Member):
             embed = (nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
             .set_author(name=user.display_name, icon_url=user.display_avatar.url)
-            .add_field(name='Нарушитель', value=user.mention)
+            .add_field(name='Нарушитель', value=f'<@{user}>')
             .add_field(name='Причина', value=reason)
             .add_field(name='Модератор', value=f'<@{moderator}>')
             .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3")
@@ -293,7 +293,7 @@ class WarnHandler:
         else:
             embed = (nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
                      .set_author(name=interaction.user.id, icon_url=interaction.guild.icon.url)
-                     .add_field(name='Нарушитель', value=user.mention)
+                     .add_field(name='Нарушитель', value=f'<@{user}>')
                      .add_field(name='Причина', value=reason)
                      .add_field(name='Модератор', value=f'<@{moderator}>')
                      .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3")
