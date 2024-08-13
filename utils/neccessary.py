@@ -35,10 +35,6 @@ async def load_buttons(client, buttons, type_buttons):
         channel_id = button_data.get('channel_id')
         class_name = button_data.get('class_method')
         selected_class = await get_class_from_file(module_name, class_name)
-        if selected_class:
-            print(f"Класс {selected_class.__name__} найден.")
-        else:
-            print(f"Класс {selected_class.__name__} не найден.")
         params = button_data.get('params', {})
         view = selected_class(**params)
 

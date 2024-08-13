@@ -100,11 +100,8 @@ class ButtonState:
         module_name = f'utils.button_state.views.{module}'
         selected_class = await get_class_from_file(module_name, class_name)
 
-        if selected_class:
-            print(f"Класс {selected_class.__name__} найден.")
-        else:
-            print(f"Класс {class_name} не найден.")
-            return  # Выход, если класс не найден
+        if not selected_class:
+            return
 
         view = selected_class(**params)
 
