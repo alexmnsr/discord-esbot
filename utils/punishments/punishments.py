@@ -486,7 +486,7 @@ class PunishmentsHandler:
         current_mutes = await self.database.get_mutes()
         current_bans = await self.database.get_bans()
         if await load_buttons(self.client, self.buttons, type_buttons='Punishments'):
-            self.client.vk.send_message(123123123, 'Подгрузил все кнопки в наказания.')
+            await self.client.vk.send_message(123123123, 'Подгрузил все кнопки в наказания.')
 
         for mute in current_mutes:
             role_name = 'Mute » Text' if mute['type'] == 'text' else 'Mute » Voice' if mute[

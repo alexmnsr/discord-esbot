@@ -40,17 +40,24 @@ async def load_buttons(client, buttons, type_buttons):
 
         channel = client.get_channel(channel_id)
         if channel:
-            try:
-                message = await channel.fetch_message(message_id)
-                await edit_message_with_retry(message, view)
-                await asyncio.sleep(0.1)
-            except nextcord.NotFound:
-                print("Сообщение не найдено.")
-            except nextcord.Forbidden:
-                print("Нет прав на редактирование этого сообщения.")
-            except Exception as e:
-                print(f"Произошла ошибка: {e}")
-    return True
+            while True:
+                try:
+                    message = await channel.fetch_message(message_id)
+                    await edit_message_with_retry(message, view)
+                    await asyncio.sleep(0.1)
+                    break
+                except nextcord.NotFound:
+                    print("Сообщение не найдено.")
+                    break
+                except nextcord.Forbidden:
+                    print("Нет прав на редактирование этого сообщения.")
+                    break
+                except nextcord.HTTPException as e:
+                    if e.status == 429:
+                        await asyncio.sleep(5)
+                    else:
+                        print(f"Ошибка при получении сообщения: {e}")
+                        break
 
 
 async def edit_message_with_retry(message, view):
@@ -60,9 +67,7 @@ async def edit_message_with_retry(message, view):
             break
         except nextcord.HTTPException as e:
             if e.status == 429:
-                retry_after = 5
-                print(f"Лимиты превышены. Ожидание {retry_after} секунд.")
-                await asyncio.sleep(retry_after)
+                await asyncio.sleep(5)
             else:
                 print(f"Ошибка при редактировании сообщения: {e}")
                 break
