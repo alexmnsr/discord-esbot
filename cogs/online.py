@@ -49,7 +49,7 @@ class Online(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        if not os.getenv('DEBUG'):
+        if os.getenv('DEBUG') == "False":
             await self.bot.vk.send_message(123123, 'Вы запустили бота на хостинге. Началось обновление онлайна, наказаний, кнопок')
             await self.handler.reload(self.bot.get_all_channels())
 

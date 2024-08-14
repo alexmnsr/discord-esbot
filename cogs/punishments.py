@@ -22,7 +22,7 @@ class Punishments(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        if not os.getenv('DEBUG'):
+        if os.getenv('DEBUG') == "False":
             await checking_presence(self.bot)
             await self.handler.reload()
 

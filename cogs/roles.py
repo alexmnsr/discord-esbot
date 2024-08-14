@@ -46,7 +46,7 @@ class Roles(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        if not os.getenv('DEBUG'):
+        if os.getenv('DEBUG') == "False":
             await self.reload()
 
     @nextcord.slash_command(name='role', description='Подать заявление на роль.')
