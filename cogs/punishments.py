@@ -1,4 +1,5 @@
 import datetime
+import os
 
 import nextcord
 from nextcord.ext import commands
@@ -19,13 +20,16 @@ class Punishments(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        await checking_presence(self.bot)
-        await self.handler.reload()
+        if not os.getenv('DEBUG'):
+            await checking_presence(self.bot)
+            await self.handler.reload()
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
         ban = await self.handler.database.get_ban(user_id=member.id, guild_id=member.guild.id)
         if ban:
+            await member.send(
+                f'```У Вас имеется блокировка на данном сервере\nМодератор: <@{ban["moderator_id"]}>\nПричина: {ban["reason"]}\nAction ID: {ban["_id"]}```')
             await member.guild.ban(member, reason=f"{ban['reason']} | ID: {ban['_id']}")
             await self.handler.bans.wait_ban(ban['_id'], (ban['given_at'] + datetime.timedelta(seconds=ban[
                 'duration']) - datetime.datetime.now()).total_seconds())
@@ -268,7 +272,7 @@ class Punishments(commands.Cog):
             return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
         count_warns = len(await self.handler.database.get_warns(resolved_user.id, interaction.guild.id)) + 1
-        embed = await self.handler.warns.create_warn_embed(interaction, interaction.user.id, resolved_user, count_warns,
+        embed = self.handler.warns.create_warn_embed(interaction, interaction.user.id, resolved_user, count_warns,
                                                      reason)
         kick = True if kick == 'Кикать' else False
         if grant_level(interaction.user.roles, interaction.user) < 2:
@@ -349,7 +353,7 @@ class Punishments(commands.Cog):
 
         if ban:
             return await interaction.send('У пользователя уже есть блокировка.', ephemeral=True)
-        embed = await self.handler.bans.create_ban_embed(interaction, interaction.user.id, resolved_user.id,
+        embed = self.handler.bans.create_ban_embed(interaction, interaction.user.id, resolved_user.id,
                                                    duration_in_seconds, reason)
         if grant_level(interaction.user.roles, interaction.user) <= 3 or interaction.user.id == 479244541858152449:
             await interaction.send(embed=embed, view=PunishmentApprove(punishment='ban', reason=reason,

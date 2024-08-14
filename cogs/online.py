@@ -1,4 +1,5 @@
 import datetime
+import os
 from typing import Any
 import nextcord
 from nextcord.ext import commands
@@ -46,7 +47,8 @@ class Online(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        await self.handler.reload(self.bot.get_all_channels())
+        if not os.getenv('DEBUG'):
+            await self.handler.reload(self.bot.get_all_channels())
 
     @nextcord.slash_command(name='online', description='Показать онлайн пользователя',
                             dm_permission=False)

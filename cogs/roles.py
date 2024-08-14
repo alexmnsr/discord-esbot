@@ -1,3 +1,5 @@
+import os
+
 import nextcord
 from nextcord.ext import commands
 
@@ -41,7 +43,8 @@ class Roles(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        await self.reload()
+        if not os.getenv('DEBUG'):
+            await self.reload()
 
     @nextcord.slash_command(name='role', description='Подать заявление на роль.')
     async def request_role(self, interaction: nextcord.Interaction,

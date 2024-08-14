@@ -279,7 +279,8 @@ class WarnHandler:
                 if member:
                     await interaction.guild.kick(member, reason=f"Action ID: {action_id}")
 
-    async def create_warn_embed(self, interaction, moderator, user, count_warns, reason, check=None):
+    @staticmethod
+    def create_warn_embed(interaction, moderator, user, count_warns, reason, check=None):
         if isinstance(user, nextcord.Member):
             embed = (nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
             .set_author(name=user.display_name, icon_url=user.display_avatar.url)
@@ -374,30 +375,6 @@ class BanHandler:
         if duration != '-1':
             self.client.loop.create_task(self.wait_ban(action_id, duration))
 
-    async def create_ban_embed(self, interaction, moderator, user, duration, reason, check=None):
-        if isinstance(user, nextcord.Member):
-            embed = (nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
-            .set_author(name=user.display_name, icon_url=user.display_avatar.url)
-            .add_field(name='Нарушитель', value=user.mention)
-            .add_field(name='Длительность',
-                       value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда')
-            .add_field(name='Причина', value=reason)
-            .add_field(name='Модератор', value=f'<@{moderator}>')
-            .set_thumbnail(
-                url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
-            embed.add_field(name='Проверил', value=f'{interaction.user.mention}') if check else None
-        else:
-            embed = (nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
-                     .set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-                     .add_field(name='Нарушитель', value=f'<@{user}>')
-                     .add_field(name='Длительность',
-                                value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда')
-                     .add_field(name='Причина', value=reason)
-                     .add_field(name='Модератор', value=f'<@{moderator}>')
-                     .set_thumbnail(url=interaction.guild.icon.url))
-            embed.add_field(name='Проверил', value=f'{interaction.user.mention}') if check else None
-        return embed
-
     async def apply_ban(self, interaction, user, duration, reason, embed, moderator_id, approve_moderator=None,
                         jump_url=None):
         await self.handler.bans.give_ban(
@@ -443,6 +420,31 @@ class BanHandler:
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
 
         await send_embed(await self.client.fetch_user(ban['user_id']), embed)
+
+    @staticmethod
+    def create_ban_embed(interaction, moderator, user, duration, reason, check=None):
+        if isinstance(user, nextcord.Member):
+            embed = (nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
+            .set_author(name=user.display_name, icon_url=user.display_avatar.url)
+            .add_field(name='Нарушитель', value=user.mention)
+            .add_field(name='Длительность',
+                       value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда')
+            .add_field(name='Причина', value=reason)
+            .add_field(name='Модератор', value=f'<@{moderator}>')
+            .set_thumbnail(
+                url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
+            embed.add_field(name='Проверил', value=f'{interaction.user.mention}') if check else None
+        else:
+            embed = (nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
+                     .set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+                     .add_field(name='Нарушитель', value=f'<@{user}>')
+                     .add_field(name='Длительность',
+                                value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда')
+                     .add_field(name='Причина', value=reason)
+                     .add_field(name='Модератор', value=f'<@{moderator}>')
+                     .set_thumbnail(url=interaction.guild.icon.url))
+            embed.add_field(name='Проверил', value=f'{interaction.user.mention}') if check else None
+        return embed
 
     async def unban(self, user, guild):
         if (not (

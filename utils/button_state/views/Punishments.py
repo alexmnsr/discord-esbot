@@ -155,7 +155,7 @@ class PunishmentApprove(nextcord.ui.View):
             return
         embed = None
         if self.punishment == 'warn':
-            embed = await self.handler.warns.create_warn_embed(interaction, self.moderator, self.user, self.count_warns,
+            embed = self.handler.warns.create_warn_embed(interaction, self.moderator, self.user, self.count_warns,
                                                                self.reason, check=True)
             await self.handler.warns.apply_warn(interaction, self.user, self.count_warns, self.reason, embed,
                                                 moderator_id=interaction.user.id, kick=self.kick,
@@ -172,7 +172,7 @@ class PunishmentApprove(nextcord.ui.View):
                                                      channel_id=interaction.channel_id,
                                                      guild_id=interaction.guild.id)
                 return await interaction.message.edit(view=None)
-            embed = await self.handler.bans.create_ban_embed(interaction, self.moderator, self.user, self.duration,
+            embed = self.handler.bans.create_ban_embed(interaction, self.moderator, self.user, self.duration,
                                                              self.reason, check=True)
             await self.handler.bans.apply_ban(interaction, self.user, self.duration, self.reason, embed,
                                               moderator_id=interaction.user.id, approve_moderator=interaction.user.id)
@@ -202,11 +202,11 @@ class PunishmentApprove(nextcord.ui.View):
                                              guild_id=interaction.guild.id)
 
         if self.punishment == 'warn':
-            embed = await self.handler.warns.create_warn_embed(interaction, self.moderator, user, self.count_warns,
+            embed = self.handler.warns.create_warn_embed(interaction, self.moderator, user, self.count_warns,
                                                                self.reason, check=True)
             modal = RejectApproveModal(punishments='warn', user=self.user, message=interaction.message.id, embed=embed)
         elif self.punishment == 'ban':
-            embed = await self.handler.bans.create_ban_embed(interaction, self.moderator, user, self.duration,
+            embed = self.handler.bans.create_ban_embed(interaction, self.moderator, user, self.duration,
                                                              self.reason,
                                                              check=True)
             modal = RejectApproveModal(punishments='ban', user=self.user, message=interaction.message.id, embed=embed)
