@@ -17,7 +17,8 @@ class OnlineHandler:
         self.buttons = buttons
 
     async def reload(self, all_channels):
-        await load_buttons(self.client, self.buttons, type_buttons='Online')
+        if await load_buttons(self.client, self.buttons, type_buttons='Online'):
+            self.client.vk.send_message(123123123, 'Подгрузил все кнопки в Онлайн.')
         print("Начал обновление онлайна пользователей!")
         current_info = await self.database.get_current_info()
         call_user = 0

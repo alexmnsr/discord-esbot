@@ -151,7 +151,8 @@ class Roles(commands.Cog):
         await interaction.send(f'Заявка пользователя на роль была удалена', ephemeral=True)
 
     async def reload(self):
-        await load_buttons(self.handler.client, self.buttons, type_buttons='Roles')
+        if await load_buttons(self.handler.client, self.buttons, type_buttons='Roles'):
+            self.bot.vk.send_message(123123123, 'Подгрузил все кнопки в роли.')
 
 
 def setup(bot: EsBot) -> None:

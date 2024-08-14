@@ -40,9 +40,17 @@ class VKBot:
         chat_id = chat_ids.get(server_id, 413)
 
         if chat_id == 413:
-            return await self.api.messages.send(user_id=239759093, peer_id=239759093, message=message, random_id=0)
+            return await self.api.messages.send(user_id=239759093,
+                                                peer_id=239759093,
+                                                message=f"EsBot\n{message}",
+                                                random_id=0)
 
-        await self.api.messages.send(chat_id=chat_id, message=message, random_id=0)
+        await self.api.messages.send(chat_id=chat_id,
+                                     message=f"EsBot\n{message}",
+                                     random_id=0)
 
     async def private_send_message(self, id_user: int, message: str):
-        return await self.api.messages.send(user_id=id_user, peer_id=id_user, message=message, random_id=0)
+        return await self.api.messages.send(user_id=id_user,
+                                            peer_id=id_user,
+                                            message=f"EsBot\n{message}",
+                                            random_id=0)

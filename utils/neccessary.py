@@ -42,13 +42,30 @@ async def load_buttons(client, buttons, type_buttons):
         if channel:
             try:
                 message = await channel.fetch_message(message_id)
-                await message.edit(view=view)
+                await edit_message_with_retry(message, view)
+                await asyncio.sleep(0.1)
             except nextcord.NotFound:
                 print("Сообщение не найдено.")
             except nextcord.Forbidden:
                 print("Нет прав на редактирование этого сообщения.")
             except Exception as e:
                 print(f"Произошла ошибка: {e}")
+    return True
+
+
+async def edit_message_with_retry(message, view):
+    while True:
+        try:
+            await message.edit(view=view)
+            break
+        except nextcord.HTTPException as e:
+            if e.status == 429:
+                retry_after = 5
+                print(f"Лимиты превышены. Ожидание {retry_after} секунд.")
+                await asyncio.sleep(retry_after)
+            else:
+                print(f"Ошибка при редактировании сообщения: {e}")
+                break
 
 
 def grant_level(user_roles, member):
@@ -399,7 +416,6 @@ def string_to_seconds(string: str, default_unit='m') -> int | None | str:
     time = int(time)
     time_mult = 60 if unit in ('м', 'm') else 24 * 3600 if unit in ('д', 'd') else 3600 if unit in ('ч', 'h') else 60
     return time * time_mult
-
 
 
 def print_user(user, newline=True):
