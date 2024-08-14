@@ -1,6 +1,7 @@
 import os
 
 import nextcord
+from dotenv import load_dotenv
 from nextcord.ext import commands
 
 from utils.button_state.views.Roles import RoleRequest
@@ -8,6 +9,8 @@ from utils.classes.actions import ActionType
 from utils.classes.bot import EsBot
 from utils.neccessary import nick_without_tag, restricted_command, load_buttons
 from utils.roles.role_info import role_info
+
+load_dotenv()
 
 
 def command_mention(app_command, guild_id):

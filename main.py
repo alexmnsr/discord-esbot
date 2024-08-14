@@ -6,7 +6,6 @@ from utils.crons.cron_stats import CRON_Stats
 
 load_dotenv()
 logger.disable("vkbottle")
-
 bot = EsBot()
 
 # Загружаем cogs

@@ -2,10 +2,12 @@ import datetime
 import os
 from typing import Any
 import nextcord
+from dotenv import load_dotenv
 from nextcord.ext import commands
 from utils.classes.bot import EsBot
 from utils.neccessary import is_date_valid, date_autocomplete, restricted_command
 
+load_dotenv()
 
 class Online(commands.Cog):
     def __init__(self, bot: EsBot) -> None:

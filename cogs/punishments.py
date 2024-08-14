@@ -2,6 +2,7 @@ import datetime
 import os
 
 import nextcord
+from dotenv import load_dotenv
 from nextcord.ext import commands
 
 from utils.button_state.views.Punishments import CancelPunishments, PunishmentApprove, MuteModal
@@ -10,6 +11,7 @@ from utils.classes.bot import EsBot
 from utils.neccessary import string_to_seconds, checking_presence, restricted_command, print_user, \
     beautify_seconds, copy_message, grant_level
 
+load_dotenv()
 
 class Punishments(commands.Cog):
     def __init__(self, bot: EsBot) -> None:
