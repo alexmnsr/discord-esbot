@@ -321,7 +321,7 @@ class CancelPunishments(nextcord.ui.View):
                 moderator=moderator
             )
 
-        warn_modal = WarnModerator(moderator_id=moderator)
+        warn_modal = WarnModerator(moderator_id=moderator.id)
 
         if not interaction.response.is_done():
             await interaction.response.send_modal(warn_modal)
