@@ -73,7 +73,7 @@ class ButtonState:
 
         if id_button is not None:
             for db_name, db in databases.items():
-                existing_document = await db.find_one({'message_id': id_button})
+                existing_document = await db.find_one({'message_id': id_button, 'guild_id': guild_id})
                 if existing_document:
                     return existing_document
             print("Document not found with the given id_button across all databases")

@@ -53,7 +53,7 @@ class SysCommand(commands.Cog):
     @nextcord.message_command(name='Обновить кнопки', force_global=True)
     @restricted_command(1)
     async def update_buttons(self, interaction: nextcord.Interaction, message: nextcord.Message):
-        button = await self.buttons.get_button(id_button=message.id)
+        button = await self.buttons.get_button(id_button=message.id, guild_id=interaction.guild.id)
         if button is None:
             return await interaction.send('Кнопки в базе данных не были найдены.', ephemeral=True)
         try:
