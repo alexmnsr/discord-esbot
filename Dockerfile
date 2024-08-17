@@ -29,7 +29,7 @@ COPY . .
 # Копируем entrypoint.sh в контейнер
 COPY entrypoint.sh .
 
-RUN chmod +x entrypoint.sh # test
+RUN chmod +x entrypoint.sh
 
 # Устанавливаем точку входа
 ENTRYPOINT ["./entrypoint.sh"]
