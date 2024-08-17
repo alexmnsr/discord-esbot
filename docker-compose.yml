@@ -6,5 +6,18 @@ services:
       - .:/discord-esbot
     ports:
       - "8000:8000"
+    depends_on:
+      - mongo
     env_file:
       - .env
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"  # Порт MongoDB по умолчанию
+
+volumes:
+  mongo_data:
