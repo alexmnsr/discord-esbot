@@ -11,13 +11,5 @@ services:
     env_file:
       - .env
 
-  mongo:
-    image: mongo
-    container_name: mongo
-    volumes:
-      - mongo_data:/data/db
-    ports:
-      - "27017:27017"  # Порт MongoDB по умолчанию
-
 volumes:
   mongo_data:
