@@ -13,6 +13,7 @@ from utils.neccessary import string_to_seconds, checking_presence, restricted_co
 
 load_dotenv()
 
+
 class Punishments(commands.Cog):
     def __init__(self, bot: EsBot) -> None:
         self.bot = bot
@@ -278,13 +279,14 @@ class Punishments(commands.Cog):
                                                      reason)
         kick = True if kick == 'Кикать' else False
         if grant_level(interaction.user.roles, interaction.user) < 2:
+            view = PunishmentApprove(punishment='warn',
+                                     count_warns=count_warns,
+                                     reason=reason,
+                                     moderator_id=interaction.user.id,
+                                     user_id=resolved_user.id,
+                                     lvl=2)
             await interaction.send(embed=embed,
-                                   view=PunishmentApprove(punishment='warn',
-                                                          count_warns=count_warns,
-                                                          reason=reason,
-                                                          moderator_id=interaction.user.id,
-                                                          user_id=resolved_user.id,
-                                                          lvl=2))
+                                   view=view)
             message = await interaction.original_message()
             params = {
                 'punishment': 'warn',
@@ -303,9 +305,10 @@ class Punishments(commands.Cog):
                                               class_method='PunishmentApprove',
                                               params=params)
         else:
+            view = CancelPunishments(moderator_id=interaction.user.id,
+                                     user_id=resolved_user.id)
             message = await interaction.send(embed=embed,
-                                             view=CancelPunishments(moderator_id=interaction.user.id,
-                                                                    user_id=resolved_user.id))
+                                             view=view)
             jump_url = (await message.fetch()).jump_url
             await self.handler.warns.apply_warn(interaction, resolved_user.id, count_warns, reason, embed,
                                                 moderator_id=interaction.user.id, kick=kick, jump_url=jump_url)
@@ -358,10 +361,11 @@ class Punishments(commands.Cog):
         embed = self.handler.bans.create_ban_embed(interaction, interaction.user.id, resolved_user.id,
                                                    duration_in_seconds, reason)
         if grant_level(interaction.user.roles, interaction.user) <= 3 or interaction.user.id == 479244541858152449:
-            await interaction.send(embed=embed, view=PunishmentApprove(punishment='ban', reason=reason,
-                                                                       moderator_id=interaction.user.id,
-                                                                       user_id=resolved_user.id,
-                                                                       lvl=3, duration=duration_in_seconds))
+            view = PunishmentApprove(punishment='ban', reason=reason,
+                                     moderator_id=interaction.user.id,
+                                     user_id=resolved_user.id,
+                                     lvl=3, duration=duration_in_seconds)
+            await interaction.send(embed=embed, view=view)
             message = await interaction.original_message()
             params = {
                 'punishment': 'ban',
