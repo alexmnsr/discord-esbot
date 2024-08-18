@@ -67,7 +67,7 @@ class ReviewView(nextcord.ui.View):
         self.roles_handler = bot.db.roles_handler
         self.bot = bot
 
-    async def reject_process(self, interaction, values):
+    async def reject_process(self, interaction: nextcord.Interaction, values):
         await interaction.response.defer()
         await self.bot.buttons.remove_button("Roles",
                                              message_id=interaction.message.id,
@@ -94,7 +94,8 @@ class ReviewView(nextcord.ui.View):
                                                             role=request.role_info.role_names[0],
                                                             rang=request.rang, nick=request.nickname)
         date = datetime.now().strftime('%d.%m.%Y')
-        await interaction.edit_original_message(embed=embed, view=CancelRoles(date=date, action_id=action_id))
+        await interaction.edit_original_message(content=f'<@{user.id}>', embed=embed,
+                                                view=CancelRoles(date=date, action_id=action_id))
         params = {
             'date': date,
             'action_id': action_id
@@ -178,7 +179,8 @@ class ReviewView(nextcord.ui.View):
                                                             role=request.role_info.role_names[0],
                                                             rang=request.rang, nick=request.nickname)
         date = datetime.now().strftime('%d.%m.%Y')
-        await interaction.edit_original_message(embed=embed, view=CancelRoles(date=date, action_id=action_id))
+        await interaction.edit_original_message(content=f'<@{user.id}>', embed=embed,
+                                                view=CancelRoles(date=date, action_id=action_id))
         params = {
             'date': date,
             'action_id': action_id

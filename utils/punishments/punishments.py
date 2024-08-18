@@ -359,6 +359,7 @@ class BanHandler:
         log_embed = nextcord.Embed(
             title=f'Выдача {f"блокировки на сервере {guild.name}" if type_ban != ActionType.BAN_GLOBAL else "глобальной блокировки."}',
             color=0xFF0000)
+        log_embed.add_field(name='Пользователь', value=f'<@{user}>')
         log_embed.add_field(name='Модератор', value=f'<@{moderator}>')
         log_embed.add_field(name='Причина', value=reason)
         log_embed.add_field(name='Время истечения',
