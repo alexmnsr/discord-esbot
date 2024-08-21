@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   app:
     image: alexmnsr/discord-esbot:latest  # Используйте правильный тег
@@ -10,14 +12,17 @@ services:
       - mongo
     env_file:
       - .env
+    restart: always  # Автоматически перезапускать контейнер при сбоях
 
   mongo:
     image: mongo
     container_name: mongo
     volumes:
-      - ./mongo_data:/data/db
+      - mongo_data:/data/db  # Используйте именованный volume для хранения данных
     ports:
       - "27017:27017"  # Порт MongoDB по умолчанию
+    restart: always  # Автоматически перезапускать контейнер при сбоях
 
 volumes:
   mongo_data:
+    external: false  # Убедитесь, что volume управляется Docker Compose

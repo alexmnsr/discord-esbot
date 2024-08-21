@@ -9,6 +9,7 @@ from utils.neccessary import is_date_valid, date_autocomplete, restricted_comman
 
 load_dotenv()
 
+
 class Online(commands.Cog):
     def __init__(self, bot: EsBot) -> None:
         self.bot = bot
@@ -18,15 +19,19 @@ class Online(commands.Cog):
     async def on_voice_state_update(self, member: nextcord.Member,
                                     before: nextcord.VoiceState,
                                     after: nextcord.VoiceState) -> None:
+        # Ничего не изменять, если пользователь остался в том же канале
         if before.channel == after.channel:
             return
-
+        # Если прошлого канала нет, записывать заход в канал
         if before.channel is None:
             await self.handler.join(member, after.channel)
+        # Если следующего канала нет, записывать выход с канала
         elif after.channel is None:
             await self.handler.leave(member, before.channel)
+        # Переход в другой канал
         else:
             try:
+                # Лог онлайна
                 log_channel, embed = self.send_embed_online(member=member, after=after, before=before)
                 await log_channel.send(embed=embed)
             except:
@@ -39,8 +44,11 @@ class Online(commands.Cog):
                           after: nextcord.VoiceState = None):
         embed = nextcord.Embed(title='Лог Онлайн', color=nextcord.Color.dark_purple())
         embed.add_field(name='', value='Участник перешел в другой канал', inline=False)
-        embed.add_field(name='Предыдущий канал', value=f'{before.channel.name} ({before.channel.jump_url})\nID: {before.channel.id}', inline=True)
-        embed.add_field(name='Канал', value=f'{after.channel.name} ({after.channel.jump_url})\nID: {after.channel.id}', inline=True)
+        embed.add_field(name='Предыдущий канал',
+                        value=f'{before.channel.name} ({before.channel.jump_url})\nID: {before.channel.id}',
+                        inline=True)
+        embed.add_field(name='Канал', value=f'{after.channel.name} ({after.channel.jump_url})\nID: {after.channel.id}',
+                        inline=True)
         embed.set_author(name=member.display_name, icon_url=member.avatar.url)
         embed.set_footer(text=f'ID участника: {member.id} | {datetime.datetime.now().strftime("%H:%M:%S")}',
                          icon_url=member.avatar.url)
@@ -62,23 +70,24 @@ class Online(commands.Cog):
                                                                   required=False),
                      date: str = nextcord.SlashOption('дата', description="Дата в формате dd.mm.YYYY", required=False,
                                                       autocomplete_callback=date_autocomplete),
-                     is_open: bool = nextcord.SlashOption('открытые-каналы',
+                     is_open_channels: bool = nextcord.SlashOption('открытые-каналы',
                                                           description="Подсчитывать онлайн только в открытых каналах.",
                                                           default=True)) -> Any:
-        if not date:
-            date = datetime.datetime.now().strftime('%d.%m.%Y')
-        elif not is_date_valid(date):
-            return await interaction.send('Неверный формат даты. Формат: dd.mm.YYYY.\n'
-                                          'Пример: 07.07.2077', ephemeral=True)
+        date = date or datetime.datetime.now().strftime('%d.%m.%Y')
+        if not is_date_valid(date):
+            await interaction.send(
+                'Неверный формат даты. Формат: dd.mm.YYYY.\nПример: 07.07.2077',
+                ephemeral=True
+            )
+            return
 
-        if not user:
-            user = interaction.user
-        info = await self.handler.get_info(is_open, user_id=user.id, guild_id=interaction.guild.id, date=date)
+        user = user or interaction.user
+        info = await self.handler.get_info(is_open_channels, user_id=user.id, guild_id=interaction.guild.id, date=date)
 
         embed = ((nextcord.Embed(title=f'💎 Онлайн за {date}', color=nextcord.Color.dark_purple())
                   .set_author(name=user.display_name, icon_url=user.display_avatar.url))
                  .add_field(name='Общее время', value=info.total_time)
-                 .add_field(name='Каналы', value='Открытые' if is_open else 'Все')
+                 .add_field(name='Каналы', value='Открытые' if is_open_channels else 'Все')
                  .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
                  .set_footer(text=f'ID: {user.id}'))
 

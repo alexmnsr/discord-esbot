@@ -10,6 +10,7 @@ from utils.classes.actions import ActionType, human_actions, payload_types, excl
 from utils.classes.bot import EsBot
 from utils.neccessary import string_to_seconds, checking_presence, restricted_command, print_user, \
     beautify_seconds, copy_message, grant_level
+from utils.punishments.punishments import create_punishment_embed
 
 load_dotenv()
 
@@ -23,34 +24,58 @@ class Punishments(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        if os.getenv('DEBUG') == "False":
-            await checking_presence(self.bot)
-            await self.handler.reload()
+        await checking_presence(self.bot)
+        await self.handler.reload()
 
     @commands.Cog.listener()
-    async def on_member_join(self, member):
+    async def on_member_join(self, member: nextcord.Member):
+        # Проверка если у пользователя есть блокировка
         ban = await self.handler.database.get_ban(user_id=member.id, guild_id=member.guild.id)
         if ban:
-            await member.send(
-                f'```У Вас имеется блокировка на данном сервере\nМодератор: <@{ban["moderator_id"]}>\nПричина: {ban["reason"]}\nAction ID: {ban["_id"]}```')
-            await member.guild.ban(member, reason=f"{ban['reason']} | ID: {ban['_id']}")
-            await self.handler.bans.wait_ban(ban['_id'], (ban['given_at'] + datetime.timedelta(seconds=ban[
-                'duration']) - datetime.datetime.now()).total_seconds())
+            await self.handle_ban(member, ban)
+            return
 
+        # Проверка на наличие мутов
         mutes = await self.handler.mutes.user_muted(member.id, member.guild.id)
+        await self.apply_mutes(member, mutes)
 
-        async def give_role(role_name, action_id):
-            await member.add_roles(nextcord.utils.get(member.guild.roles, name=role_name),
-                                   reason=f'Rejoin. Action ID: {action_id}')
+    async def handle_ban(self, member: nextcord.Member, ban: dict):
+        """Обработка логики бана при входе пользователя на сервер."""
+        try:
+            await member.send(
+                f'```У Вас имеется блокировка на данном сервере\n'
+                f'Модератор: <@{ban["moderator_id"]}>\n'
+                f'Причина: {ban["reason"]}\nAction ID: {ban["_id"]}```'
+            )
+        except Exception as e:
+            await self.bot.vk.nt_error(f"Не удалось отправить сообщение о бане пользователю {member.id}: {e}")
+
+        await member.guild.ban(member, reason=f"{ban['reason']} | ID: {ban['_id']}")
+        ban_duration_seconds = (ban['given_at'] + datetime.timedelta(
+            seconds=ban['duration']) - datetime.datetime.now()).total_seconds()
+        await self.handler.bans.wait_ban(ban['_id'], ban_duration_seconds)
+
+    async def apply_mutes(self, member: nextcord.Member, mutes: list):
+        """Применение мьютов при повторном входе пользователя на сервер."""
+        role_map = {
+            'full': ['Mute » Text', 'Mute » Voice'],
+            'text': ['Mute » Text'],
+            'voice': ['Mute » Voice']
+        }
 
         for mute in mutes:
-            if mute['type'] == 'full':
-                await give_role('Mute » Text', mute['_id'])
-                await give_role('Mute » Voice', mute['_id'])
-            elif mute['type'] == 'text':
-                await give_role('Mute » Text', mute['_id'])
-            elif mute['type'] == 'voice':
-                await give_role('Mute » Voice', mute['_id'])
+            roles_to_add = role_map.get(mute['type'], [])
+            for role_name in roles_to_add:
+                await self.give_role(member, role_name, mute['_id'])
+
+    async def give_role(self, member: nextcord.Member, role_name: str, action_id: str):
+        """Добавление роли пользователю после перезахода на сервер."""
+        role = nextcord.utils.get(member.guild.roles, name=role_name)
+        if role:
+            try:
+                await member.add_roles(role, reason=f'Rejoin. Action ID: {action_id}')
+            except Exception as e:
+                await self.bot.vk.nt_error(f"Не удалось добавить роль {role_name} пользователю {member.id}: {e}")
 
     @nextcord.slash_command(name='tmute', description='Выдать пользователю временный мут (До выяснений)')
     @restricted_command(1)
@@ -106,61 +131,58 @@ class Punishments(commands.Cog):
     async def mute_group(self, interaction):
         ...
 
-    async def give_mute(self, interaction, user, duration, reason, role_name, *, message: nextcord.Message = None,
+    async def give_mute(self, interaction: nextcord.Interaction, user, duration: str, reason: str, role_name, *,
+                        message: nextcord.Message = None,
                         message_len: int = None):
-        if isinstance(user, str) and not (user := await self.bot.resolve_user(user, interaction.guild)):
+        user = await self.client.resolve_user(user, interaction.guild)
+        if not user:
             return await interaction.send('Пользователь не найден.', ephemeral=True)
+
         await interaction.response.defer()
+        get, give, remove = self.handler.mutes.mute_info(role_name)
         mute_seconds = string_to_seconds(duration)
         if not mute_seconds:
             return await interaction.send('Неверный формат длительности мута.')
-        get, give, remove = self.handler.mutes.mute_info(role_name)
+
         if await get(user_id=user.id, guild_id=interaction.guild.id):
             return await interaction.send('У пользователя уже есть мут.')
-        embed = ((nextcord.Embed(title='Выдача наказания', color=nextcord.Color.red())
-                  .set_author(name=user.display_name, icon_url=user.display_avatar.url))
-                 .add_field(name='Нарушитель', value=user.mention)
-                 .add_field(name='Модератор', value=interaction.user.display_name)
-                 .add_field(name='Причина', value=reason)
-                 .add_field(name='Время', value=beautify_seconds(mute_seconds))
-                 .set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
-        if message:
-            channel = [c for c in interaction.guild.text_channels if 'выдача-наказаний' in c.name][0]
-            await interaction.send(embed=embed, ephemeral=True)
-            if isinstance(message, nextcord.Message):
-                mess = await channel.send(embed=embed, view=CancelPunishments(moderator_id=interaction.user.id,
-                                                                              user_id=user.id, role_name=role_name))
-                thread = await mess.create_thread(name='📸 Скриншот чата', auto_archive_duration=60)
-                jump_url = mess.jump_url
-            else:
-                mess = await channel.send(embed=embed,
-                                          view=CancelPunishments(moderator_id=interaction.user.id,
-                                                                 user_id=user.id, role_name=role_name))
-                jump_url = mess.jump_url
-        else:
-            mess = await interaction.send(embed=embed,
-                                          view=CancelPunishments(moderator_id=interaction.user.id,
-                                                                 user_id=user.id, role_name=role_name))
-            jump_url = mess.jump_url
+        embed = create_punishment_embed(user, interaction.user, reason, interaction.guild, duration=mute_seconds,
+                                        type_punishment='mute')
 
-        params = {
-            'moderator_id': interaction.user.id,
-            'user_id': user.id,
-            'role_name': role_name
-        }
-        await self.bot.buttons.add_button("Punishments", message_id=mess.id,
-                                          channel_id=mess.channel.id,
-                                          user_request=interaction.user.id,
-                                          moderator_id=interaction.user.id,
-                                          guild_id=interaction.guild.id,
-                                          class_method='CancelPunishments',
-                                          params=params)
-        await self.handler.mutes.give_mute(role_name, user=user, guild=interaction.guild,
-                                           moderator=interaction.user,
-                                           reason=reason,
-                                           duration=mute_seconds, jump_url=jump_url)
-        if isinstance(message, nextcord.Message):
+        if message:
+            channel, mess, thread, jump_url = await self.handle_message_punishment(interaction, message,
+                                                                                   embed,
+                                                                                   role_name)
+        else:
+            mess, jump_url = await self.send_punishment_embed(interaction, embed, role_name)
+
+        params = self.handler.mutes.create_punishment_params(interaction.user.id, user.id, role_name)
+        await self.handler.mutes.register_punishment_button(mess, params, interaction)
+
+        await self.handler.mutes.apply_mute(role_name, user.id, interaction.guild.id, interaction.user.id, reason,
+                                            mute_seconds,
+                                            jump_url)
+
+        if message:
             await copy_message(message, channel, thread, mess, message_len)
+
+    @staticmethod
+    async def send_punishment_embed(interaction, embed, role_name):
+        mess = await interaction.send(embed=embed, view=CancelPunishments(moderator_id=interaction.user.id,
+                                                                          user_id=interaction.user.id,
+                                                                          role_name=role_name))
+        return mess, mess.jump_url
+
+    async def handle_message_punishment(self, interaction, message, embed, role_name):
+        channel = self.handler.mutes.get_punishment_channel(interaction.guild)
+        await interaction.send(embed=embed, ephemeral=True)
+
+        mess = await channel.send(embed=embed, view=CancelPunishments(moderator_id=interaction.user.id,
+                                                                      user_id=interaction.user.id, role_name=role_name))
+
+        thread = await mess.create_thread(name='📸 Скриншот чата', auto_archive_duration=60)
+        jump_url = mess.jump_url
+        return channel, mess, thread, jump_url
 
     @mute_group.subcommand(name='text', description="Выдать мут пользователю в текстовых каналах.")
     async def mute_text(self, interaction,
@@ -177,13 +199,13 @@ class Punishments(commands.Cog):
     @nextcord.message_command(name='Выдать текстовый мут', force_global=True)
     @restricted_command(1)
     async def mute_text_on_message(self, interaction: nextcord.Interaction, message: nextcord.Message):
-        modal = MuteModal(self, message.author, message)
+        modal = MuteModal(self, message.author.id, message)
         await interaction.response.send_modal(modal)
 
     @nextcord.user_command(name='Выдать голосовой мут')
     @restricted_command(1)
     async def mute_voice_on_message(self, interaction: nextcord.Interaction, user: nextcord.Member):
-        modal = MuteModal(self, user, None)
+        modal = MuteModal(self, user.id, None)
         await interaction.response.send_modal(modal)
 
     @mute_group.subcommand(name='voice', description="Выдать мут пользователю в голосовых каналах.")
@@ -271,14 +293,16 @@ class Punishments(commands.Cog):
         if not resolved_user:
             return await interaction.send('Пользователь не найден.')
 
-        if isinstance(resolved_user, nextcord.Member) and interaction.user.top_role <= resolved_user.top_role:
-            return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
+        # if isinstance(resolved_user, nextcord.Member) and interaction.user.top_role <= resolved_user.top_role:
+        #     return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
         count_warns = len(await self.handler.database.get_warns(resolved_user.id, interaction.guild.id)) + 1
-        embed = self.handler.warns.create_warn_embed(interaction, interaction.user.id, resolved_user, count_warns,
-                                                     reason)
+        embed = create_punishment_embed(resolved_user, interaction.user, reason,
+                                        guild=interaction.guild,
+                                        type_punishment='warn',
+                                        count_warns=count_warns)
         kick = True if kick == 'Кикать' else False
-        if grant_level(interaction.user.roles, interaction.user) < 2:
+        if grant_level(interaction.user.roles, interaction.user) < 2 or interaction.user.id == 479244541858152449:
             view = PunishmentApprove(punishment='warn',
                                      count_warns=count_warns,
                                      reason=reason,
@@ -324,9 +348,8 @@ class Punishments(commands.Cog):
         if not (user := await self.bot.resolve_user(user)):
             return await interaction.send('Пользователь не найден.')
         if not (warn_data := await self.handler.database.get_warn(action_id=action_id)):
-            print(warn_data)
             return await interaction.send('Предупреждение не найдено.')
-        embed = self.handler.warns.create_unwarn_embed(interaction, user, warn_data)
+        embed = create_punishment_embed(user.id, interaction.user, reason='Отсутствует', guild=interaction.guild, type_punishment='unwarn', unwarn=True, warn_data=warn_data)
         await interaction.send(embed=embed)
         await self.handler.database.remove_warn(user_id=user.id, guild_id=interaction.guild.id,
                                                 moderator=interaction.user, action_id=action_id)
@@ -347,8 +370,8 @@ class Punishments(commands.Cog):
         if not resolved_user:
             return await interaction.send('Пользователь не найден.')
 
-        if isinstance(resolved_user, nextcord.Member) and interaction.user.top_role <= resolved_user.top_role:
-            return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
+        # if isinstance(resolved_user, nextcord.Member) and interaction.user.top_role <= resolved_user.top_role:
+        #     return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
         duration_in_seconds = string_to_seconds(duration, 'd')
         if duration_in_seconds is None:
@@ -358,13 +381,18 @@ class Punishments(commands.Cog):
 
         if ban:
             return await interaction.send('У пользователя уже есть блокировка.', ephemeral=True)
-        embed = self.handler.bans.create_ban_embed(interaction, interaction.user.id, resolved_user.id,
-                                                   duration_in_seconds, reason)
+        embed = create_punishment_embed(user,
+                                        interaction.user,
+                                        reason,
+                                        interaction.guild,
+                                        type_punishment='ban',
+                                        duration=duration_in_seconds)
         if grant_level(interaction.user.roles, interaction.user) <= 3 or interaction.user.id == 479244541858152449:
             view = PunishmentApprove(punishment='ban', reason=reason,
                                      moderator_id=interaction.user.id,
                                      user_id=resolved_user.id,
-                                     lvl=3, duration=duration_in_seconds)
+                                     lvl=3,
+                                     duration=duration_in_seconds)
             await interaction.send(embed=embed, view=view)
             message = await interaction.original_message()
             params = {

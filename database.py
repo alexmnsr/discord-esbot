@@ -15,7 +15,6 @@ load_dotenv()
 class Database:
     def __init__(self, bot):
         self.mongo = os.getenv('MONGO_DB') if os.getenv('DEBUG') == 'False' else os.getenv('MONGO_DB_LOCAL')
-        print(self.mongo)
         self.client = AsyncIOMotorClient(self.mongo)
         self.actions = Actions(self.client['Actions'])
         self.state_buttons = ButtonState(bot, self, self.client['Buttons'])

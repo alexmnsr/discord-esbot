@@ -62,9 +62,7 @@ class PunishmentsDatabase:
                                              'type': "full"
                                          } if not action_id else {'_id': ObjectId(action_id)})
 
-    async def give_mute(self, user_id, guild_id, moderator_id, reason, duration, mute_type, *, jump_url):
-        if isinstance(user_id, nextcord.user.User):
-            user_id = user_id['id']
+    async def give_mute(self, user_id: int, guild_id: int, moderator_id: int, reason: str, duration: int, mute_type, *, jump_url: str):
         action_id = await self.actions.add_action(
             user_id=user_id,
             guild_id=guild_id,
@@ -105,7 +103,7 @@ class PunishmentsDatabase:
         await self.actions.add_action(
             user_id=user_id,
             guild_id=guild_id,
-            moderator_id=moderator.id,
+            moderator_id=moderator if isinstance(moderator, int) else moderator.id,
             action_type=ActionType.UNMUTE_LOCAL,
             payload={
 
@@ -125,6 +123,11 @@ class PunishmentsDatabase:
             guild_id=guild_id,
             moderator_id=moderator_id
         )
+        await self.mutes.delete_one({
+            'user_id': user_id,
+            'guild_id': guild_id,
+            'moderator_id': moderator_id
+        })
         await self.actions.add_action(
             user_id=None,
             guild_id=guild_id,
@@ -144,9 +147,7 @@ class PunishmentsDatabase:
     async def remove_full_mute(self, user_id, guild_id, moderator=0):
         return await self.remove_mute(user_id, guild_id, ActionType.MUTE_FULL, moderator=moderator)
 
-    async def give_warn(self, user_id, guild_id, moderator_id, reason, warn_type, approve_moderator=None, *, jump_url):
-        if isinstance(user_id, nextcord.user.User):
-            user_id = user_id['id']
+    async def give_warn(self, user_id: int, guild_id: int, moderator_id: int, reason: str, warn_type: str, approve_moderator=None, *, jump_url):
         if approve_moderator is not None:
             await self.actions.add_action(
                 user_id=user_id,

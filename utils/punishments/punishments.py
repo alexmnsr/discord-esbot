@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 from datetime import timedelta
+from typing import Any
 
 import nextcord
 
@@ -26,10 +27,10 @@ class MuteHandler:
         )
         return get, give, remove
 
-    async def user_muted(self, user_id, guild_id):
+    async def user_muted(self, user_id: int, guild_id: int):
         return await self.database.get_mutes(user_id, guild_id)
 
-    async def give_temp_mute(self, user, guild, moderator, reason, duration):
+    async def give_temp_mute(self, user: int, guild: int, moderator: int, reason: str, duration: int) -> Any:
         guild, member = await add_role(self.client, user, guild, 'Temp_Mute » Full')
 
         if not guild:
@@ -44,28 +45,34 @@ class MuteHandler:
         await send_embed(member, embed)
         self.client.loop.create_task(self.wait_mute(None, duration, 'Temp_Mute » Full', moderator, member))
 
-    async def give_mute(self, role_name, *, user, guild, moderator, reason, duration, jump_url):
+    async def give_mute(self, role_name, *,
+                        user: int,
+                        guild: int,
+                        moderator: int,
+                        reason: str,
+                        duration: int,
+                        jump_url: str):
         get, give, remove = self.mute_info(role_name)
-        user_id = user if isinstance(user, int) else user.id
-        action_id = await give(user_id=user_id, guild_id=guild.id, moderator_id=moderator.id, reason=reason,
+        action_id = await give(user_id=user, guild_id=guild, moderator_id=moderator, reason=reason,
                                duration=duration, jump_url=jump_url)
         if not action_id:
             return
         if role_name == 'Mute » Full':
             role_name = ['Mute » Text', 'Mute » Voice']
-        guild, member = await add_role(self.client, user_id, guild.id, role_name, action_id)
+        guild, member = await add_role(self.client, user, guild, role_name, action_id)
         if not guild:
             return
 
         embed = nextcord.Embed(
             title=f'Вам выдан {mute_name(role_name)} мут.',
-            description=f'Причина: {reason}\nВремя истечения: <t:{int((datetime.datetime.now() + datetime.timedelta(seconds=duration)).timestamp())}:R>\nВыдал модератор: <@{moderator.id}>',
+            description=f'Причина: {reason}\nВремя истечения: <t:{int((datetime.datetime.now() + datetime.timedelta(seconds=duration)).timestamp())}:R>\nВыдал модератор: <@{moderator}>',
             color=0xFF0000
         )
         embed.set_author(name=guild.name, icon_url=guild.icon.url)
         embed.set_footer(text=f'Action ID: {action_id}')
 
         await send_embed(member, embed)
+        moderator = await guild.fetch_member(moderator)
 
         log_embed = nextcord.Embed(title=f'Выдача {mute_name(role_name)} мута',
                                    color=0xFF0000)
@@ -98,12 +105,11 @@ class MuteHandler:
             print(f"No mute found for action ID: {action_id}.")
             return
 
-        await remove(mute['user_id'], mute['guild_id'], moderator)
-
         if role_name == 'Mute » Full':
             role_name = ['Mute » Text', 'Mute » Voice']
         guild = self.client.get_guild(mute['guild_id'])
         guild, member = await remove_role(mute['user_id'], guild, action_id, role_name)
+        await remove(member.id, guild.id)
 
         if not guild:
             print("Guild not found, unable to remove role.")
@@ -118,22 +124,21 @@ class MuteHandler:
 
         try:
             await send_embed(member, embed)
-            print(f"Sent embed notification to {member.display_name}.")
         except nextcord.HTTPException as e:
-            print(f"Failed to send embed notification to {member.display_name}: {e}")
+            await self.client.vk.nt_error(f"Не удалось отправить уведомление пользователю {member.display_name}: {e}")
 
-    async def remove_mute(self, user_id, guild, role_name, moderator, *, cancel=None):
+    async def remove_mute(self, user_id: int, guild: nextcord.Guild, role_name, moderator: int, *, cancel=None):
+        moderator = await guild.fetch_member(moderator)
         get, give, remove = self.mute_info(role_name)
-
-        if not (mute := await get(user_id=user_id, guild_id=guild.id)) or not await remove(user_id, guild.id,
-                                                                                           moderator=moderator):
-            return False
-        if role_name == 'Mute » Full':
-            role_name = ['Mute » Text', 'Mute » Voice']
-        guild, member = await remove_role(user_id, guild, mute['_id'], role_name)
-
         if cancel:
+            mute = await get(user_id=user_id, guild_id=guild.id)
             await self.database.cancel(user_id=user_id, guild_id=guild.id, moderator_id=moderator.id)
+        else:
+            if not (mute := await get(user_id=user_id, guild_id=guild.id)) or not await remove(user_id, guild.id,
+                                                                                               moderator=moderator.id):
+                if role_name == 'Mute » Full':
+                    role_name = ['Mute » Text', 'Mute » Voice']
+        guild, member = await remove_role(user_id, guild, mute['_id'], role_name)
 
         if guild:
             embed = nextcord.Embed(
@@ -149,6 +154,26 @@ class MuteHandler:
         log_embed.set_footer(text=f'ID: {mute["_id"]}')
         await self.client.db.actions.send_log(mute['_id'], guild, log_embed)
         return True
+
+    def get_punishment_channel(self, guild):
+        return next(c for c in guild.text_channels if 'выдача-наказаний' in c.name)
+
+    def create_punishment_params(self, moderator_id, user_id, role_name):
+        return {'moderator_id': moderator_id, 'user_id': user_id, 'role_name': role_name}
+
+    async def register_punishment_button(self, mess, params, interaction):
+        await self.client.buttons.add_button("Punishments", message_id=mess.id,
+                                             channel_id=mess.channel.id,
+                                             user_request=interaction.user.id,
+                                             moderator_id=interaction.user.id,
+                                             guild_id=interaction.guild.id,
+                                             class_method='CancelPunishments',
+                                             params=params)
+
+    async def apply_mute(self, role_name, user: int, guild: int, moderator: int, reason: str, duration: int,
+                         jump_url: str):
+        await self.give_mute(role_name, user=user, guild=guild, moderator=moderator,
+                             reason=reason, duration=duration, jump_url=jump_url)
 
 
 class BlockChannelHandler:
@@ -248,13 +273,14 @@ class WarnHandler:
 
         return action_id
 
-    async def apply_warn(self, interaction: nextcord.Interaction, user, count_warns, reason, embed, moderator_id,
+    async def apply_warn(self, interaction: nextcord.Interaction, user: int, count_warns: int, reason: str, embed,
+                         moderator_id: int,
                          approve_moderator=None,
                          kick=True, jump_url=None):
         if count_warns == 3:
             await self.handler.bans.give_ban(
                 ActionType.WARN_LOCAL,
-                user=user if isinstance(user, int) else user.id,
+                user=user,
                 guild=interaction.guild,
                 moderator=moderator_id,
                 approve_moderator=approve_moderator,
@@ -262,12 +288,12 @@ class WarnHandler:
                 duration=864000,
                 jump_url=jump_url
             )
-            await self.handler.database.remove_warns(user_id=user if isinstance(user, int) else user.id,
+            await self.handler.database.remove_warns(user_id=user,
                                                      guild_id=interaction.guild.id)
         else:
             action_id = await self.handler.warns.give_warn(
                 ActionType.WARN_LOCAL,
-                user=user if isinstance(user, int) else user.id,
+                user=user,
                 guild=interaction.guild,
                 moderator=moderator_id,
                 approve_moderator=approve_moderator,
@@ -275,53 +301,9 @@ class WarnHandler:
                 jump_url=jump_url
             )
             if kick:
-                member = await interaction.guild.fetch_member(user if isinstance(user, int) else user.id)
+                member = await interaction.guild.fetch_member(user)
                 if member:
                     await interaction.guild.kick(member, reason=f"Action ID: {action_id}")
-
-    @staticmethod
-    def create_warn_embed(interaction, moderator, user, count_warns, reason, check=None):
-        if isinstance(user, nextcord.Member):
-            embed = (nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
-            .set_author(name=user.display_name, icon_url=user.display_avatar.url)
-            .add_field(name='Нарушитель', value=f'<@{user}>')
-            .add_field(name='Причина', value=reason)
-            .add_field(name='Модератор', value=f'<@{moderator}>')
-            .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3")
-            .set_thumbnail(
-                url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
-            embed.add_field(name='Проверил', value=f'{interaction.user.mention}') if check else None
-        else:
-            embed = (nextcord.Embed(title='Выдача предупреждения', color=nextcord.Color.red())
-                     .set_author(name=interaction.user.id, icon_url=interaction.guild.icon.url)
-                     .add_field(name='Нарушитель', value=f'<@{user}>')
-                     .add_field(name='Причина', value=reason)
-                     .add_field(name='Модератор', value=f'<@{moderator}>')
-                     .add_field(name='Количество предупреждений: ', value=f"{count_warns}/3")
-                     .set_thumbnail(url=interaction.guild.icon.url))
-            embed.add_field(name='Проверил', value=f'{interaction.user.mention}') if check else None
-        return embed
-
-    @staticmethod
-    def create_unwarn_embed(interaction, user, warn_data):
-        if isinstance(user, nextcord.Member):
-            embed = ((nextcord.Embed(title='Снятие предупреждения', color=nextcord.Color.red())
-                      .set_author(name=user.display_name, icon_url=user.display_avatar.url))
-                     .add_field(name='Нарушитель', value=f'<@{user if isinstance(user, int) else user.id}>')
-                     .add_field(name='Выдавал', value=f'<@{warn_data["moderator_id"]}>')
-                     .add_field(name='Причина', value=f'{warn_data["reason"]}')
-                     .set_thumbnail(
-                url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url)
-                     .set_footer(text=f"Модератор: {interaction.user.id}"))
-        else:
-            embed = ((nextcord.Embed(title='Снятие предупреждения', color=nextcord.Color.red())
-                      .set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url))
-                     .add_field(name='Нарушитель', value=f'<@{user}>')
-                     .add_field(name='Выдавал', value=f'<@{warn_data["moderator_id"]}>')
-                     .add_field(name='Причина', value=f'{warn_data["reason"]}')
-                     .set_thumbnail(url=interaction.guild.icon.url)
-                     .set_footer(text=f"Модератор: {interaction.user.id}"))
-        return embed
 
 
 class BanHandler:
@@ -422,31 +404,6 @@ class BanHandler:
 
         await send_embed(await self.client.fetch_user(ban['user_id']), embed)
 
-    @staticmethod
-    def create_ban_embed(interaction, moderator, user, duration, reason, check=None):
-        if isinstance(user, nextcord.Member):
-            embed = (nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
-            .set_author(name=user.display_name, icon_url=user.display_avatar.url)
-            .add_field(name='Нарушитель', value=user.mention)
-            .add_field(name='Длительность',
-                       value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда')
-            .add_field(name='Причина', value=reason)
-            .add_field(name='Модератор', value=f'<@{moderator}>')
-            .set_thumbnail(
-                url=interaction.guild.icon.url if interaction.guild.icon else user.display_avatar.url))
-            embed.add_field(name='Проверил', value=f'{interaction.user.mention}') if check else None
-        else:
-            embed = (nextcord.Embed(title='Выдача бана', color=nextcord.Color.red())
-                     .set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-                     .add_field(name='Нарушитель', value=f'<@{user}>')
-                     .add_field(name='Длительность',
-                                value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда')
-                     .add_field(name='Причина', value=reason)
-                     .add_field(name='Модератор', value=f'<@{moderator}>')
-                     .set_thumbnail(url=interaction.guild.icon.url))
-            embed.add_field(name='Проверил', value=f'{interaction.user.mention}') if check else None
-        return embed
-
     async def unban(self, user, guild):
         if (not (
                 ban := await self.database.get_ban(user_id=user if isinstance(user, int) else user.id,
@@ -471,6 +428,59 @@ class BanHandler:
         log_embed.set_footer(text=f'ID: {ban["_id"]}')
         await self.client.db.actions.send_log(ban['_id'], guild, log_embed)
         return True
+
+
+def create_punishment_embed(user,
+                            moderator: nextcord.Member,
+                            reason: str,
+                            guild: nextcord.Guild,
+                            type_punishment: str,
+                            duration: int = None,
+                            count_warns: int = None,
+                            check=None,
+                            unwarn: bool = False,
+                            warn_data: dict = None) -> nextcord.Embed:
+    types_punishment = {
+        'ban': 'блокировки',
+        'warn': 'предупреждения',
+        'mute': 'мута',
+        'unwarn': 'снятия предупреждения'
+    }
+
+    title = f"Выдача {types_punishment.get(type_punishment)}" if not unwarn else "Снятие предупреждения"
+    color = nextcord.Color.red()
+    embed = nextcord.Embed(title=title, color=color)
+
+    if isinstance(user, nextcord.Member):
+        embed.set_author(name=user.display_name, icon_url=user.display_avatar.url)
+    else:
+        embed.set_author(name=str(user), icon_url=guild.icon.url if guild.icon else moderator.display_avatar.url)
+
+    embed.add_field(name='Нарушитель', value=f'<@{user if isinstance(user, int) else user.id}>')
+
+    if unwarn and warn_data:
+        embed.add_field(name='Выдавал', value=f'<@{warn_data["moderator_id"]}>')
+        embed.add_field(name='Причина', value=warn_data["reason"])
+    else:
+        embed.add_field(name='Модератор', value=f'<@{moderator.id}>')
+        embed.add_field(name='Причина', value=reason)
+        if type_punishment == 'warn' and count_warns is not None:
+            embed.add_field(name='Количество предупреждений:', value=f"{count_warns}/3")
+        elif type_punishment == 'ban':
+            embed.add_field(name='Длительность',
+                            value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда')
+        elif type_punishment == 'mute':
+            embed.add_field(name='Время', value=beautify_seconds(duration))
+
+    embed.set_thumbnail(url=guild.icon.url if guild.icon else moderator.display_avatar.url)
+
+    if check:
+        embed.add_field(name='Проверил', value=f'{check.mention}')
+
+    if unwarn:
+        embed.set_footer(text=f"Модератор: {moderator.id}")
+
+    return embed
 
 
 class PunishmentsHandler:

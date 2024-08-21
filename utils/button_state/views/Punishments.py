@@ -1,13 +1,13 @@
 import nextcord
 
 from utils.classes.bot import EsBot
-from utils.neccessary import grant_level
+from utils.neccessary import grant_level, beautify_seconds
 
 bot = EsBot()
 
 
 class MuteModal(nextcord.ui.Modal):
-    def __init__(self, punishments, user: nextcord.Member, message):
+    def __init__(self, punishments, user: int, message):
         super().__init__(title='Параметры наказания', timeout=300)
         self.user = user
         self.message = message
@@ -45,7 +45,6 @@ class MuteModal(nextcord.ui.Modal):
                 return await interaction.response.send_message('Другой модератор уже выдал наказание за это сообщение',
                                                                ephemeral=True)
             self.punishments.bot.deleted_messages.append(self.message.id)
-
         await self.punishments.give_mute(interaction, self.user, self.duration.value, self.reason.value,
                                          'Mute » Text' if self.message else 'Mute » Voice',
                                          message=self.message if self.message else 'VOICE',
@@ -53,7 +52,7 @@ class MuteModal(nextcord.ui.Modal):
 
 
 class RejectApproveModal(nextcord.ui.Modal):
-    def __init__(self, punishments, user, message, embed):
+    def __init__(self, punishments, user: int, message: nextcord.Message, embed: nextcord.Embed):
         super().__init__(title='Параметры наказания', timeout=300)
         self.bot = bot
         self.user = user
@@ -81,7 +80,7 @@ class RejectApproveModal(nextcord.ui.Modal):
 
 
 class WarnModerator(nextcord.ui.Modal):
-    def __init__(self, moderator_id):
+    def __init__(self, moderator_id: int):
         super().__init__(title='Параметры наказания', timeout=None)
         self.bot = bot
         self.handler = self.bot.db.punishments_handler
@@ -127,7 +126,8 @@ class WarnModerator(nextcord.ui.Modal):
 
 
 class PunishmentApprove(nextcord.ui.View):
-    def __init__(self, punishment, reason, moderator_id, user_id, lvl, *, kick=False, duration=None, count_warns=None,
+    def __init__(self, punishment, reason: str, moderator_id: int, user_id: int, lvl: int, *, kick=False, duration=None,
+                 count_warns=None,
                  role_name=None):
         super().__init__(timeout=None)
         self.bot = bot
@@ -154,26 +154,36 @@ class PunishmentApprove(nextcord.ui.View):
             await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
             return
         embed = None
+        moderator = await interaction.guild.fetch_member(self.moderator)
         if self.punishment == 'warn':
-            embed = self.handler.warns.create_warn_embed(interaction, self.moderator, self.user, self.count_warns,
-                                                         self.reason, check=True)
+            embed = create_punishment_embed(self.user,
+                                            moderator,
+                                            self.reason,
+                                            interaction.guild,
+                                            type_punishment='warn',
+                                            count_warns=self.count_warns,
+                                            check=interaction.user)
             await self.handler.warns.apply_warn(interaction, self.user, self.count_warns, self.reason, embed,
                                                 moderator_id=self.moderator, kick=self.kick,
                                                 approve_moderator=interaction.user.id)
         elif self.punishment == 'ban':
             ban = await self.handler.database.get_ban(user_id=self.user, guild_id=interaction.guild.id)
-
             if ban:
                 await interaction.response.defer(ephemeral=True)
-                await interaction.followup.send(f"У пользователя уже есть блокировка | Action_Id: {ban['_id']}",
+                await interaction.followup.send(f"У пользователя уже есть блокировка | Action_ID: {ban['_id']}",
                                                 ephemeral=True)
                 await self.bot.buttons.remove_button("Punishments",
                                                      message_id=interaction.message.id,
                                                      channel_id=interaction.channel_id,
                                                      guild_id=interaction.guild.id)
                 return await interaction.message.edit(view=None)
-            embed = self.handler.bans.create_ban_embed(interaction, self.moderator, self.user, self.duration,
-                                                       self.reason, check=True)
+            embed = create_punishment_embed(self.user,
+                                            moderator,
+                                            self.reason,
+                                            interaction.guild,
+                                            type_punishment='ban',
+                                            duration=self.duration,
+                                            check=interaction.user)
             await self.handler.bans.apply_ban(interaction, self.user, self.duration, self.reason, embed,
                                               moderator_id=self.moderator, approve_moderator=interaction.user.id)
         await interaction.message.edit(embed=embed, view=None)
@@ -193,22 +203,32 @@ class PunishmentApprove(nextcord.ui.View):
             await interaction.response.defer(ephemeral=True)
             await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
             return
-        user = interaction.guild.get_member(self.user)
+        user = await interaction.guild.fetch_member(self.user)
         if user is None:
             user = self.user
+        moderator = await interaction.guild.fetch_member(self.moderator)
         await self.bot.buttons.remove_button("Punishments",
                                              message_id=interaction.message.id,
                                              channel_id=interaction.channel_id,
                                              guild_id=interaction.guild.id)
 
         if self.punishment == 'warn':
-            embed = self.handler.warns.create_warn_embed(interaction, self.moderator, user, self.count_warns,
-                                                         self.reason, check=True)
+            embed = create_punishment_embed(user.id,
+                                            moderator,
+                                            self.reason,
+                                            interaction.guild,
+                                            type_punishment='warn',
+                                            count_warns=self.count_warns,
+                                            check=interaction.user)
             modal = RejectApproveModal(punishments='warn', user=self.user, message=interaction.message.id, embed=embed)
         elif self.punishment == 'ban':
-            embed = self.handler.bans.create_ban_embed(interaction, self.moderator, user, self.duration,
-                                                       self.reason,
-                                                       check=True)
+            embed = create_punishment_embed(user.id,
+                                            moderator,
+                                            self.reason,
+                                            interaction.guild,
+                                            type_punishment='ban',
+                                            duration=self.duration,
+                                            check=interaction.user)
             modal = RejectApproveModal(punishments='ban', user=self.user, message=interaction.message.id, embed=embed)
 
         if not interaction.response.is_done():
@@ -265,7 +285,7 @@ class ApproveDS(nextcord.ui.View):
 
 
 class CancelPunishments(nextcord.ui.View):
-    def __init__(self, moderator_id, user_id, role_name=None):
+    def __init__(self, moderator_id: int, user_id: int, role_name=None):
         super().__init__(timeout=30000)
         self.bot = bot
         self.handler = self.bot.db.punishments_handler
@@ -304,14 +324,14 @@ class CancelPunishments(nextcord.ui.View):
                                              message_id=interaction.message.id,
                                              channel_id=interaction.channel_id,
                                              guild_id=interaction.guild.id)
-        moderator = await interaction.guild.fetch_member(int(self.moderator))
+        moderator = await interaction.guild.fetch_member(self.moderator)
 
         if self.role_name:
             await self.handler.mutes.remove_mute(
                 user_id=self.user,
                 guild=interaction.guild,
                 role_name=self.role_name,
-                moderator=moderator,
+                moderator=moderator.id,
                 cancel=True
             )
         else:
@@ -335,3 +355,55 @@ class CancelPunishments(nextcord.ui.View):
         await interaction.message.edit(view=None)
         await interaction.message.add_reaction('❌')
         self.stop()
+
+
+def create_punishment_embed(user: nextcord.Member or int,
+                            moderator: nextcord.Member,
+                            reason: str,
+                            guild: nextcord.Guild,
+                            type_punishment: str,
+                            duration: int = None,
+                            count_warns: int = None,
+                            check=None,
+                            unwarn: bool = False,
+                            warn_data: dict = None) -> nextcord.Embed:
+    types_punishment = {
+        'ban': 'блокировки',
+        'warn': 'предупреждения',
+        'mute': 'мута',
+        'unwarn': 'снятия предупреждения'
+    }
+
+    title = f"Выдача {types_punishment.get(type_punishment)}" if not unwarn else "Снятие предупреждения"
+    color = nextcord.Color.red()
+    embed = nextcord.Embed(title=title, color=color)
+    if isinstance(moderator, nextcord.Member):
+        embed.set_author(name=moderator.display_name, icon_url=moderator.display_avatar.url)
+    else:
+        embed.set_author(name=str(moderator), icon_url=guild.icon.url if guild.icon else moderator.display_avatar.url)
+
+    embed.add_field(name='Нарушитель', value=f'<@{user if isinstance(user, int) else user.id}>')
+
+    if unwarn and warn_data:
+        embed.add_field(name='Выдавал', value=f'<@{warn_data["moderator_id"]}>')
+        embed.add_field(name='Причина', value=warn_data["reason"])
+    else:
+        embed.add_field(name='Модератор', value=f'<@{moderator.id}>')
+        embed.add_field(name='Причина', value=reason)
+        if type_punishment == 'warn' and count_warns is not None:
+            embed.add_field(name='Количество предупреждений:', value=f"{count_warns}/3")
+        elif type_punishment == 'ban':
+            embed.add_field(name='Длительность',
+                            value=f'{beautify_seconds(duration)}' if duration != '-1' else 'Навсегда')
+        elif type_punishment == 'mute':
+            embed.add_field(name='Время', value=beautify_seconds(duration))
+
+    embed.set_thumbnail(url=guild.icon.url if guild.icon else moderator.display_avatar.url)
+
+    if check:
+        embed.add_field(name='Проверил', value=f'{check.mention}')
+
+    if unwarn:
+        embed.set_footer(text=f"Модератор: {moderator.id}")
+
+    return embed

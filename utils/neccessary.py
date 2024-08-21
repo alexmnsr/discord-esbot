@@ -6,8 +6,6 @@ import re
 import nextcord
 from nextcord.ext.application_checks.core import CheckWrapper
 
-from utils.classes.actions import human_actions
-
 grant_levels = {
     1: ["Модератор"],
     2: ["Ст. Модератор"],
@@ -287,7 +285,7 @@ async def remove_role(member_id, guild, action_id, role_name):
     return guild, member
 
 
-async def add_role(client, member_id, guild_id, role_name, action_id='Temp_Mute'):
+async def add_role(client, member_id: int, guild_id: int, role_name, action_id='Temp_Mute'):
     guild = client.get_guild(guild_id)
     if not guild:
         return False, False

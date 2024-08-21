@@ -1,4 +1,5 @@
 import asyncio
+from typing import Optional
 
 import nextcord
 from nextcord.ext import commands
@@ -18,58 +19,41 @@ class DiscordTeam(commands.Cog):
         removed_roles = [r for r in before.roles if r not in after.roles]
         added_roles = [r for r in after.roles if r not in before.roles]
 
-        def added_to_discord_team(user_added_roles):
-            role_names = ["главный модератор", "следящий за discord"]
-            result = any(
-                any(role_name in user_role.name.lower() for role_name in role_names) for user_role in user_added_roles)
-            return result
+        def has_discord_team_role(roles, role_names=("главный модератор", "следящий за discord")):
+            return any(role_name in user_role.name.lower() for user_role in roles for role_name in role_names)
 
-        def removed_from_discord_team(user_removed_roles):
-            role_names = ["главный модератор", "следящий за discord"]
-            result = any(
-                any(role_name in user_role.name.lower() for role_name in role_names) for user_role in
-                user_removed_roles)
-            return result
-
-        async def give_roles(user: nextcord.Member, other_guild: nextcord.Guild):
-            add_roles = [r for r in other_guild.roles if "・discord™" in r.name.lower()]
-            if not add_roles:
+        async def update_roles(user: nextcord.Member, guild: nextcord.Guild, add: bool):
+            roles = [r for r in guild.roles if "・discord™" in r.name.lower()]
+            if not roles:
                 return
-            member = other_guild.get_member(user.id)
-            if not member:
-                try:
-                    member = await other_guild.fetch_member(user.id)
-                except Exception as e:
-                    print(f"Error fetching member {user.id} in guild {other_guild.name}: {e}")
-                    return
-            try:
-                await member.add_roles(*add_roles)
-            except Exception as e:
-                print(f"Error adding roles to member {user.id} in guild {other_guild.name}: {e}")
 
-        async def remove_roles(user: nextcord.Member, other_guild: nextcord.Guild):
-            remove_roles = [r for r in other_guild.roles if "・discord™" in r.name.lower()]
-            print(f"Removing roles in {other_guild.name}: {remove_roles}")
-            if not remove_roles:
+            member = guild.get_member(user.id) or await self.fetch_member_safe(guild, user.id)
+            if not member:
                 return
-            member = other_guild.get_member(user.id)
-            if not member:
-                try:
-                    member = await other_guild.fetch_member(user.id)
-                except Exception as e:
-                    print(f"Error fetching member {user.id} in guild {other_guild.name}: {e}")
-                    return
-            try:
-                await member.remove_roles(*remove_roles)
-            except Exception as e:
-                print(f"Error removing roles from member {user.id} in guild {other_guild.name}: {e}")
 
-        if added_to_discord_team(added_roles):
-            tasks = [give_roles(after, guild) for guild in self.bot.guilds]
+            try:
+                if add:
+                    await member.add_roles(*roles)
+                else:
+                    await member.remove_roles(*roles)
+            except Exception as e:
+                action = "Выдача" if add else "Удаление"
+                user_error = user.name or user.id
+                await self.bot.vk.nt_error(f"{action} ролей для {user_error} на сервере '{guild.name}': {e}")
+
+        if has_discord_team_role(added_roles):
+            tasks = [update_roles(after, guild, add=True) for guild in self.bot.guilds]
             await asyncio.gather(*tasks)
-        elif removed_from_discord_team(removed_roles):
-            tasks = [remove_roles(after, guild) for guild in self.bot.guilds]
+        elif has_discord_team_role(removed_roles):
+            tasks = [update_roles(after, guild, add=False) for guild in self.bot.guilds]
             await asyncio.gather(*tasks)
+
+    async def fetch_member_safe(self, guild: nextcord.Guild, user_id: int) -> Optional[nextcord.Member]:
+        try:
+            return await guild.fetch_member(user_id)
+        except Exception as e:
+            await self.bot.vk.nt_error(f"Поиск пользователя {user_id} в гильдии {guild.name}: {e}")
+            return None
 
 
 def setup(bot: EsBot) -> None:

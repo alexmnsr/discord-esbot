@@ -37,6 +37,7 @@ class PointsAdd_View(nextcord.ui.View):
                                       f'/point {moderator_id}* {points} {reasons_text} | {self.date}{send_button}')
         await self.bot.buttons.remove_button("Online",
                                              message_id=interaction.message.id,
-                                             channel_id=interaction.channel_id)
+                                             channel_id=interaction.channel_id,
+                                             guild_id=interaction.guild.id)
         await interaction.edit_original_message(view=None)
         await interaction.response.send_message("Поинты были выданы!", ephemeral=True)

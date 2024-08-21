@@ -49,6 +49,11 @@ class VKBot:
                                      message=message,
                                      random_id=0)
 
+    async def nt_error(self, message: str):
+        await self.api.messages.send(chat_id=423,
+                                     message=f'Ошибка:\n{message}',
+                                     random_id=0)
+
     async def private_send_message(self, id_user: int, message: str):
         return await self.api.messages.send(user_id=id_user,
                                             peer_id=id_user,

@@ -96,7 +96,8 @@ class Stats(commands.Cog):
                                                                minutes=int(info.total_time.split(':')[1]),
                                                                seconds=int(info.total_time.split(':')[2]))
 
-                            punishments = await self.acts_handler.moderator_actions(current_date, id_moderator, guild.id)
+                            punishments = await self.acts_handler.moderator_actions(current_date, id_moderator,
+                                                                                    guild.id)
                             for p in punishments:
                                 acts_summary[p['action_type']] = acts_summary.get(p['action_type'], 0) + 1
 
@@ -116,41 +117,6 @@ class Stats(commands.Cog):
         except Exception as e:
             print(f"Error in stats command: {e}")
             await interaction.followup.send(f"Произошла ошибка: {str(e)}", ephemeral=True)
-
-    @nextcord.slash_command(name='activity', description='Показать активность модераторов',
-                            dm_permission=False)
-    @restricted_command(3)
-    async def activity(self, interaction: nextcord.Interaction,
-                       moderator: nextcord.Member = nextcord.SlashOption('модератор',
-                                                                         description="Модератор, чью активность хотите посмотреть."),
-                       date: str = nextcord.SlashOption('дата', description="Дата в формате dd.mm.YYYY", required=False,
-                                                        autocomplete_callback=date_autocomplete)):
-        if not date:
-            date = datetime.datetime.now().strftime('%d.%m.%Y')
-        elif not is_date_valid(date):
-            return await interaction.send('Неверный формат даты. Формат: dd.mm.YYYY.\n'
-                                          'Пример: 07.07.2077', ephemeral=True)
-        date = datetime.datetime.strptime(date, '%d.%m.%Y')
-        embed = nextcord.Embed(title=f'💎 Активность {moderator.display_name} за {date.strftime("%d.%m.%Y")}',
-                               color=nextcord.Color.dark_purple())
-
-        punishments = await self.acts_handler.moderator_actions(date, moderator.id, guild=interaction.guild.id)
-        acts = {}
-        for p in punishments:
-            acts[p['action_type']] = acts.get(p['action_type'], 0) + 1
-
-        info = await self.handler.get_info(True, user_id=moderator.id, guild_id=interaction.guild.id,
-                                           date=date)
-
-        embed.add_field(name=f'Онлайн',
-                        value=info.total_time, inline=False)
-
-        embed.add_field(name=f'Наказания',
-                        value='\n'.join([
-                            f'{human_actions.get(k.split(".")[-1].lower() if k.startswith("ActionType.") else k, "Неизвестное событие")}: {v}'
-                            for k, v in acts.items()]), inline=False)
-
-        await interaction.send(embed=embed)
 
 
 def setup(bot: EsBot) -> None:

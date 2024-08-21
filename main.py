@@ -5,10 +5,10 @@ from utils.classes.bot import EsBot
 from utils.crons.cron_stats import CRON_Stats
 
 load_dotenv()
+# Отключение лога vkbottle
 logger.disable("vkbottle")
 bot = EsBot()
 
-# Загружаем cogs
 for root, _, files in os.walk('cogs'):
     for filename in files:
         if filename.endswith('.py'):
