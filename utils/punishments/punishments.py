@@ -456,7 +456,7 @@ def create_punishment_embed(user,
     else:
         embed.set_author(name=str(user), icon_url=guild.icon.url if guild.icon else moderator.display_avatar.url)
 
-    embed.add_field(name='Нарушитель', value=f'<@{user if isinstance(user, int) else user.id}>')
+    embed.add_field(name='Нарушитель', value=f'<@{user.id if isinstance(user, nextcord.Member) else user}>')
 
     if unwarn and warn_data:
         embed.add_field(name='Выдавал', value=f'<@{warn_data["moderator_id"]}>')
