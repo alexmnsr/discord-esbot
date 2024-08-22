@@ -1,3 +1,5 @@
+import datetime
+
 import nextcord
 
 from utils.neccessary import get_class_from_file
@@ -29,7 +31,8 @@ class ButtonState:
             'class_method': class_method,
             'params': params,
             'type_button': datebase,
-            'check': False
+            'check': False,
+            'date': f'{datetime.datetime.now().strftime("%d.%m.%Y")}'
         })
         return button_id.inserted_id
 
@@ -54,6 +57,12 @@ class ButtonState:
         result = await db.delete_one({'_id': existing_document['_id']})
 
         return result
+
+    async def remove_old_buttons(self, db, days=3):
+        cutoff_date = datetime.datetime.now() - datetime.timedelta(days=days)
+        cutoff_date_str = cutoff_date.strftime("%d.%m.%Y")
+        result = await db.delete_many({'date': {'$lt': cutoff_date_str}})
+        print(f"Deleted {result.deleted_count} old buttons.")
 
     async def remove_all_buttons_server(self, guild_id):
         databases = {
@@ -121,18 +130,14 @@ class ButtonState:
             print("Канал не найден.")
 
     async def load_all_buttons(self):
+        await self.remove_old_buttons(self.db_roles)
+        await self.remove_old_buttons(self.db_punishments)
+        await self.remove_old_buttons(self.db_online)
+
         all_buttons = {
-            'Roles': [],
-            'Punishments': [],
-            'Online': []
+            'Roles': await self.db_roles.find().to_list(length=None),
+            'Punishments': await self.db_punishments.find().to_list(length=None),
+            'Online': await self.db_online.find().to_list(length=None)
         }
-
-        roles_buttons = await self.db_roles.find().to_list(length=None)
-        punishments_buttons = await self.db_punishments.find().to_list(length=None)
-        online_buttons = await self.db_online.find().to_list(length=None)
-
-        all_buttons['Roles'].extend(roles_buttons)
-        all_buttons['Punishments'].extend(punishments_buttons)
-        all_buttons['Online'].extend(online_buttons)
 
         return all_buttons
