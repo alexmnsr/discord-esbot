@@ -194,6 +194,49 @@ class PunishmentApprove(nextcord.ui.View):
                                              guild_id=interaction.guild.id)
         self.stop()
 
+    @nextcord.ui.button(
+        label="Отказать", style=nextcord.ButtonStyle.red, emoji='📕',
+        custom_id="punishment_request:reject_punishment"
+    )
+    async def cancel(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        if grant_level(interaction.user.roles, interaction.user) < self.lvl:
+            await interaction.response.defer(ephemeral=True)
+            await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
+            return
+        user = await interaction.guild.fetch_member(self.user)
+        if user is None:
+            user = self.user
+        moderator = await interaction.guild.fetch_member(self.moderator)
+        await self.bot.buttons.remove_button("Punishments",
+                                             message_id=interaction.message.id,
+                                             channel_id=interaction.channel_id,
+                                             guild_id=interaction.guild.id)
+
+        if self.punishment == 'warn':
+            embed = create_punishment_embed(user.id,
+                                            moderator,
+                                            self.reason,
+                                            interaction.guild,
+                                            type_punishment='warn',
+                                            count_warns=self.count_warns,
+                                            check=interaction.user)
+            modal = RejectApproveModal(punishments='warn', user=self.user, message=interaction.message.id, embed=embed)
+        elif self.punishment == 'ban':
+            embed = create_punishment_embed(user.id,
+                                            moderator,
+                                            self.reason,
+                                            interaction.guild,
+                                            type_punishment='ban',
+                                            duration=self.duration,
+                                            check=interaction.user)
+            modal = RejectApproveModal(punishments='ban', user=self.user, message=interaction.message.id, embed=embed)
+
+        if not interaction.response.is_done():
+            await interaction.response.send_modal(modal)
+        else:
+            await interaction.followup.send("Не удалось открыть модальное окно, так как взаимодействие уже обработано.")
+        self.stop()
+
 
 class ApproveDS(nextcord.ui.View):
     def __init__(self, moderator_id, warn, reason):
