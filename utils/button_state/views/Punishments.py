@@ -155,7 +155,7 @@ class PunishmentApprove(nextcord.ui.View):
             await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
             return
 
-        # Использование данных из PunishmentData
+        embed = None
         if self.data.punishment == 'warn':
             moderator = await interaction.guild.fetch_member(self.data.moderator_id)
             embed = create_punishment_embed(self.data.user_id, moderator, self.data.reason, interaction.guild,
@@ -194,42 +194,41 @@ class PunishmentApprove(nextcord.ui.View):
                                              guild_id=interaction.guild.id)
         self.stop()
 
-    @nextcord.ui.button(
-        label="Отказать", style=nextcord.ButtonStyle.red, emoji='📕',
-        custom_id="punishment_request:reject_punishment"
-    )
+    @nextcord.ui.button(label="Отказать", style=nextcord.ButtonStyle.red, emoji='📕',
+                        custom_id="punishment_request:reject_punishment")
     async def cancel(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
-        if grant_level(interaction.user.roles, interaction.user) < self.lvl:
+        if grant_level(interaction.user.roles, interaction.user) < self.data.lvl:
             await interaction.response.defer(ephemeral=True)
             await interaction.followup.send("Вы не можете использовать это", ephemeral=True)
             return
-        user = await interaction.guild.fetch_member(self.user)
+
+        user = await interaction.guild.fetch_member(self.data.user_id)
         if user is None:
-            user = self.user
-        moderator = await interaction.guild.fetch_member(self.moderator)
+            user = self.data.user_id
+        moderator = await interaction.guild.fetch_member(self.data.moderator_id)
         await self.bot.buttons.remove_button("Punishments",
                                              message_id=interaction.message.id,
                                              channel_id=interaction.channel_id,
                                              guild_id=interaction.guild.id)
 
-        if self.punishment == 'warn':
-            embed = create_punishment_embed(user.id,
+        if self.data.punishment == 'warn':
+            embed = create_punishment_embed(user,
                                             moderator,
-                                            self.reason,
+                                            self.data.reason,
                                             interaction.guild,
                                             type_punishment='warn',
-                                            count_warns=self.count_warns,
+                                            count_warns=self.data.count_warns,
                                             check=interaction.user)
-            modal = RejectApproveModal(punishments='warn', user=self.user, message=interaction.message.id, embed=embed)
-        elif self.punishment == 'ban':
-            embed = create_punishment_embed(user.id,
+            modal = RejectApproveModal(punishments='warn', user=self.data.user_id, message=interaction.message.id, embed=embed)
+        elif self.data.punishment == 'ban':
+            embed = create_punishment_embed(user,
                                             moderator,
-                                            self.reason,
+                                            self.data.reason,
                                             interaction.guild,
                                             type_punishment='ban',
-                                            duration=self.duration,
+                                            duration=self.data.duration,
                                             check=interaction.user)
-            modal = RejectApproveModal(punishments='ban', user=self.user, message=interaction.message.id, embed=embed)
+            modal = RejectApproveModal(punishments='ban', user=self.data.user_id, message=interaction.message.id, embed=embed)
 
         if not interaction.response.is_done():
             await interaction.response.send_modal(modal)

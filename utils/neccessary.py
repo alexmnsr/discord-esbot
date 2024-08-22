@@ -2,9 +2,13 @@ import asyncio
 import datetime
 import importlib
 import re
+from dataclasses import dataclass
+from typing import Optional
 
 import nextcord
 from nextcord.ext.application_checks.core import CheckWrapper
+
+import utils.button_state
 
 grant_levels = {
     1: ["Модератор"],
@@ -32,9 +36,23 @@ async def load_buttons(client, buttons, type_buttons):
         message_id = button_data.get('message_id')
         channel_id = button_data.get('channel_id')
         class_name = button_data.get('class_method')
-        selected_class = await get_class_from_file(module_name, class_name)
         params = button_data.get('params', {})
-        view = selected_class(**params)
+
+        # Создаем объект PunishmentData из params
+        punishment_data = PunishmentData(
+            punishment=params.get('punishment'),
+            reason=params.get('reason'),
+            moderator_id=params.get('moderator_id'),
+            user_id=params.get('user_id'),
+            lvl=params.get('lvl'),
+            kick=params.get('kick', True),
+            duration=params.get('duration', None),
+            count_warns=params.get('count_warns', None)
+        )
+
+        # Получаем класс и создаем view
+        selected_class = await get_class_from_file(module_name, class_name)
+        view = selected_class(client, punishment_data)
 
         channel = client.get_channel(channel_id)
         if channel:
@@ -56,6 +74,18 @@ async def load_buttons(client, buttons, type_buttons):
                     else:
                         print(f"Ошибка при получении сообщения: {e}")
                         break
+
+
+@dataclass(frozen=True)
+class PunishmentData:
+    punishment: str
+    reason: str
+    moderator_id: int
+    user_id: int
+    lvl: int
+    kick: bool = False
+    duration: Optional[int] = None
+    count_warns: Optional[int] = None
 
 
 async def edit_message_with_retry(message, view):

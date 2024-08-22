@@ -138,6 +138,8 @@ class MuteHandler:
                                                                                                moderator=moderator.id):
                 if role_name == 'Mute » Full':
                     role_name = ['Mute » Text', 'Mute » Voice']
+        if mute is None:
+            return False
         guild, member = await remove_role(user_id, guild, mute['_id'], role_name)
 
         if guild:
