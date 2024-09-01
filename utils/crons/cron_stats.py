@@ -9,7 +9,7 @@ import pytz
 import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from nextcord import Embed, Color, Guild, Member, TextChannel
+from nextcord import Embed, Color, Guild, TextChannel
 from typing import Dict, List, Optional, Tuple
 
 
@@ -31,7 +31,8 @@ class CRON_Stats:
             ('месяц', 23, 59, '*', f'{(now.replace(day=1) + relativedelta(months=1, days=-1)).day}', None)
         ]
         for period, hour, minute, day_of_week, day, month in reports:
-            trigger = CronTrigger(hour=hour, minute=minute, day_of_week=day_of_week, day=day, month=month, timezone=msk_tz)
+            trigger = CronTrigger(hour=hour, minute=minute, day_of_week=day_of_week, day=day, month=month,
+                                  timezone=msk_tz)
             self.scheduler.add_job(self.send_report, trigger, args=[period])
             self.scheduler.add_job(self.send_stats_bond, trigger, args=[period])
 
@@ -42,7 +43,8 @@ class CRON_Stats:
         await asyncio.gather(*(self.send_stats_to_bond_vk(guild, period=period) for guild in self.bot.guilds))
 
     def calculate_date_range(self, period: str) -> (datetime.datetime, datetime.datetime):
-        start_date = datetime.datetime.now(pytz.timezone('Europe/Moscow')).replace(hour=0, minute=0, second=0, microsecond=0)
+        start_date = datetime.datetime.now(pytz.timezone('Europe/Moscow')).replace(hour=0, minute=0, second=0,
+                                                                                   microsecond=0)
 
         if period == "день":
             end_date = start_date
@@ -58,7 +60,8 @@ class CRON_Stats:
 
         return start_date, end_date
 
-    async def fetch_moderator_stats(self, guild: Guild, start_date: datetime.datetime, end_date: datetime.datetime, moderator_roles: List[str]) -> Dict[int, Dict]:
+    async def fetch_moderator_stats(self, guild: Guild, start_date: datetime.datetime, end_date: datetime.datetime,
+                                    moderator_roles: List[str]) -> Dict[int, Dict]:
         moderator_stats = {}
         for member in guild.members:
             if any(role.name.lower() in moderator_roles for role in (name_role for name_role in member.roles)):
@@ -116,7 +119,8 @@ class CRON_Stats:
 
     async def send_stats_to_bond_vk(self, guild: Guild, period: str):
         start_date, end_date = self.calculate_date_range(period)
-        date_str = f"{start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}" if period != "день" else start_date.strftime('%d.%m.%Y')
+        date_str = f"{start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}" if period != "день" else start_date.strftime(
+            '%d.%m.%Y')
         tracked_roles = ['следящий за discord', 'главный модератор']
 
         moderator_stats = await self.fetch_moderator_stats(guild, start_date, end_date, tracked_roles)
@@ -141,13 +145,15 @@ class CRON_Stats:
             await send_embed(user, embed)
 
     async def send_points(self, moderator_stats: Dict[int, Dict], channel: TextChannel):
-        max_online_st_moderator_id, max_online_moderator_id, max_role_moderator_id = self.calculate_points(moderator_stats)
+        max_online_st_moderator_id, max_online_moderator_id, max_role_moderator_id = self.calculate_points(
+            moderator_stats)
 
         embed = Embed(title='💎 Поинты', color=Color.gold())
         send_messages_points = {}
 
         for moderator_id, stats in moderator_stats.items():
-            points, reasons = self.calculate_individual_points(moderator_id, stats, max_online_st_moderator_id, max_online_moderator_id, max_role_moderator_id)
+            points, reasons = self.calculate_individual_points(moderator_id, stats, max_online_st_moderator_id,
+                                                               max_online_moderator_id, max_role_moderator_id)
 
             if points > 0:
                 send_messages_points[moderator_id] = {
@@ -162,13 +168,16 @@ class CRON_Stats:
                 )
 
         embed.set_footer(text=f"{datetime.datetime.now().strftime('%d.%m.%Y')}")
-        message = await channel.send(embed=embed, view=PointsAdd_View(moderator_ids=str(send_messages_points), date=datetime.datetime.now().strftime("%d.%m.%Y")))
+        message = await channel.send(embed=embed, view=PointsAdd_View(moderator_ids=str(send_messages_points),
+                                                                      date=datetime.datetime.now().strftime(
+                                                                          "%d.%m.%Y")))
 
         params = {
             'moderator_ids': str(send_messages_points),
             'date': datetime.datetime.now().strftime("%d.%m.%Y"),
         }
-        await self.bot.buttons.add_button("Online", message_id=message.id, channel_id=channel.id, class_method='PointsAdd_View', params=params)
+        await self.bot.buttons.add_button("Online", message_id=message.id, channel_id=channel.id,
+                                          class_method='PointsAdd_View', params=params)
 
     def calculate_points(self, moderator_stats: Dict[int, Dict[str, int]]) -> Tuple[
         Optional[int], Optional[int], Optional[int]]:
@@ -209,7 +218,8 @@ class CRON_Stats:
 
         return max_online_st_moderator_id, max_online_moderator_id, max_role_moderator_id
 
-    def calculate_individual_points(self, moderator_id: int, stats: Dict, max_online_st_moderator_id: int, max_online_moderator_id: int, max_role_moderator_id: int) -> (int, List[str]):
+    def calculate_individual_points(self, moderator_id: int, stats: Dict, max_online_st_moderator_id: int,
+                                    max_online_moderator_id: int, max_role_moderator_id: int) -> (int, List[str]):
         points = 0
         reasons = []
 
