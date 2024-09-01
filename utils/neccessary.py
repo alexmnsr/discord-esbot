@@ -31,74 +31,84 @@ async def get_class_from_file(module_name: str, class_name: str):
 async def load_buttons(client, buttons, type_buttons):
     loaded_buttons = await buttons.load_all_buttons()
 
-    for button_data in loaded_buttons[f'{type_buttons}']:
-        module_name = f'utils.button_state.views.{type_buttons}'
+    module_name = f'utils.button_state.views.{type_buttons}'
+
+    for button_data in loaded_buttons[type_buttons]:
         message_id = button_data.get('message_id')
         channel_id = button_data.get('channel_id')
         class_name = button_data.get('class_method')
         params = button_data.get('params', {})
 
-        # Создаем объект PunishmentData из params
+        # Убедитесь, что все обязательные параметры присутствуют
         punishment_data = PunishmentData(
-            punishment=params.get('punishment'),
-            reason=params.get('reason'),
+            punishment=params.get('punishment', 'default_punishment'),
+            reason=params.get('reason', 'No reason provided'),
             moderator_id=params.get('moderator_id'),
+            guild_id=params.get('guild_id', button_data.get('guild_id')),
             user_id=params.get('user_id'),
-            lvl=params.get('lvl'),
-            kick=params.get('kick', True),
-            duration=params.get('duration', None),
-            count_warns=params.get('count_warns', None)
+            lvl=params.get('lvl', 1),
+            channel_id=channel_id,
+            message_id=message_id,
+            kick=params.get('kick', False),
+            user_request=params.get('user_request', button_data.get('user_request')),
+            duration=params.get('duration'),
+            count_warns=params.get('count_warns'),
+            role_name=params.get('role_name')
         )
 
-        # Получаем класс и создаем view
         selected_class = await get_class_from_file(module_name, class_name)
+        if not selected_class:
+            continue
+
         view = selected_class(client, punishment_data)
-
         channel = client.get_channel(channel_id)
-        if channel:
-            while True:
-                try:
-                    message = await channel.fetch_message(message_id)
-                    await edit_message_with_retry(message, view)
-                    await asyncio.sleep(0.1)
-                    break
-                except nextcord.NotFound:
-                    print("Сообщение не найдено.")
-                    break
-                except nextcord.Forbidden:
-                    print("Нет прав на редактирование этого сообщения.")
-                    break
-                except nextcord.HTTPException as e:
-                    if e.status == 429:
-                        await asyncio.sleep(5)
-                    else:
-                        print(f"Ошибка при получении сообщения: {e}")
-                        break
+        if not channel:
+            continue
 
+        try:
+            message = await channel.fetch_message(message_id)
+            await edit_message_with_retry(message, view)
+        except nextcord.NotFound:
+            print(f"Сообщение {message_id} не найдено.")
+        except nextcord.Forbidden:
+            print(f"Нет прав на редактирование сообщения {message_id}.")
+        except nextcord.HTTPException as e:
+            if e.status == 429:
+                await asyncio.sleep(5)
+            else:
+                print(f"Ошибка при получении сообщения: {e}")
 
 @dataclass(frozen=True)
 class PunishmentData:
     punishment: str
     reason: str
     moderator_id: int
+    guild_id: int
     user_id: int
     lvl: int
+    channel_id: int
+    message_id: int
     kick: bool = False
+    user_request: int = False
     duration: Optional[int] = None
     count_warns: Optional[int] = None
+    role_name: str = None
 
 
-async def edit_message_with_retry(message, view):
-    while True:
+async def edit_message_with_retry(message, view, retries=5, delay=5):
+    for attempt in range(retries):
         try:
             await message.edit(view=view)
-            break
+            return  # Успешно отредактировано, выходим из функции
         except nextcord.HTTPException as e:
-            if e.status == 429:
-                await asyncio.sleep(5)
+            if e.status == 429:  # Превышение лимита запросов
+                if attempt < retries - 1:  # Попробуем снова, если не исчерпаны попытки
+                    await asyncio.sleep(delay)
+                    delay *= 2  # Увеличиваем задержку для следующей попытки
+                else:
+                    raise  # Если исчерпаны все попытки, выкидываем исключение
             else:
-                print(f"Ошибка при редактировании сообщения: {e}")
-                break
+                raise  # Если это другая ошибка, то сразу выкидываем исключение
 
 
 def grant_level(user_roles, member):

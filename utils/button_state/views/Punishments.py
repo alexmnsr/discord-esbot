@@ -133,11 +133,16 @@ class PunishmentData:
     punishment: str
     reason: str
     moderator_id: int
+    guild_id: int
     user_id: int
     lvl: int
+    channel_id: int
+    message_id: int
     kick: bool = False
+    user_request: int = False
     duration: Optional[int] = None
     count_warns: Optional[int] = None
+    role_name: str = None
 
 
 class PunishmentApprove(nextcord.ui.View):
