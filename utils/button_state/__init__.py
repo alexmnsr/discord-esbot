@@ -37,7 +37,7 @@ class ButtonState:
         })
         return button_id.inserted_id
 
-    async def remove_button(self, datebase, *, channel_id, message_id, guild_id, id_button=None):
+    async def remove_button(self, datebase, *, channel_id, message_id, guild_id, id_button=None): # remoe
         db = self.db_map.get(datebase)
         if not db:
             raise ValueError(f"Invalid database specified: {datebase}")
