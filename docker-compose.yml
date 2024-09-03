@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    image: alexmnsr/discord-esbot:latest
+    image: alexmnsr/discord-esbot:latest  # Используйте правильный тег
     container_name: discord-esbot
     volumes:
       - .:/discord-esbot
@@ -12,39 +12,17 @@ services:
       - mongo
     env_file:
       - .env
-    restart: always
-    networks:
-      - esbot_network
+    restart: always  # Автоматически перезапускать контейнер при сбоях
 
   mongo:
     image: mongo
     container_name: mongo
     volumes:
-      - mongo_data:/data/db
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_LOGIN}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
-    restart: always
-    networks:
-      - esbot_network
-    expose:
-      - "27017"
-
-  backup:
-    build: .
-    container_name: mongo-backup
-    volumes:
-      - ./backups:/backup  # Локальная директория для хранения бэкапов
-    depends_on:
-      - mongo
-    networks:
-      - esbot_network
-    restart: always
+      - mongo_data:/data/db  # Используйте именованный volume для хранения данных
+    ports:
+      - "27017:27017"  # Порт MongoDB по умолчанию
+    restart: always  # Автоматически перезапускать контейнер при сбоях
 
 volumes:
   mongo_data:
-    external: false
-
-networks:
-  esbot_network:
-    driver: bridge
+    external: false  # Убедитесь, что volume управляется Docker Compose
