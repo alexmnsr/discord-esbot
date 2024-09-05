@@ -8,6 +8,7 @@ from nextcord.ext import commands
 from utils.button_state.views.Punishments import CancelPunishments, PunishmentApprove, MuteModal, PunishmentData
 from utils.classes.actions import ActionType, human_actions, payload_types, excluded_actions
 from utils.classes.bot import EsBot
+from utils.classes.vk.bot import BotStatus
 from utils.neccessary import string_to_seconds, checking_presence, restricted_command, print_user, \
     beautify_seconds, copy_message, grant_level
 from utils.punishments.punishments import create_punishment_embed
@@ -24,8 +25,23 @@ class Punishments(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        await checking_presence(self.bot)
-        await self.handler.reload()
+        bot_status = BotStatus(self.bot.vk)
+
+        status_message = ""
+
+        try:
+            # Выполняем проверку присутствия
+            await checking_presence(self.bot)
+            await self.handler.reload()
+
+            status_message += "Обновление наказаний: Успешно ✅\n"
+        except Exception as e:
+            status_message += f"Ошибка при обновлении наказаний: {e} 🚫\n"
+            print(f"Ошибка при обновлении наказаний: {e}")
+
+        # Отправляем результат одним сообщением
+        await bot_status.send_status(status_message,
+                                     BotStatus.SUCCESS if "Ошибка" not in status_message else BotStatus.ERROR)
 
     @commands.Cog.listener()
     async def on_member_join(self, member: nextcord.Member):

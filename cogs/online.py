@@ -4,7 +4,10 @@ from typing import Any
 import nextcord
 from dotenv import load_dotenv
 from nextcord.ext import commands
+
+from connect_database import check_database_connection
 from utils.classes.bot import EsBot
+from utils.classes.vk.bot import BotStatus
 from utils.neccessary import is_date_valid, date_autocomplete, restricted_command
 
 load_dotenv()
@@ -57,9 +60,28 @@ class Online(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        if os.getenv('DEBUG') == "False":
-            await self.bot.vk.send_message(123123, 'Вы запустили бота на хостинге. Началось обновление онлайна, наказаний, кнопок')
-            await self.handler.reload(self.bot.get_all_channels())
+        # Инициализируем статус
+        bot_status = BotStatus(self.bot.vk)
+        status_message = ""
+        try:
+            # Проверка подключения к базе данных
+            if check_database_connection():
+                status_message += "Подключение к базе данных: Успешно ✅\n"
+            else:
+                status_message += "Подключение к базе данных: Не удалось 🚫\n"
+
+            # Обновление кнопок
+            if await self.handler.reload(self.bot.get_all_channels()):
+                status_message += "Обновление онлайна: Успешно ✅\n"
+            else:
+                status_message += "Обновление онлайна: Не удалось 🚫\n"
+
+            await bot_status.send_status(status_message, BotStatus.SUCCESS)
+
+        except Exception as e:
+            error_message = f"Ошибка при запуске бота: {e} 🚫"
+            await bot_status.send_status(error_message, BotStatus.ERROR)
+            print(f"Ошибка при запуске бота: {e}")
 
     @nextcord.slash_command(name='online', description='Показать онлайн пользователя',
                             dm_permission=False)

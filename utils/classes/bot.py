@@ -5,7 +5,7 @@ from nextcord import Intents
 from nextcord.ext import commands
 
 from database import Database
-from utils.classes.vk.bot import VKBot
+from utils.classes.vk.bot import VKBot, BotStatus
 
 
 class EsBot(commands.Bot):
@@ -15,9 +15,10 @@ class EsBot(commands.Bot):
         self.vk = VKBot()
         self.buttons = self.db.state_buttons
         self.deleted_messages = []
+        self.status_message = "Бот запущен ⚠"
 
     async def on_ready(self):
-
+        await BotStatus(self.vk).send_status(message=self.status_message, status=BotStatus.WARNING)
         print(f'Бот загружен "{self.user}" (ID: {self.user.id})')
         print('------')
 

@@ -31,6 +31,20 @@ chat_ids = {
 }
 
 
+class BotStatus:
+    SUCCESS = "✅"
+    ERROR = "🚫"
+    WARNING = "⚠"
+    PROCESS = "❓"
+
+    def __init__(self, vk_bot: 'VKBot'):
+        self.vk_bot = vk_bot
+
+    async def send_status(self, message: str, status: str):
+        full_message = f"{message}"
+        await self.vk_bot.send_message(server_id=123123, message=full_message)
+
+
 class VKBot:
     def __init__(self) -> None:
         self.bot = Bot(os.getenv('VK_TOKEN'))

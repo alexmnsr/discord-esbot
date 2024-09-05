@@ -17,9 +17,7 @@ class OnlineHandler:
         self.buttons = buttons
 
     async def reload(self, all_channels):
-        if await load_buttons(self.client, self.buttons, type_buttons='Online'):
-            self.client.vk.send_message(123123123, 'Подгрузил все кнопки в Онлайн.')
-        print("Начал обновление онлайна пользователей!")
+        await load_buttons(self.client, self.buttons, type_buttons='Online')
         current_info = await self.database.get_current_info()
         call_user = 0
         for channel in all_channels:
@@ -39,6 +37,7 @@ class OnlineHandler:
                         if not call_user == user:
                             call_user = user
                             await self.leave(AbstractUser(user, channel.guild), channel)
+        return True
 
     async def join(self, member: nextcord.Member,
                    channel, transition=False) -> None:

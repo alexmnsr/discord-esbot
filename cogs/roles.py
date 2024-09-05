@@ -7,6 +7,7 @@ from nextcord.ext import commands
 from utils.button_state.views.Roles import RoleRequest
 from utils.classes.actions import ActionType
 from utils.classes.bot import EsBot
+from utils.classes.vk.bot import BotStatus
 from utils.neccessary import nick_without_tag, restricted_command, load_buttons
 from utils.roles.role_info import role_info
 
@@ -46,8 +47,23 @@ class Roles(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        if os.getenv('DEBUG') == "False":
+        bot_status = BotStatus(self.bot.vk)
+
+        status_message = ""
+
+        try:
             await self.reload()
+            status_message += "Обновление ролей: Успешно ✅\n"
+        except Exception as e:
+            status_message += f"Ошибка при обновлении ролей: {e} 🚫\n"
+            print(f"Ошибка при обновлении ролей: {e}")
+
+        # Проверяем, что сообщение не пустое перед отправкой
+        if status_message.strip():  # Убедимся, что строка не пустая или не содержит только пробелы
+            await bot_status.send_status(status_message,
+                                         BotStatus.SUCCESS if "Ошибка" not in status_message else BotStatus.ERROR)
+        else:
+            print("Нет сообщений для отправки.")
 
     @nextcord.slash_command(name='role', description='Подать заявление на роль.')
     async def request_role(self, interaction: nextcord.Interaction,
