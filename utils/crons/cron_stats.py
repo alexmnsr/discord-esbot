@@ -168,6 +168,7 @@ class CRON_Stats:
                 )
 
         embed.set_footer(text=f"{datetime.datetime.now().strftime('%d.%m.%Y')}")
+        await self.bot.vk.nt_error(str(embed.fields))
         message = await channel.send(embed=embed, view=PointsAdd_View(moderator_ids=str(send_messages_points),
                                                                       date=datetime.datetime.now().strftime(
                                                                           "%d.%m.%Y")))
@@ -188,25 +189,34 @@ class CRON_Stats:
         max_online_st_moderator = datetime.timedelta()
         max_online = datetime.timedelta()
         max_role = 0
+        role_awarded = False  # Флаг, указывающий, что хотя бы один модератор имеет действия с ролями
 
         for moderator_id, stats in moderator_stats.items():
             total_online_td = stats['total_online']
             roles = [r.name.lower() for r in stats['member'].roles]
 
+            # Проверка на старшего модератора или ассистента Discord
             if any('ст. модератор' in role for role in roles) or any('ассистент discord' in role for role in roles):
                 if total_online_td > max_online_st_moderator:
                     max_online_st_moderator = total_online_td
                     max_online_st_moderator_id = moderator_id
 
+            # Проверка для модератора, который не является главным модератором
             if any('модератор' in role for role in roles) and 'главный модератор' not in roles:
                 if total_online_td > max_online:
                     max_online = total_online_td
                     max_online_moderator_id = moderator_id
 
+            # Подсчет действий, связанных с выдачей или удалением ролей
             role_approve = stats['actions'].get('role_approve', 0)
             role_reject = stats['actions'].get('role_remove', 0)
             total_roles = role_approve + (role_reject / 2)
 
+            # Если есть хотя бы одно действие с ролями, устанавливаем флаг
+            if total_roles > 0:
+                role_awarded = True
+
+            # Логика определения лучшего по ролям, только если флаг role_awarded установлен
             if total_roles > max_role:
                 max_role = total_roles
                 max_role_moderator_id = moderator_id
@@ -215,6 +225,10 @@ class CRON_Stats:
                 if max_role_moderator_id is None or current_online_td > moderator_stats[max_role_moderator_id][
                     'total_online']:
                     max_role_moderator_id = moderator_id
+
+        # Если ни у одного модератора не было действий с ролями, сбрасываем max_role_moderator_id
+        if not role_awarded:
+            max_role_moderator_id = None
 
         return max_online_st_moderator_id, max_online_moderator_id, max_role_moderator_id
 
