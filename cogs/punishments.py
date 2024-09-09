@@ -309,8 +309,8 @@ class Punishments(commands.Cog):
         if not resolved_user:
             return await interaction.send('Пользователь не найден.')
 
-        if isinstance(resolved_user, nextcord.Member) and interaction.user.top_role <= resolved_user.top_role:
-            return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
+        # if isinstance(resolved_user, nextcord.Member) and interaction.user.top_role <= resolved_user.top_role:
+        #     return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
         count_warns = len(await self.handler.database.get_warns(resolved_user.id, interaction.guild.id)) + 1
         embed = create_punishment_embed(resolved_user, interaction.user, reason,
@@ -320,7 +320,8 @@ class Punishments(commands.Cog):
         kick = True if kick == 'Кикать' else False
         if grant_level(interaction.user.roles, interaction.user) < 2 or interaction.user.id == 479244541858152449:
             punishment_data = PunishmentData(punishment='warn', reason=reason, moderator_id=interaction.user.id,
-                                             user_id=resolved_user.id, lvl=2, kick=kick, count_warns=count_warns)
+                                             user_id=resolved_user.id, lvl=2, kick=kick, count_warns=count_warns,
+                                             guild_id=interaction.guild.id)
             view = PunishmentApprove(self.bot, punishment_data)
             await interaction.send(embed=embed,
                                    view=view)
@@ -332,7 +333,8 @@ class Punishments(commands.Cog):
                 'moderator_id': interaction.user.id,
                 'user_id': resolved_user.id,
                 'kick': kick,
-                'lvl': 2
+                'lvl': 2,
+                'guild_id': interaction.guild.id
             }
             await self.bot.buttons.add_button("Punishments", message_id=message.id,
                                               channel_id=interaction.channel_id,
@@ -406,7 +408,9 @@ class Punishments(commands.Cog):
                                              moderator_id=interaction.user.id,
                                              user_id=resolved_user.id,
                                              lvl=3,
-                                             duration=duration_in_seconds)
+                                             duration=duration_in_seconds,
+                                             guild_id=interaction.guild.id
+                                             )
             view = PunishmentApprove(self.bot, punishment_data)
             await interaction.send(embed=embed, view=view)
             message = await interaction.original_message()
@@ -416,7 +420,8 @@ class Punishments(commands.Cog):
                 'moderator_id': interaction.user.id,
                 'user_id': resolved_user.id,
                 'lvl': 3,
-                'duration': duration_in_seconds
+                'duration': duration_in_seconds,
+                'guild_id': interaction.guild.id
             }
             await self.bot.buttons.add_button("Punishments", message_id=message.id,
                                               channel_id=interaction.channel_id,

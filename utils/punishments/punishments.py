@@ -303,9 +303,31 @@ class WarnHandler:
                 jump_url=jump_url
             )
             if kick:
-                member = await interaction.guild.fetch_member(user)
-                if member:
-                    await interaction.guild.kick(member, reason=f"Action ID: {action_id}")
+                try:
+                    # Пытаемся получить пользователя
+                    member = await interaction.guild.fetch_member(user)
+                    if member:
+                        # Пытаемся кикнуть пользователя
+                        await interaction.guild.kick(member, reason=f"Action ID: {action_id}")
+                        await interaction.response.send_message(
+                            f"Пользователь {member.name} был кикнут. Причина: Action ID {action_id}.", ephemeral=True)
+                    else:
+                        await interaction.response.send_message(f"Пользователь с ID {user} не найден на сервере.",
+                                                                ephemeral=True)
+
+                except nextcord.errors.NotFound:
+                    # Обработка случая, когда пользователь не найден
+                    await interaction.response.send_message(f"Пользователь с ID {user} не найден на сервере.",
+                                                            ephemeral=True)
+
+                except nextcord.errors.Forbidden:
+                    # Обработка случая, когда нет прав на кик пользователя
+                    await interaction.response.send_message("У меня нет прав для кика этого пользователя.",
+                                                            ephemeral=True)
+
+                except Exception as e:
+                    # Общая обработка других возможных исключений
+                    await interaction.response.send_message(f"Произошла ошибка: {str(e)}", ephemeral=True)
 
 
 class BanHandler:

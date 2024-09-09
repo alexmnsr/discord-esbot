@@ -136,8 +136,8 @@ class PunishmentData:
     guild_id: int
     user_id: int
     lvl: int
-    channel_id: int
-    message_id: int
+    channel_id: int = None
+    message_id: int = None
     kick: bool = False
     user_request: int = False
     duration: Optional[int] = None
