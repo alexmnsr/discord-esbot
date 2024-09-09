@@ -25,6 +25,33 @@ class Online(commands.Cog):
         # Ничего не изменять, если пользователь остался в том же канале
         if before.channel == after.channel:
             return
+
+        guild = member.guild
+
+        # Проверка, был ли пользователь отключен другим участником
+        if before.channel is not None and after.channel is None:
+            # Получаем последние записи журнала аудита
+            audit_logs = await guild.audit_logs(limit=1, action=nextcord.AuditLogAction.member_disconnect).flatten()
+            for log in audit_logs:
+                # Проверка, что событие относится к пользователю и оно недавно
+                if log.target == member and (nextcord.utils.utcnow() - log.created_at).total_seconds() < 5:
+                    # Пользователя отключил другой участник
+                    responsible_user = log.user
+                    try:
+                        required_roles = ["GMD", "SMD", "MD", "AD", "DS"]
+
+                        # Проверяем, содержит ли ник пользователя одну из необходимых строк
+                        if not any(role in member.display_name for role in required_roles):
+                            return  # Прекращаем выполнение, если ник не содержит нужных параметров
+                        await self.bot.vk.nt_error(
+                            f'Сервер: {member.guild.name}\n'
+                            f'Пользователь {responsible_user.display_name} отключил пользователя {member.display_name}.\n'
+                            f'Возможен блат (отключение пользователей качающих онлайн)')
+                    except:
+                        pass
+                    await self.handler.leave(member, before.channel, by=responsible_user)
+                    return
+
         # Если прошлого канала нет, записывать заход в канал
         if before.channel is None:
             await self.handler.join(member, after.channel)
@@ -34,7 +61,6 @@ class Online(commands.Cog):
         # Переход в другой канал
         else:
             try:
-                # Лог онлайна
                 log_channel, embed = self.send_embed_online(member=member, after=after, before=before)
                 await log_channel.send(embed=embed)
             except:

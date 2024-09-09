@@ -309,8 +309,8 @@ class Punishments(commands.Cog):
         if not resolved_user:
             return await interaction.send('Пользователь не найден.')
 
-        # if isinstance(resolved_user, nextcord.Member) and interaction.user.top_role <= resolved_user.top_role:
-        #     return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
+        if isinstance(resolved_user, nextcord.Member) and interaction.user.top_role <= resolved_user.top_role:
+            return await interaction.send('Вы не можете наказать этого пользователя.', ephemeral=True)
 
         count_warns = len(await self.handler.database.get_warns(resolved_user.id, interaction.guild.id)) + 1
         embed = create_punishment_embed(resolved_user, interaction.user, reason,
